@@ -5,7 +5,6 @@ import 'package:anime_viewer/data/github/token_store.dart';
 import 'package:anime_viewer/data/library/library_repository.dart';
 import 'package:anime_viewer/data/models/library_entry.dart';
 import 'package:anime_viewer/data/sync/library_codec.dart';
-import 'package:anime_viewer/data/sync/library_merge.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,13 +51,8 @@ void main() {
   List<LibraryEntry> gistEntries() =>
       LibraryCodec.decode(github.gists.values.single[LibraryCodec.fileName]);
 
-  Future<SignInResult> signIn({MergeStrategy? choice}) async {
-    final code = await sync.requestDeviceCode();
-    return sync.completeSignIn(
-      code,
-      resolveConflict: choice == null ? null : () async => choice,
-    );
-  }
+  Future<SignInResult> signIn() async =>
+      sync.completeSignIn(await sync.requestDeviceCode());
 
   test('signed out: works locally and counts pending changes', () async {
     await sync.start();
@@ -107,44 +101,21 @@ void main() {
     await library.setStatus(1, ListStatus.current); // новее, чем в Gist
     await library.setStatus(3, ListStatus.dropped); // старше, чем в Gist
 
-    var asked = false;
-    final code = await sync.requestDeviceCode();
-    final result = await sync.completeSignIn(
-      code,
-      resolveConflict: () async {
-        asked = true;
-        return MergeStrategy.merge;
-      },
-    );
+    await library.setStatus(4, ListStatus.planning); // только на устройстве
 
-    expect(asked, isTrue);
+    final result = await signIn();
+
     expect(result.gistCreated, isFalse);
+    expect(result.entryCount, 3);
+    expect(result.conflicts, 2);
     expect((await library.entry(1))!.status, ListStatus.current);
     expect((await library.entry(3))!.status, ListStatus.paused);
     expect(gistEntries().map((e) => e.status), [
       ListStatus.current,
       ListStatus.paused,
+      ListStatus.planning,
     ]);
     expect(await library.pendingCount(), 0);
-  });
-
-  test('"take from Gist" replaces device lists', () async {
-    github.gists['old'] = {
-      LibraryCodec.fileName: LibraryCodec.encode([
-        LibraryEntry(
-          mediaId: 7,
-          status: ListStatus.completed,
-          updatedAt: DateTime.utc(2026, 1, 1),
-        ),
-      ]),
-    };
-    await sync.start();
-    await library.setStatus(1, ListStatus.current);
-
-    await signIn(choice: MergeStrategy.preferRemote);
-
-    expect(await library.entry(1), isNull);
-    expect((await library.entry(7))!.status, ListStatus.completed);
   });
 
   test('local change is pushed automatically after debounce', () async {

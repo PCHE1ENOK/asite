@@ -35,6 +35,7 @@ void main() {
       expect(r.entries, [local[0], remote[1], remote[2]]);
       expect(r.localChanged, [remote[1], remote[2]]);
       expect(r.remoteChanged, isTrue);
+      expect(r.conflicts, 2);
     });
 
     test('equal timestamps prefer local; identical lists change nothing', () {
@@ -55,30 +56,6 @@ void main() {
       expect(r.entries.single.deleted, isTrue);
       expect(r.localChanged, hasLength(1));
       expect(r.remoteChanged, isFalse);
-    });
-
-    test('preferRemote takes Gist and deletes local-only titles', () {
-      final now = DateTime.utc(2026, 2, 1);
-      final r = mergeLibraries(
-        [e(1, ListStatus.current, 30), e(2, ListStatus.planning, 1)],
-        [e(1, ListStatus.completed, 1)],
-        strategy: MergeStrategy.preferRemote,
-        now: now,
-      );
-      expect(r.entries[0], e(1, ListStatus.completed, 1));
-      expect(r.entries[1].deleted, isTrue);
-      expect(r.entries[1].updatedAt, now);
-    });
-
-    test('preferLocal keeps the device list', () {
-      final local = [e(1, ListStatus.current, 1)];
-      final r = mergeLibraries(local, [
-        e(1, ListStatus.completed, 50),
-        e(9, ListStatus.planning, 50),
-      ], strategy: MergeStrategy.preferLocal);
-      expect(r.entries, local);
-      expect(r.localChanged, isEmpty);
-      expect(r.remoteChanged, isTrue);
     });
   });
 

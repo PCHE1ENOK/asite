@@ -1,23 +1,12 @@
 import '../models/library_entry.dart';
 
-/// Как совместить списки устройства и Gist.
-enum MergeStrategy {
-  /// По каждому тайтлу остаётся запись с более поздним `updatedAt`.
-  merge,
-
-  /// Списки берутся из Gist целиком.
-  preferRemote,
-
-  /// Списки берутся с устройства целиком.
-  preferLocal,
-}
-
 /// Результат слияния.
 class MergeResult {
   const MergeResult({
     required this.entries,
     required this.localChanged,
     required this.remoteChanged,
+    required this.conflicts,
   });
 
   /// Итоговые записи, по одной на тайтл, отсортированы по `mediaId`.
@@ -28,43 +17,30 @@ class MergeResult {
 
   /// Нужно ли перезаписать Gist.
   final bool remoteChanged;
+
+  /// Сколько тайтлов есть с обеих сторон с разными записями
+  /// (по ним взята более свежая).
+  final int conflicts;
 }
 
-/// Сливает локальные и удалённые записи.
+/// Сливает локальные и удалённые записи: по каждому тайтлу остаётся запись
+/// с более поздним `updatedAt`, тайтлы только с одной стороны сохраняются.
 ///
-/// При равном `updatedAt` побеждает локальная запись, чтобы результат
-/// не зависел от порядка устройств и не вызывал лишних записей.
+/// При равном `updatedAt` побеждает локальная запись, чтобы не было
+/// лишних перезаписей.
 MergeResult mergeLibraries(
   Iterable<LibraryEntry> local,
-  Iterable<LibraryEntry> remote, {
-  MergeStrategy strategy = MergeStrategy.merge,
-  DateTime? now,
-}) {
+  Iterable<LibraryEntry> remote,
+) {
   final localById = {for (final e in local) e.mediaId: e};
   final remoteById = {for (final e in remote) e.mediaId: e};
 
-  final Map<int, LibraryEntry> merged;
-  switch (strategy) {
-    case MergeStrategy.preferLocal:
-      merged = Map.of(localById);
-    case MergeStrategy.preferRemote:
-      merged = Map.of(remoteById);
-      // Тайтлы, которых нет в Gist, помечаются удалёнными с текущим
-      // временем, чтобы удаление дошло и до других устройств.
-      final deletedAt = (now ?? DateTime.now()).toUtc();
-      for (final l in localById.values) {
-        if (!merged.containsKey(l.mediaId) && !l.deleted) {
-          merged[l.mediaId] = l.copyWith(deleted: true, updatedAt: deletedAt);
-        }
-      }
-    case MergeStrategy.merge:
-      merged = Map.of(localById);
-      for (final r in remoteById.values) {
-        final l = merged[r.mediaId];
-        if (l == null || r.updatedAt.isAfter(l.updatedAt)) {
-          merged[r.mediaId] = r;
-        }
-      }
+  final merged = Map.of(localById);
+  var conflicts = 0;
+  for (final r in remoteById.values) {
+    final l = merged[r.mediaId];
+    if (l != null && l != r) conflicts++;
+    if (l == null || r.updatedAt.isAfter(l.updatedAt)) merged[r.mediaId] = r;
   }
 
   final ids = merged.keys.toList()..sort();
@@ -78,5 +54,6 @@ MergeResult mergeLibraries(
     remoteChanged:
         remoteById.length != entries.length ||
         entries.any((e) => remoteById[e.mediaId] != e),
+    conflicts: conflicts,
   );
 }

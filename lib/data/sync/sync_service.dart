@@ -63,6 +63,7 @@ class SignInResult {
     required this.login,
     required this.gistCreated,
     required this.entryCount,
+    required this.conflicts,
   });
 
   final String login;
@@ -70,8 +71,11 @@ class SignInResult {
   /// `true` — создан новый Gist, `false` — найден существующий.
   final bool gistCreated;
 
-  /// Сколько тайтлов в списках после слияния.
+  /// Сколько тайтлов в списках после объединения.
   final int entryCount;
+
+  /// По скольким тайтлам взята более свежая запись.
+  final int conflicts;
 }
 
 /// Синхронизация списков с приватным GitHub Gist.
@@ -110,6 +114,8 @@ class SyncService {
   Future<void>? _running;
   bool _rerun = false;
   StreamSubscription<int>? _pendingSub;
+  bool _lastHadGist = false;
+  int _lastConflicts = 0;
 
   /// Можно ли войти: задан ли Client ID OAuth-приложения.
   bool get canSignIn => _auth() != null;
@@ -142,46 +148,37 @@ class SyncService {
     return auth.requestCode();
   }
 
-  /// Ждёт подтверждения на GitHub, сохраняет токен и синхронизирует.
-  ///
-  /// Если списки есть и на устройстве, и в Gist, вызывается
-  /// [resolveConflict]; по умолчанию — «Объединить».
+  /// Ждёт подтверждения на GitHub, сохраняет токен и объединяет списки
+  /// устройства и Gist (без диалога, решение пользователя).
   Future<SignInResult> completeSignIn(
     DeviceCode code, {
     bool Function()? isCancelled,
-    Future<MergeStrategy> Function()? resolveConflict,
   }) async {
     final token = await _auth()!.waitForToken(code, isCancelled: isCancelled);
     final client = _gistClient(token);
-    final login = await client.currentLogin();
+    final String login;
+    try {
+      login = await client.currentLogin();
+    } finally {
+      client.close();
+    }
 
     // Новый аккаунт: старая привязка к Gist не годится.
     await _db.putSetting(_gistIdKey, null);
-    final gistId = await client.findGistWithFile(LibraryCodec.fileName);
-    var strategy = MergeStrategy.merge;
-    if (gistId != null && await _library.hasEntries()) {
-      final remote = LibraryCodec.decode(
-        await client.readFile(gistId, LibraryCodec.fileName),
-      );
-      if (remote.any((e) => !e.deleted) && resolveConflict != null) {
-        strategy = await resolveConflict();
-      }
-    }
-
     await _tokens.write(token);
     _token = token;
     await _db.putSetting(_loginKey, login);
-    if (gistId != null) await _db.putSetting(_gistIdKey, gistId);
 
-    await syncNow(strategy: strategy);
+    final hadGist = await syncNow().then((_) => _lastHadGist);
     final error = state.value.error;
     if (state.value.status == SyncStatus.error && error != null) throw error;
 
     final entries = await _library.allForSync();
     return SignInResult(
       login: login,
-      gistCreated: gistId == null,
+      gistCreated: !hadGist,
       entryCount: entries.where((e) => !e.deleted).length,
+      conflicts: _lastConflicts,
     );
   }
 
@@ -197,24 +194,23 @@ class SyncService {
   }
 
   /// Синхронизирует сейчас. Параллельные вызовы объединяются.
-  Future<void> syncNow({MergeStrategy strategy = MergeStrategy.merge}) {
+  Future<void> syncNow() {
     _debounceTimer?.cancel();
     if (_running != null) {
       _rerun = true;
       return _running!;
     }
-    return _running = _runLoop(strategy).whenComplete(() => _running = null);
+    return _running = _runLoop().whenComplete(() => _running = null);
   }
 
-  Future<void> _runLoop(MergeStrategy strategy) async {
+  Future<void> _runLoop() async {
     do {
       _rerun = false;
-      await _syncOnce(strategy);
-      strategy = MergeStrategy.merge;
+      await _syncOnce();
     } while (_rerun && _token != null);
   }
 
-  Future<void> _syncOnce(MergeStrategy strategy) async {
+  Future<void> _syncOnce() async {
     final token = _token;
     if (token == null) return _publishIdle();
 
@@ -231,12 +227,9 @@ class SyncService {
     try {
       final (gistId, remote) = await _loadRemote(client);
       final local = await _library.allForSync();
-      final merge = mergeLibraries(
-        local,
-        remote,
-        strategy: strategy,
-        now: _now(),
-      );
+      final merge = mergeLibraries(local, remote);
+      _lastHadGist = gistId != null;
+      _lastConflicts = merge.conflicts;
 
       final remoteById = {for (final e in remote) e.mediaId: e};
       final localSnapshot = {for (final e in local) e.mediaId: e};

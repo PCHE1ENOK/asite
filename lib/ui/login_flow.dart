@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../data/github/github_auth.dart';
 import '../data/github/github_exception.dart';
-import '../data/sync/library_merge.dart';
 import '../data/sync/sync_service.dart';
 
 /// Вход через GitHub Device Flow (design/screens.md §5).
@@ -43,7 +42,6 @@ class _LoginFlowState extends State<LoginFlow> {
       final result = await widget.sync.completeSignIn(
         code,
         isCancelled: () => _cancelled || !mounted,
-        resolveConflict: _askConflict,
       );
       if (mounted) setState(() => _result = result);
     } on GitHubException catch (e) {
@@ -53,34 +51,6 @@ class _LoginFlowState extends State<LoginFlow> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-  }
-
-  Future<MergeStrategy> _askConflict() async {
-    final choice = await showDialog<MergeStrategy>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Списки есть и здесь, и в Gist'),
-        content: const Text(
-          'Объединить: по каждому тайтлу останется более свежая запись.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, MergeStrategy.preferLocal),
-            child: const Text('Оставить с устройства'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, MergeStrategy.preferRemote),
-            child: const Text('Взять из Gist'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, MergeStrategy.merge),
-            child: const Text('Объединить'),
-          ),
-        ],
-      ),
-    );
-    return choice ?? MergeStrategy.merge;
   }
 
   @override
@@ -97,8 +67,10 @@ class _LoginFlowState extends State<LoginFlow> {
         const SizedBox(height: 12),
         Text(
           result.gistCreated
-              ? 'Создан приватный Gist, перенесено тайтлов: ${result.entryCount}'
-              : 'Списки загружены из Gist',
+              ? 'Создан приватный Gist, перенесено тайтлов с устройства: '
+                    '${result.entryCount}'
+              : 'Списки объединены: тайтлов ${result.entryCount}, '
+                    'более свежая запись взята по ${result.conflicts}',
         ),
         const SizedBox(height: 24),
         FilledButton(
