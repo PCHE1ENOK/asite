@@ -25,30 +25,92 @@
       "meanScore": 85,
       "popularity": 950000,
       "favourites": 60000,
-      "genres": ["Action", "Drama"],
+      "genres": [
+        "Action",
+        "Drama"
+      ],
       "isAdult": false,
       "description": "Several hundred years ago, humans were nearly exterminated by Titans.<br><br>\n<i>Titans</i> are typically several stories tall &amp; seem to have no intelligence.",
-      "startDate": { "year": 2013, "month": 4, "day": 7 },
-      "endDate": { "year": 2013, "month": 9, "day": 28 },
-      "synonyms": ["AoT", "SnK"],
+      "startDate": {
+        "year": 2013,
+        "month": 4,
+        "day": 7
+      },
+      "endDate": {
+        "year": 2013,
+        "month": 9,
+        "day": 28
+      },
+      "synonyms": [
+        "AoT",
+        "SnK"
+      ],
       "source": "MANGA",
       "countryOfOrigin": "JP",
       "siteUrl": "https://anilist.co/anime/16498",
-      "trailer": { "id": "LHtdKWJdif4", "site": "youtube", "thumbnail": "https://i.ytimg.com/vi/LHtdKWJdif4/hqdefault.jpg" },
+      "trailer": {
+        "id": "LHtdKWJdif4",
+        "site": "youtube",
+        "thumbnail": "https://i.ytimg.com/vi/LHtdKWJdif4/hqdefault.jpg"
+      },
       "nextAiringEpisode": null,
       "studios": {
         "edges": [
-          { "isMain": true, "node": { "id": 858, "name": "Wit Studio" } }
+          {
+            "isMain": true,
+            "node": {
+              "id": 858,
+              "name": "Wit Studio"
+            }
+          }
         ]
       },
       "tags": [
-        { "name": "Survival", "rank": 92, "isMediaSpoiler": false, "isGeneralSpoiler": false },
-        { "name": "Twist", "rank": 70, "isMediaSpoiler": true, "isGeneralSpoiler": false }
+        {
+          "name": "Survival",
+          "rank": 92,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+        },
+        {
+          "name": "Twist",
+          "rank": 70,
+          "isMediaSpoiler": true,
+          "isGeneralSpoiler": false
+        }
       ],
       "stats": {
         "scoreDistribution": [
-          { "score": 10, "amount": 1200 },
-          { "score": 100, "amount": 98000 }
+          {
+            "score": 10,
+            "amount": 1200
+          },
+          {
+            "score": 100,
+            "amount": 98000
+          }
+        ],
+        "statusDistribution": [
+          {
+            "status": "CURRENT",
+            "amount": 98000
+          },
+          {
+            "status": "PLANNING",
+            "amount": 210000
+          },
+          {
+            "status": "COMPLETED",
+            "amount": 245000
+          },
+          {
+            "status": "PAUSED",
+            "amount": 9000
+          },
+          {
+            "status": "DROPPED",
+            "amount": 7000
+          }
         ]
       },
       "relations": {
@@ -59,8 +121,17 @@
               "type": "ANIME",
               "id": 20958,
               "idMal": 25777,
-              "title": { "romaji": "Shingeki no Kyojin 2", "english": "Attack on Titan Season 2", "native": "進撃の巨人2" },
-              "coverImage": { "medium": null, "large": null, "extraLarge": null, "color": null },
+              "title": {
+                "romaji": "Shingeki no Kyojin 2",
+                "english": "Attack on Titan Season 2",
+                "native": "進撃の巨人2"
+              },
+              "coverImage": {
+                "medium": null,
+                "large": null,
+                "extraLarge": null,
+                "color": null
+              },
               "bannerImage": null,
               "format": "TV",
               "status": "FINISHED",
@@ -72,7 +143,9 @@
               "meanScore": 84,
               "popularity": 700000,
               "favourites": 10000,
-              "genres": ["Action"],
+              "genres": [
+                "Action"
+              ],
               "isAdult": false
             }
           },
@@ -82,8 +155,17 @@
               "type": "MANGA",
               "id": 53390,
               "idMal": 23390,
-              "title": { "romaji": "Shingeki no Kyojin", "english": "Attack on Titan", "native": "進撃の巨人" },
-              "coverImage": { "medium": null, "large": null, "extraLarge": null, "color": null },
+              "title": {
+                "romaji": "Shingeki no Kyojin",
+                "english": "Attack on Titan",
+                "native": "進撃の巨人"
+              },
+              "coverImage": {
+                "medium": null,
+                "large": null,
+                "extraLarge": null,
+                "color": null
+              },
               "bannerImage": null,
               "format": "MANGA",
               "status": "FINISHED",
@@ -95,7 +177,9 @@
               "meanScore": 85,
               "popularity": 200000,
               "favourites": 20000,
-              "genres": ["Action"],
+              "genres": [
+                "Action"
+              ],
               "isAdult": false
             }
           }
@@ -107,8 +191,17 @@
             "mediaRecommendation": {
               "id": 101922,
               "idMal": 38000,
-              "title": { "romaji": "Kimetsu no Yaiba", "english": "Demon Slayer: Kimetsu no Yaiba", "native": "鬼滅の刃" },
-              "coverImage": { "medium": null, "large": null, "extraLarge": null, "color": null },
+              "title": {
+                "romaji": "Kimetsu no Yaiba",
+                "english": "Demon Slayer: Kimetsu no Yaiba",
+                "native": "鬼滅の刃"
+              },
+              "coverImage": {
+                "medium": null,
+                "large": null,
+                "extraLarge": null,
+                "color": null
+              },
               "bannerImage": null,
               "format": "TV",
               "status": "FINISHED",
@@ -120,12 +213,59 @@
               "meanScore": 84,
               "popularity": 800000,
               "favourites": 50000,
-              "genres": ["Action"],
+              "genres": [
+                "Action"
+              ],
               "isAdult": false
             }
           },
-          { "mediaRecommendation": null }
+          {
+            "mediaRecommendation": null
+          }
         ]
+      },
+      "rankings": [
+        {
+          "rank": 2,
+          "type": "POPULAR",
+          "allTime": true,
+          "season": null,
+          "year": null,
+          "context": "most popular all time"
+        },
+        {
+          "rank": 1,
+          "type": "RATED",
+          "allTime": false,
+          "season": "SPRING",
+          "year": 2013,
+          "context": "highest rated"
+        },
+        {
+          "rank": 40,
+          "type": "RATED",
+          "allTime": true,
+          "season": null,
+          "year": null,
+          "context": "highest rated all time"
+        }
+      ],
+      "streamingEpisodes": [
+        {
+          "title": "Episode 2 - That Day",
+          "thumbnail": "https://img/2.jpg"
+        },
+        {
+          "title": "Episode 1 - To You, in 2000 Years",
+          "thumbnail": "https://img/1.jpg"
+        },
+        {
+          "title": "Special Recap",
+          "thumbnail": null
+        }
+      ],
+      "airingSchedule": {
+        "nodes": []
       }
     }
   }

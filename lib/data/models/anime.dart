@@ -200,6 +200,73 @@ class ScoreBucket {
   Map<String, dynamic> toJson() => {'score': score, 'amount': amount};
 }
 
+/// Сколько пользователей AniList держат тайтл в каждом статусе.
+class StatusBucket {
+  const StatusBucket({required this.status, required this.amount});
+
+  /// Значение `MediaListStatus`: `CURRENT`, `PLANNING` и т.д.
+  final String status;
+  final int amount;
+}
+
+/// Место тайтла в рейтинге AniList.
+class Ranking {
+  const Ranking({
+    required this.rank,
+    required this.type,
+    required this.allTime,
+    this.season,
+    this.year,
+    this.context,
+  });
+
+  final int rank;
+
+  /// `RATED` или `POPULAR`.
+  final String type;
+  final bool allTime;
+  final String? season;
+  final int? year;
+  final String? context;
+}
+
+/// Эпизод со стриминговой площадки, указанной на AniList (только название
+/// и превью; видео приложение отсюда не берёт).
+class StreamingEpisode {
+  const StreamingEpisode({required this.title, this.thumbnail});
+
+  final String title;
+  final String? thumbnail;
+
+  /// Номер серии из названия вида «Episode 3 - Title», если он есть.
+  int? get number {
+    final m = RegExp(
+      r'(?:Episode|Эпизод|Серия)\s+(\d+)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    return m == null ? null : int.parse(m.group(1)!);
+  }
+
+  /// Название без префикса «Episode N - ».
+  String get cleanTitle => title
+      .replaceFirst(
+        RegExp(
+          r'^(?:Episode|Эпизод|Серия)\s+\d+\s*[-–:]\s*',
+          caseSensitive: false,
+        ),
+        '',
+      )
+      .trim();
+}
+
+/// Будущий выход серии.
+class AiringEpisode {
+  const AiringEpisode({required this.episode, required this.airingAt});
+
+  final int episode;
+  final DateTime airingAt;
+}
+
 /// Студия-производитель.
 class Studio {
   const Studio({required this.id, required this.name, this.isMain = false});
@@ -259,6 +326,10 @@ class AnimeDetails {
     this.relations = const [],
     this.recommendations = const [],
     this.scoreDistribution = const [],
+    this.statusDistribution = const [],
+    this.rankings = const [],
+    this.streamingEpisodes = const [],
+    this.airingSchedule = const [],
     this.trailer,
     this.nextAiringEpisode,
     this.siteUrl,
@@ -279,6 +350,12 @@ class AnimeDetails {
   final List<RelatedAnime> relations;
   final List<Anime> recommendations;
   final List<ScoreBucket> scoreDistribution;
+  final List<StatusBucket> statusDistribution;
+  final List<Ranking> rankings;
+  final List<StreamingEpisode> streamingEpisodes;
+
+  /// Ещё не вышедшие серии по возрастанию номера.
+  final List<AiringEpisode> airingSchedule;
   final Trailer? trailer;
   final NextAiringEpisode? nextAiringEpisode;
   final String? siteUrl;
@@ -287,6 +364,13 @@ class AnimeDetails {
   final Map<String, dynamic> raw;
 
   int get id => anime.id;
+
+  /// Лучшее место по рейтингу: сначала за сезон, потом за всё время.
+  Ranking? get bestRatedRanking {
+    final rated = rankings.where((r) => r.type == 'RATED').toList();
+    return rated.where((r) => r.season != null).firstOrNull ??
+        rated.where((r) => r.allTime).firstOrNull;
+  }
 
   /// Описание без HTML-тегов.
   String? get plainDescription => description
@@ -297,6 +381,8 @@ class AnimeDetails {
       .replaceAll('&#039;', "'")
       .replaceAll('&lt;', '<')
       .replaceAll('&gt;', '>')
+      .replaceAll(RegExp(r'[ \t]*\n[ \t]*'), '\n')
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
       .trim();
 
   /// Принимает объект `Media` из ответа запроса деталей.
@@ -346,6 +432,42 @@ class AnimeDetails {
         for (final b in _list(_map(json['stats'])['scoreDistribution']))
           ScoreBucket.fromJson(b),
       ],
+      statusDistribution: [
+        for (final b in _list(_map(json['stats'])['statusDistribution']))
+          if (b['status'] is String && b['amount'] is int)
+            StatusBucket(
+              status: b['status'] as String,
+              amount: b['amount'] as int,
+            ),
+      ],
+      rankings: [
+        for (final r in _list(json['rankings']))
+          if (r['rank'] is int && r['type'] is String)
+            Ranking(
+              rank: r['rank'] as int,
+              type: r['type'] as String,
+              allTime: r['allTime'] as bool? ?? false,
+              season: r['season'] as String?,
+              year: r['year'] as int?,
+              context: r['context'] as String?,
+            ),
+      ],
+      streamingEpisodes: [
+        for (final e in _list(json['streamingEpisodes']))
+          if (e['title'] is String)
+            StreamingEpisode(
+              title: e['title'] as String,
+              thumbnail: e['thumbnail'] as String?,
+            ),
+      ],
+      airingSchedule: [
+        for (final n in _list(_map(json['airingSchedule'])['nodes']))
+          if (n['episode'] is int && n['airingAt'] is int)
+            AiringEpisode(
+              episode: n['episode'] as int,
+              airingAt: _epoch(n['airingAt'] as int),
+            ),
+      ]..sort((a, b) => a.episode.compareTo(b.episode)),
       trailer: trailer == null || trailer['id'] == null
           ? null
           : Trailer(
@@ -357,16 +479,16 @@ class AnimeDetails {
           ? null
           : NextAiringEpisode(
               episode: next['episode'] as int,
-              airingAt: DateTime.fromMillisecondsSinceEpoch(
-                (next['airingAt'] as int) * 1000,
-                isUtc: true,
-              ),
+              airingAt: _epoch(next['airingAt'] as int),
             ),
       siteUrl: json['siteUrl'] as String?,
       raw: json,
     );
   }
 }
+
+DateTime _epoch(int seconds) =>
+    DateTime.fromMillisecondsSinceEpoch(seconds * 1000, isUtc: true);
 
 Map<String, dynamic> _map(Object? value) =>
     value is Map<String, dynamic> ? value : const {};

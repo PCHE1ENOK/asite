@@ -11,7 +11,7 @@ import 'data/sync/sync_service.dart';
 
 /// Сервисы приложения, общие для всех платформ.
 class AppServices {
-  AppServices._({
+  AppServices({
     required this.db,
     required this.anime,
     required this.library,
@@ -22,7 +22,7 @@ class AppServices {
   factory AppServices.create() {
     final db = AppDatabase.open();
     final library = LibraryRepository(db);
-    return AppServices._(
+    return AppServices(
       db: db,
       anime: AnimeRepository(client: AniListClient(), db: db),
       library: library,

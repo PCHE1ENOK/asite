@@ -61,7 +61,15 @@ query Details(\$id: Int) {
     nextAiringEpisode { episode airingAt }
     studios(isMain: true) { edges { isMain node { id name } } }
     tags { name rank isMediaSpoiler isGeneralSpoiler }
-    stats { scoreDistribution { score amount } }
+    stats {
+      scoreDistribution { score amount }
+      statusDistribution { status amount }
+    }
+    rankings { rank type allTime season year context }
+    streamingEpisodes { title thumbnail }
+    airingSchedule(notYetAired: true, perPage: 25) {
+      nodes { episode airingAt }
+    }
     relations {
       edges {
         relationType(version: 2)

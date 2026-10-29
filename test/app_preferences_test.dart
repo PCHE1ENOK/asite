@@ -17,4 +17,29 @@ void main() {
     expect(await prefs.showAdult(), isFalse);
     await db.close();
   });
+
+  test('theme defaults to system and persists', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    final prefs = AppPreferences(db);
+    expect(await prefs.theme(), ThemePreference.system);
+    await prefs.setTheme(ThemePreference.light);
+    expect(await prefs.theme(), ThemePreference.light);
+    await db.close();
+  });
+
+  test('recent searches: newest first, deduplicated, at most 8', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    final prefs = AppPreferences(db);
+    for (var i = 0; i < 10; i++) {
+      await prefs.addRecentSearch('q$i');
+    }
+    await prefs.addRecentSearch('  Q5 ');
+    final list = await prefs.recentSearches();
+    expect(list, hasLength(8));
+    expect(list.first, 'Q5');
+    expect(list.where((s) => s.toLowerCase() == 'q5'), hasLength(1));
+    await prefs.clearRecentSearches();
+    expect(await prefs.recentSearches(), isEmpty);
+    await db.close();
+  });
 }

@@ -1,0 +1,982 @@
+{
+ "data": {
+  "Page": {
+   "pageInfo": {
+    "total": 19000,
+    "perPage": 30,
+    "currentPage": 1,
+    "lastPage": 634,
+    "hasNextPage": true
+   },
+   "media": [
+    {
+     "id": 1000,
+     "idMal": 1000,
+     "title": {
+      "romaji": "Sousou no Frieren",
+      "english": "Frieren: Beyond Journey's End",
+      "native": "葬送のフリーレン"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1000-s.jpg",
+      "large": "https://img.test/cover/1000-m.jpg",
+      "extraLarge": "https://img.test/cover/1000.jpg",
+      "color": "#e4d6a1"
+     },
+     "bannerImage": "https://img.test/banner/1000.jpg",
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 28,
+     "duration": 24,
+     "season": "WINTER",
+     "seasonYear": 2023,
+     "averageScore": 90,
+     "meanScore": 90,
+     "popularity": 900000,
+     "favourites": 50000,
+     "genres": [
+      "Adventure",
+      "Drama",
+      "Fantasy"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1001,
+     "idMal": 1001,
+     "title": {
+      "romaji": "Shingeki no Kyojin",
+      "english": "Attack on Titan",
+      "native": "進撃の巨人"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1001-s.jpg",
+      "large": "https://img.test/cover/1001-m.jpg",
+      "extraLarge": "https://img.test/cover/1001.jpg",
+      "color": "#e4a15d"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 25,
+     "duration": 24,
+     "season": "SPRING",
+     "seasonYear": 2013,
+     "averageScore": 85,
+     "meanScore": 85,
+     "popularity": 875000,
+     "favourites": 49000,
+     "genres": [
+      "Action",
+      "Drama",
+      "Fantasy",
+      "Mystery"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1002,
+     "idMal": 1002,
+     "title": {
+      "romaji": "Kimi no Na wa.",
+      "english": "Your Name.",
+      "native": "君の名は。"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1002-s.jpg",
+      "large": "https://img.test/cover/1002-m.jpg",
+      "extraLarge": "https://img.test/cover/1002.jpg",
+      "color": "#5d86e4"
+     },
+     "bannerImage": null,
+     "format": "MOVIE",
+     "status": "FINISHED",
+     "episodes": 1,
+     "duration": 106,
+     "season": "SUMMER",
+     "seasonYear": 2016,
+     "averageScore": 85,
+     "meanScore": 85,
+     "popularity": 850000,
+     "favourites": 48000,
+     "genres": [
+      "Drama",
+      "Romance",
+      "Supernatural"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1003,
+     "idMal": 1003,
+     "title": {
+      "romaji": "Chainsaw Man",
+      "english": "Chainsaw Man",
+      "native": "チェンソーマン"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1003-s.jpg",
+      "large": "https://img.test/cover/1003-m.jpg",
+      "extraLarge": "https://img.test/cover/1003.jpg",
+      "color": "#e45d5d"
+     },
+     "bannerImage": "https://img.test/banner/1003.jpg",
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 12,
+     "duration": 24,
+     "season": "FALL",
+     "seasonYear": 2022,
+     "averageScore": 83,
+     "meanScore": 83,
+     "popularity": 825000,
+     "favourites": 47000,
+     "genres": [
+      "Action",
+      "Comedy",
+      "Horror"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1004,
+     "idMal": 1004,
+     "title": {
+      "romaji": "SPY×FAMILY",
+      "english": "SPY x FAMILY",
+      "native": "SPY×FAMILY"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1004-s.jpg",
+      "large": "https://img.test/cover/1004-m.jpg",
+      "extraLarge": "https://img.test/cover/1004.jpg",
+      "color": "#e45da1"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 12,
+     "duration": 24,
+     "season": "WINTER",
+     "seasonYear": 2022,
+     "averageScore": 84,
+     "meanScore": 84,
+     "popularity": 800000,
+     "favourites": 46000,
+     "genres": [
+      "Action",
+      "Comedy",
+      "Slice of Life"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1005,
+     "idMal": 1005,
+     "title": {
+      "romaji": "Dandadan",
+      "english": "DAN DA DAN",
+      "native": "ダンダダン"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1005-s.jpg",
+      "large": "https://img.test/cover/1005-m.jpg",
+      "extraLarge": "https://img.test/cover/1005.jpg",
+      "color": "#a15de4"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 12,
+     "duration": 24,
+     "season": "SPRING",
+     "seasonYear": 2024,
+     "averageScore": 84,
+     "meanScore": 84,
+     "popularity": 775000,
+     "favourites": 45000,
+     "genres": [
+      "Action",
+      "Comedy",
+      "Supernatural"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1006,
+     "idMal": 1006,
+     "title": {
+      "romaji": "Ore dake Level Up na Ken",
+      "english": "Solo Leveling",
+      "native": "俺だけレベルアップな件"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1006-s.jpg",
+      "large": "https://img.test/cover/1006-m.jpg",
+      "extraLarge": "https://img.test/cover/1006.jpg",
+      "color": "#3d4fa8"
+     },
+     "bannerImage": "https://img.test/banner/1006.jpg",
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 12,
+     "duration": 24,
+     "season": "SUMMER",
+     "seasonYear": 2024,
+     "averageScore": 82,
+     "meanScore": 82,
+     "popularity": 750000,
+     "favourites": 44000,
+     "genres": [
+      "Action",
+      "Adventure",
+      "Fantasy"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1007,
+     "idMal": 1007,
+     "title": {
+      "romaji": "Shin Seiki Evangelion",
+      "english": "Neon Genesis Evangelion",
+      "native": "新世紀エヴァンゲリオン"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1007-s.jpg",
+      "large": "https://img.test/cover/1007-m.jpg",
+      "extraLarge": "https://img.test/cover/1007.jpg",
+      "color": "#7a3da8"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 26,
+     "duration": 24,
+     "season": "FALL",
+     "seasonYear": 1995,
+     "averageScore": 83,
+     "meanScore": 83,
+     "popularity": 725000,
+     "favourites": 43000,
+     "genres": [
+      "Action",
+      "Drama",
+      "Mecha",
+      "Psychological"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1008,
+     "idMal": 1008,
+     "title": {
+      "romaji": "Sen to Chihiro no Kamikakushi",
+      "english": "Spirited Away",
+      "native": "千と千尋の神隠し"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1008-s.jpg",
+      "large": "https://img.test/cover/1008-m.jpg",
+      "extraLarge": "https://img.test/cover/1008.jpg",
+      "color": "#3da89a"
+     },
+     "bannerImage": null,
+     "format": "MOVIE",
+     "status": "FINISHED",
+     "episodes": 1,
+     "duration": 106,
+     "season": "WINTER",
+     "seasonYear": 2001,
+     "averageScore": 86,
+     "meanScore": 86,
+     "popularity": 700000,
+     "favourites": 42000,
+     "genres": [
+      "Adventure",
+      "Fantasy",
+      "Supernatural"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1009,
+     "idMal": 1009,
+     "title": {
+      "romaji": "Cowboy Bebop",
+      "english": "Cowboy Bebop",
+      "native": "カウボーイビバップ"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1009-s.jpg",
+      "large": "https://img.test/cover/1009-m.jpg",
+      "extraLarge": "https://img.test/cover/1009.jpg",
+      "color": "#d8a13a"
+     },
+     "bannerImage": "https://img.test/banner/1009.jpg",
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 26,
+     "duration": 24,
+     "season": "SPRING",
+     "seasonYear": 1998,
+     "averageScore": 86,
+     "meanScore": 86,
+     "popularity": 675000,
+     "favourites": 41000,
+     "genres": [
+      "Action",
+      "Adventure",
+      "Drama",
+      "Sci-Fi"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1010,
+     "idMal": 1010,
+     "title": {
+      "romaji": "Hagane no Renkinjutsushi: FULLMETAL ALCHEMIST",
+      "english": "Fullmetal Alchemist: Brotherhood",
+      "native": "鋼の錬金術師 FULLMETAL ALCHEMIST"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1010-s.jpg",
+      "large": "https://img.test/cover/1010-m.jpg",
+      "extraLarge": "https://img.test/cover/1010.jpg",
+      "color": "#d86a3a"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 64,
+     "duration": 24,
+     "season": "SUMMER",
+     "seasonYear": 2009,
+     "averageScore": 90,
+     "meanScore": 90,
+     "popularity": 650000,
+     "favourites": 40000,
+     "genres": [
+      "Action",
+      "Adventure",
+      "Drama",
+      "Fantasy"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1011,
+     "idMal": 1011,
+     "title": {
+      "romaji": "Vinland Saga",
+      "english": "Vinland Saga",
+      "native": "ヴィンランド・サガ"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1011-s.jpg",
+      "large": "https://img.test/cover/1011-m.jpg",
+      "extraLarge": "https://img.test/cover/1011.jpg",
+      "color": "#3a6ad8"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 24,
+     "duration": 24,
+     "season": "FALL",
+     "seasonYear": 2019,
+     "averageScore": 87,
+     "meanScore": 87,
+     "popularity": 625000,
+     "favourites": 39000,
+     "genres": [
+      "Action",
+      "Adventure",
+      "Drama"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1012,
+     "idMal": 1012,
+     "title": {
+      "romaji": "Tokyo Revengers",
+      "english": "Tokyo Revengers",
+      "native": "東京リベンジャーズ"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1012-s.jpg",
+      "large": "https://img.test/cover/1012-m.jpg",
+      "extraLarge": "https://img.test/cover/1012.jpg",
+      "color": "#d8c33a"
+     },
+     "bannerImage": "https://img.test/banner/1012.jpg",
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 24,
+     "duration": 24,
+     "season": "WINTER",
+     "seasonYear": 2021,
+     "averageScore": 74,
+     "meanScore": 74,
+     "popularity": 600000,
+     "favourites": 38000,
+     "genres": [
+      "Action",
+      "Drama",
+      "Supernatural"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1013,
+     "idMal": 1013,
+     "title": {
+      "romaji": "Kusuriya no Hitorigoto",
+      "english": "The Apothecary Diaries",
+      "native": "薬屋のひとりごと"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1013-s.jpg",
+      "large": "https://img.test/cover/1013-m.jpg",
+      "extraLarge": "https://img.test/cover/1013.jpg",
+      "color": "#3ad87a"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 24,
+     "duration": 24,
+     "season": "SPRING",
+     "seasonYear": 2023,
+     "averageScore": 88,
+     "meanScore": 88,
+     "popularity": 575000,
+     "favourites": 37000,
+     "genres": [
+      "Drama",
+      "Mystery",
+      "Romance"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1014,
+     "idMal": 1014,
+     "title": {
+      "romaji": "Boku no Hero Academia",
+      "english": "My Hero Academia",
+      "native": "僕のヒーローアカデミア"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1014-s.jpg",
+      "large": "https://img.test/cover/1014-m.jpg",
+      "extraLarge": "https://img.test/cover/1014.jpg",
+      "color": "#3ab0d8"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 13,
+     "duration": 24,
+     "season": "SUMMER",
+     "seasonYear": 2016,
+     "averageScore": 76,
+     "meanScore": 76,
+     "popularity": 550000,
+     "favourites": 36000,
+     "genres": [
+      "Action",
+      "Comedy"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1015,
+     "idMal": 1015,
+     "title": {
+      "romaji": "Sword Art Online",
+      "english": "Sword Art Online",
+      "native": "ソードアート・オンライン"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1015-s.jpg",
+      "large": "https://img.test/cover/1015-m.jpg",
+      "extraLarge": "https://img.test/cover/1015.jpg",
+      "color": "#3a7ad8"
+     },
+     "bannerImage": "https://img.test/banner/1015.jpg",
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 25,
+     "duration": 24,
+     "season": "FALL",
+     "seasonYear": 2012,
+     "averageScore": 67,
+     "meanScore": 67,
+     "popularity": 525000,
+     "favourites": 35000,
+     "genres": [
+      "Action",
+      "Adventure",
+      "Fantasy",
+      "Romance"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1016,
+     "idMal": 1016,
+     "title": {
+      "romaji": "Mob Psycho 100",
+      "english": "Mob Psycho 100",
+      "native": "モブサイコ100"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1016-s.jpg",
+      "large": "https://img.test/cover/1016-m.jpg",
+      "extraLarge": "https://img.test/cover/1016.jpg",
+      "color": "#b03ad8"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 12,
+     "duration": 24,
+     "season": "WINTER",
+     "seasonYear": 2016,
+     "averageScore": 84,
+     "meanScore": 84,
+     "popularity": 500000,
+     "favourites": 34000,
+     "genres": [
+      "Action",
+      "Comedy",
+      "Supernatural"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1017,
+     "idMal": 1017,
+     "title": {
+      "romaji": "Bocchi the Rock!",
+      "english": "BOCCHI THE ROCK!",
+      "native": "ぼっち・ざ・ろっく！"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1017-s.jpg",
+      "large": "https://img.test/cover/1017-m.jpg",
+      "extraLarge": "https://img.test/cover/1017.jpg",
+      "color": "#d83a8a"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 12,
+     "duration": 24,
+     "season": "SPRING",
+     "seasonYear": 2022,
+     "averageScore": 88,
+     "meanScore": 88,
+     "popularity": 475000,
+     "favourites": 33000,
+     "genres": [
+      "Comedy",
+      "Music",
+      "Slice of Life"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1018,
+     "idMal": 1018,
+     "title": {
+      "romaji": "Kaguya-sama wa Kokurasetai",
+      "english": "Kaguya-sama: Love is War",
+      "native": "かぐや様は告らせたい"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1018-s.jpg",
+      "large": "https://img.test/cover/1018-m.jpg",
+      "extraLarge": "https://img.test/cover/1018.jpg",
+      "color": "#d83a4a"
+     },
+     "bannerImage": "https://img.test/banner/1018.jpg",
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 12,
+     "duration": 24,
+     "season": "SUMMER",
+     "seasonYear": 2019,
+     "averageScore": 82,
+     "meanScore": 82,
+     "popularity": 450000,
+     "favourites": 32000,
+     "genres": [
+      "Comedy",
+      "Romance"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1019,
+     "idMal": 1019,
+     "title": {
+      "romaji": "Oshi no Ko",
+      "english": "Oshi no Ko",
+      "native": "【推しの子】"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1019-s.jpg",
+      "large": "https://img.test/cover/1019-m.jpg",
+      "extraLarge": "https://img.test/cover/1019.jpg",
+      "color": "#d8a03a"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 11,
+     "duration": 24,
+     "season": "FALL",
+     "seasonYear": 2023,
+     "averageScore": 84,
+     "meanScore": 84,
+     "popularity": 425000,
+     "favourites": 31000,
+     "genres": [
+      "Drama",
+      "Mystery",
+      "Supernatural"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1020,
+     "idMal": 1020,
+     "title": {
+      "romaji": "Jujutsu Kaisen",
+      "english": "JUJUTSU KAISEN",
+      "native": "呪術廻戦"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1020-s.jpg",
+      "large": "https://img.test/cover/1020-m.jpg",
+      "extraLarge": "https://img.test/cover/1020.jpg",
+      "color": "#4a3ad8"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 24,
+     "duration": 24,
+     "season": "WINTER",
+     "seasonYear": 2020,
+     "averageScore": 85,
+     "meanScore": 85,
+     "popularity": 400000,
+     "favourites": 30000,
+     "genres": [
+      "Action",
+      "Drama",
+      "Supernatural"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1021,
+     "idMal": 1021,
+     "title": {
+      "romaji": "Death Note",
+      "english": "Death Note",
+      "native": "DEATH NOTE"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1021-s.jpg",
+      "large": "https://img.test/cover/1021-m.jpg",
+      "extraLarge": "https://img.test/cover/1021.jpg",
+      "color": "#3a3a3a"
+     },
+     "bannerImage": "https://img.test/banner/1021.jpg",
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 37,
+     "duration": 24,
+     "season": "SPRING",
+     "seasonYear": 2006,
+     "averageScore": 84,
+     "meanScore": 84,
+     "popularity": 375000,
+     "favourites": 29000,
+     "genres": [
+      "Mystery",
+      "Psychological",
+      "Supernatural",
+      "Thriller"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1022,
+     "idMal": 1022,
+     "title": {
+      "romaji": "Kimetsu no Yaiba",
+      "english": "Demon Slayer: Kimetsu no Yaiba",
+      "native": "鬼滅の刃"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1022-s.jpg",
+      "large": "https://img.test/cover/1022-m.jpg",
+      "extraLarge": "https://img.test/cover/1022.jpg",
+      "color": "#3ad8c8"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 26,
+     "duration": 24,
+     "season": "SUMMER",
+     "seasonYear": 2019,
+     "averageScore": 83,
+     "meanScore": 83,
+     "popularity": 350000,
+     "favourites": 28000,
+     "genres": [
+      "Action",
+      "Adventure",
+      "Drama"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1023,
+     "idMal": 1023,
+     "title": {
+      "romaji": "One Punch Man",
+      "english": "One Punch Man",
+      "native": "ワンパンマン"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1023-s.jpg",
+      "large": "https://img.test/cover/1023-m.jpg",
+      "extraLarge": "https://img.test/cover/1023.jpg",
+      "color": "#d8d03a"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 12,
+     "duration": 24,
+     "season": "FALL",
+     "seasonYear": 2015,
+     "averageScore": 83,
+     "meanScore": 83,
+     "popularity": 325000,
+     "favourites": 27000,
+     "genres": [
+      "Action",
+      "Comedy",
+      "Sci-Fi"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1024,
+     "idMal": 1024,
+     "title": {
+      "romaji": "Steins;Gate",
+      "english": "Steins;Gate",
+      "native": "STEINS;GATE"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1024-s.jpg",
+      "large": "https://img.test/cover/1024-m.jpg",
+      "extraLarge": "https://img.test/cover/1024.jpg",
+      "color": "#8a8a5a"
+     },
+     "bannerImage": "https://img.test/banner/1024.jpg",
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 24,
+     "duration": 24,
+     "season": "WINTER",
+     "seasonYear": 2011,
+     "averageScore": 88,
+     "meanScore": 88,
+     "popularity": 300000,
+     "favourites": 26000,
+     "genres": [
+      "Drama",
+      "Psychological",
+      "Sci-Fi",
+      "Thriller"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1025,
+     "idMal": 1025,
+     "title": {
+      "romaji": "Made in Abyss",
+      "english": "Made in Abyss",
+      "native": "メイドインアビス"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1025-s.jpg",
+      "large": "https://img.test/cover/1025-m.jpg",
+      "extraLarge": "https://img.test/cover/1025.jpg",
+      "color": "#5ad8a0"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 13,
+     "duration": 24,
+     "season": "SPRING",
+     "seasonYear": 2017,
+     "averageScore": 84,
+     "meanScore": 84,
+     "popularity": 275000,
+     "favourites": 25000,
+     "genres": [
+      "Adventure",
+      "Drama",
+      "Fantasy",
+      "Mystery"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1026,
+     "idMal": 1026,
+     "title": {
+      "romaji": "Violet Evergarden",
+      "english": "Violet Evergarden",
+      "native": "ヴァイオレット・エヴァーガーデン"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1026-s.jpg",
+      "large": "https://img.test/cover/1026-m.jpg",
+      "extraLarge": "https://img.test/cover/1026.jpg",
+      "color": "#5a8ad8"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 13,
+     "duration": 24,
+     "season": "SUMMER",
+     "seasonYear": 2018,
+     "averageScore": 85,
+     "meanScore": 85,
+     "popularity": 250000,
+     "favourites": 24000,
+     "genres": [
+      "Drama",
+      "Fantasy",
+      "Slice of Life"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1027,
+     "idMal": 1027,
+     "title": {
+      "romaji": "Kono Subarashii Sekai ni Shukufuku wo!",
+      "english": "KONOSUBA",
+      "native": "この素晴らしい世界に祝福を！"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1027-s.jpg",
+      "large": "https://img.test/cover/1027-m.jpg",
+      "extraLarge": "https://img.test/cover/1027.jpg",
+      "color": "#3ad85a"
+     },
+     "bannerImage": "https://img.test/banner/1027.jpg",
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 10,
+     "duration": 24,
+     "season": "FALL",
+     "seasonYear": 2016,
+     "averageScore": 80,
+     "meanScore": 80,
+     "popularity": 225000,
+     "favourites": 23000,
+     "genres": [
+      "Adventure",
+      "Comedy",
+      "Fantasy"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1028,
+     "idMal": 1028,
+     "title": {
+      "romaji": "Ijiranaide, Nagatoro-san",
+      "english": "Don't Toy with Me, Miss Nagatoro",
+      "native": "イジらないで、長瀞さん"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1028-s.jpg",
+      "large": "https://img.test/cover/1028-m.jpg",
+      "extraLarge": "https://img.test/cover/1028.jpg",
+      "color": "#d87a3a"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 12,
+     "duration": 24,
+     "season": "WINTER",
+     "seasonYear": 2021,
+     "averageScore": 58,
+     "meanScore": 58,
+     "popularity": 200000,
+     "favourites": 22000,
+     "genres": [
+      "Comedy",
+      "Romance",
+      "Slice of Life"
+     ],
+     "isAdult": false
+    },
+    {
+     "id": 1029,
+     "idMal": 1029,
+     "title": {
+      "romaji": "Redo of Healer",
+      "english": "Redo of Healer",
+      "native": "回復術士のやり直し"
+     },
+     "coverImage": {
+      "medium": "https://img.test/cover/1029-s.jpg",
+      "large": "https://img.test/cover/1029-m.jpg",
+      "extraLarge": "https://img.test/cover/1029.jpg",
+      "color": "#a83a3a"
+     },
+     "bannerImage": null,
+     "format": "TV",
+     "status": "FINISHED",
+     "episodes": 12,
+     "duration": 24,
+     "season": "SPRING",
+     "seasonYear": 2021,
+     "averageScore": 55,
+     "meanScore": 55,
+     "popularity": 175000,
+     "favourites": 21000,
+     "genres": [
+      "Action",
+      "Adventure",
+      "Ecchi",
+      "Fantasy"
+     ],
+     "isAdult": true
+    }
+   ]
+  }
+ }
+}

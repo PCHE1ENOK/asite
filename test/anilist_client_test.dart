@@ -100,7 +100,7 @@ void main() {
       expect(
         d.plainDescription,
         'Several hundred years ago, humans were nearly exterminated by '
-        'Titans.\n\n\nTitans are typically several stories tall & seem to '
+        'Titans.\n\nTitans are typically several stories tall & seem to '
         'have no intelligence.',
       );
       expect(d.startDate.toString(), '2013-04-07');
@@ -123,13 +123,30 @@ void main() {
       // Пустая рекомендация пропускается.
       expect(d.recommendations.single.id, 101922);
       expect(d.raw['id'], 16498);
+
+      expect(d.statusDistribution.map((b) => b.amount), [
+        98000,
+        210000,
+        245000,
+        9000,
+        7000,
+      ]);
+      expect(d.bestRatedRanking?.rank, 1);
+      expect(d.bestRatedRanking?.season, 'SPRING');
+      expect(d.streamingEpisodes.map((e) => e.number), [2, 1, null]);
+      expect(d.streamingEpisodes[1].cleanTitle, 'To You, in 2000 Years');
+      expect(d.streamingEpisodes[2].cleanTitle, 'Special Recap');
+      expect(d.airingSchedule, isEmpty);
     });
 
     test('parses next airing episode', () async {
       final fake = FakeAniList(
         (_) => jsonResponse('''
         {"data": {"Media": {"id": 1, "title": {"romaji": "X"},
-          "nextAiringEpisode": {"episode": 5, "airingAt": 1700000000}}}}
+          "nextAiringEpisode": {"episode": 5, "airingAt": 1700000000},
+          "airingSchedule": {"nodes": [
+            {"episode": 6, "airingAt": 1700604800},
+            {"episode": 5, "airingAt": 1700000000}]}}}}
       '''),
       );
       final d = await AniListClient(httpClient: fake.client).fetchDetails(1);
@@ -139,6 +156,8 @@ void main() {
         d.nextAiringEpisode?.airingAt,
         DateTime.utc(2023, 11, 14, 22, 13, 20),
       );
+      expect(d.airingSchedule.map((e) => e.episode), [5, 6]);
+      expect(d.bestRatedRanking, isNull);
       expect(d.studios, isEmpty);
       expect(d.anime.genres, isEmpty);
     });
