@@ -542,13 +542,13 @@ function viewLogin() {
     <div class="wait">${ic('sync')}Ждём подтверждения на GitHub · код действует 15 мин</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-tonal" type="button" data-login="done">Демо: подтверждено</button><button class="btn btn-text" type="button" data-login="fail">Демо: ошибка</button><button class="btn btn-text" type="button" data-login="start">Отмена</button></div>`;
   if (st === 'done') body = `
-    <div class="sync ok">${ic('cloud_done')}<span class="msg"><b>Вы вошли как yuki-dev.</b> Создан приватный Gist «anime-lists». 184 тайтла перенесены с устройства.</span></div>
+    <div class="sync ok">${ic('cloud_done')}<span class="msg"><b>Вы вошли как yuki-dev.</b> Списки объединены с Gist «anime-lists»: 184 тайтла, по 5 взята более свежая запись.</span></div>
     <a class="btn btn-filled" href="#lists" style="text-decoration:none;justify-self:start">Открыть мои списки</a>`;
   if (st === 'fail') body = `
     <div class="err">Не удалось связаться с GitHub. Проверьте подключение к интернету. Списки на устройстве не пострадали.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-filled" type="button" data-login="code">Повторить</button><a class="btn btn-text" href="#catalog" style="text-decoration:none">Продолжить без входа</a></div>`;
   return `<div class="login"><div class="login-card">
-    <div class="overline">Аккаунт</div>
+    <div class="overline">${st === 'start' ? 'Первый запуск · можно пропустить' : 'Аккаунт'}</div>
     <h1>${st === 'done' ? 'Готово' : 'Вход через GitHub'}</h1>
     <div class="lead">${st === 'code' ? 'GitHub попросит подтвердить вход на своей странице. Пароль в приложение не вводится.' : 'Нужен, чтобы ваши списки были на всех устройствах.'}</div>
     ${body}
