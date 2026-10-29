@@ -67,11 +67,31 @@ test/                             тесты парсинга, клиента, �
 
 ```
 flutter pub get
-flutter run -d windows        # или android / ios
 flutter analyze
 flutter test
 dart run tool/smoke_anilist.dart   # реальные запросы к AniList
 ```
+
+Client ID OAuth-приложения GitHub «Anilist Viewer» (Device Flow включён)
+передаётся настройкой сборки, в коде значения по умолчанию нет. Client
+secret не нужен. Настройки лежат в `config/app.json`; VS Code подключает
+файл через `.vscode/launch.json`.
+
+```
+# Windows
+flutter run -d windows --dart-define-from-file=config/app.json
+flutter build windows --release --dart-define=GITHUB_CLIENT_ID=Ov23lixvFjCs94iKTfNX
+
+# iOS (на macOS с Xcode)
+flutter run -d ios --dart-define-from-file=config/app.json
+flutter build ipa --release --dart-define=GITHUB_CLIENT_ID=Ov23lixvFjCs94iKTfNX
+
+# Android
+flutter run -d android --dart-define-from-file=config/app.json
+```
+
+Без `GITHUB_CLIENT_ID` приложение работает, но кнопка «Войти через GitHub»
+неактивна.
 
 После изменения таблиц в `app_database.dart` перегенерируйте код:
 
