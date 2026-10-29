@@ -1,24 +1,43 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
-import 'data/anilist/anilist_client.dart';
+import 'app_services.dart';
 import 'data/anime_repository.dart';
-import 'data/cache/app_database.dart';
 import 'data/models/anime.dart';
 import 'data/models/catalog_query.dart';
+import 'ui/login_flow.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final repository = AnimeRepository(
-    client: AniListClient(),
-    db: AppDatabase.open(),
-  );
-  runApp(AnimeViewerApp(repository: repository));
+  final services = AppServices.create();
+  final showOnboarding = await services.preferences.shouldShowOnboarding();
+  // Синхронизация при запуске; ошибки отражаются в services.sync.state.
+  unawaited(services.sync.start());
+  runApp(AnimeViewerApp(services: services, showOnboarding: showOnboarding));
 }
 
-class AnimeViewerApp extends StatelessWidget {
-  const AnimeViewerApp({super.key, required this.repository});
+class AnimeViewerApp extends StatefulWidget {
+  const AnimeViewerApp({
+    super.key,
+    required this.services,
+    required this.showOnboarding,
+  });
 
-  final AnimeRepository repository;
+  final AppServices services;
+  final bool showOnboarding;
+
+  @override
+  State<AnimeViewerApp> createState() => _AnimeViewerAppState();
+}
+
+class _AnimeViewerAppState extends State<AnimeViewerApp> {
+  late bool _onboarding = widget.showOnboarding;
+
+  void _finishOnboarding() {
+    widget.services.preferences.markOnboardingSeen();
+    setState(() => _onboarding = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +47,9 @@ class AnimeViewerApp extends StatelessWidget {
         colorSchemeSeed: Colors.deepPurple,
         brightness: Brightness.dark,
       ),
-      home: _CatalogPreview(repository: repository),
+      home: _onboarding
+          ? LoginFlow(sync: widget.services.sync, onDone: _finishOnboarding)
+          : _CatalogPreview(repository: widget.services.anime),
     );
   }
 }

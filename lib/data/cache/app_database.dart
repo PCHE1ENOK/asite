@@ -32,7 +32,37 @@ class CacheEntries extends Table {
   Set<Column<Object>> get primaryKey => {key};
 }
 
-@DriftDatabase(tables: [CachedAnime, CacheEntries])
+/// Списки пользователя. Источник правды на устройстве; синхронизируются
+/// с приватным GitHub Gist.
+@DataClassName('LibraryEntryRow')
+class LibraryEntries extends Table {
+  IntColumn get mediaId => integer()();
+
+  /// Значение `ListStatus.apiValue`.
+  TextColumn get status => text()();
+  IntColumn get progress => integer().withDefault(const Constant(0))();
+  IntColumn get score => integer().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  /// Изменение ещё не отправлено в Gist.
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {mediaId};
+}
+
+/// Настройки приложения; в отличие от [CacheEntries], не очищаются.
+@DataClassName('SettingRow')
+class Settings extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {key};
+}
+
+@DriftDatabase(tables: [CachedAnime, CacheEntries, LibraryEntries, Settings])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
@@ -48,7 +78,17 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(libraryEntries);
+        await m.createTable(settings);
+      }
+    },
+  );
 
   Future<CachedAnimeRow?> animeById(int id) =>
       (select(cachedAnime)..where((t) => t.id.equals(id))).getSingleOrNull();
@@ -110,6 +150,16 @@ class AppDatabase extends _$AppDatabase {
           updatedAt: now,
         ),
       );
+
+  Future<String?> setting(String key) async => (await (select(
+    settings,
+  )..where((t) => t.key.equals(key))).getSingleOrNull())?.value;
+
+  Future<void> putSetting(String key, String? value) => value == null
+      ? (delete(settings)..where((t) => t.key.equals(key))).go()
+      : into(settings).insertOnConflictUpdate(
+          SettingsCompanion.insert(key: key, value: value),
+        );
 
   /// Удаляет записи кэша, не обновлявшиеся с [threshold].
   Future<void> pruneOlderThan(DateTime threshold) => transaction(() async {
