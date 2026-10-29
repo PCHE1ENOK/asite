@@ -87,6 +87,7 @@ class _CatalogPreviewState extends State<_CatalogPreview> {
                 title: Text(anime.title.preferred),
                 subtitle: Text(
                   [
+                    if (anime.isAdult) '18+',
                     anime.format,
                     anime.seasonYear?.toString(),
                   ].whereType<String>().join(' · '),

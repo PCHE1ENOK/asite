@@ -28,7 +28,7 @@ class CatalogQuery {
     this.season,
     this.seasonYear,
     this.minScore,
-    this.includeAdult = false,
+    this.includeAdult = true,
   });
 
   final String? search;
@@ -50,6 +50,9 @@ class CatalogQuery {
 
   /// Минимальная средняя оценка по шкале 0–100.
   final int? minScore;
+
+  /// Фильтр «Показывать 18+». По умолчанию включён: взрослые тайтлы
+  /// показываются с пометкой (`Anime.isAdult`).
   final bool includeAdult;
 
   bool get hasSearch => search != null && search!.trim().isNotEmpty;

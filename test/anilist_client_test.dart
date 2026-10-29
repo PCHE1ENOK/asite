@@ -65,7 +65,6 @@ void main() {
         'season': 'FALL',
         'seasonYear': 2023,
         'minScore': 70,
-        'isAdult': false,
         'page': 3,
         'perPage': 20,
       });

@@ -2,11 +2,17 @@ import 'package:anime_viewer/data/models/catalog_query.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('default query sorts by popularity and hides adult titles', () {
+  test('default query sorts by popularity and includes adult titles', () {
     expect(const CatalogQuery().toVariables(), {
       'sort': ['POPULARITY_DESC'],
-      'isAdult': false,
     });
+  });
+
+  test('turning off 18+ filters adult titles out', () {
+    expect(
+      const CatalogQuery(includeAdult: false).toVariables()['isAdult'],
+      false,
+    );
   });
 
   test('blank search is ignored', () {
