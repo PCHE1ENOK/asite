@@ -386,7 +386,8 @@ const DATA = [
 ];
 const GENRES = ['Экшен','Приключения','Драма','Комедия','Фэнтези','Фантастика','Мистика','Романтика','Спорт','Повседневность'];
 const DAN_EPS = ['Так начинается любовь, да?','Это же пришелец, верно?!','Битва бабули с бабулей!','Надрать зад Турбо-бабке','Ну и где твои шарики?!','Появляется опасная женщина','К миру добрее','Странное у меня предчувствие','Слияние! Серпо, Дуверский демон, Несси!','Видели когда-нибудь увечья скота?','Первая любовь','Пойдём в проклятый дом'];
-const DUBS = [{n:'AniLibria', k:'Озвучка · 1080p'},{n:'Studio Band', k:'Озвучка · 1080p'},{n:'Субтитры', k:'Русские · 1080p'}];
+// Абстрактный источник: названия студий условные
+const DUBS = [{n:'Студия А', k:'Озвучка · 1080p'},{n:'Студия Б', k:'Озвучка · 720p'},{n:'Субтитры', k:'Русские · 1080p'},{n:'Оригинал', k:'Японский · 1080p'}];
 
 const S = { genres:new Set(), format:'all', sort:'pop', hideMine:false, tab:'CURRENT', view:'grid', titleId:1, titleTab:'eps', dub:0, theme:null };
 try { const t = localStorage.getItem('ai-theme'); if (t) { S.theme = t; document.documentElement.dataset.theme = t; } } catch(e) {}
@@ -458,7 +459,7 @@ function viewLists() {
     : `<div class="state">${ic(S.tab)}<h3>Пока пусто</h3><div>Здесь появятся тайтлы со статусом «${STATUS[S.tab].label}».</div><a class="btn btn-outline" href="#catalog" style="text-decoration:none">Открыть каталог</a></div>`;
   return `<div class="page">
     <div class="head"><h1>Мои списки</h1></div>
-    <div class="cap">Всего ${tot} тайтлов в AniList</div>
+    <div class="cap">Всего ${tot} тайтлов · хранятся на этом устройстве</div>
     <div class="statusbar" role="img" aria-label="${ORDER.map(k => STATUS[k].label + ' ' + counts[k]).join(', ')}">${ORDER.map(k => `<i style="flex:${counts[k]};background:var(${STATUS[k].v})" title="${STATUS[k].label}: ${counts[k]}"></i>`).join('')}</div>
     <div class="legend">${ORDER.map(k => `<span><span style="color:var(${STATUS[k].v});display:inline-flex">${ic(k)}</span>${STATUS[k].label} <b>${counts[k]}</b></span>`).join('')}</div>
     <div class="tabs" role="tablist">${ORDER.map(k => `<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${S.tab === k}">${STATUS[k].label}<span class="count">${counts[k]}</span></button>`).join('')}</div>
