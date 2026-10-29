@@ -63,7 +63,11 @@ svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
 .num { font-variant-numeric: tabular-nums; }
 
 /* ---------- окно ---------- */
-.app { height: 100%; display: grid; grid-template-rows: 32px 1fr; grid-template-columns: 72px 1fr; }
+.app { height: 100%; display: grid; grid-template-rows: 32px minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); }
+.device { display: grid; grid-template-columns: 72px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-height: 0; position: relative; transform: translateZ(0); background: var(--bg); }
+.device > .rail { grid-column: 1; grid-row: 1; }
+.device > .main { grid-column: 2; grid-row: 1; }
+.sbar, .mnav, .pl-center, .homebar { display: none; }
 .titlebar { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); background: var(--bg); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--fg2); -webkit-user-select: none; user-select: none; }
 .titlebar .brand { font: 600 12px/1 var(--f-display); color: var(--fg); letter-spacing: .02em; }
 .titlebar .proto { margin-left: auto; display: flex; align-items: center; gap: 8px; }
@@ -331,26 +335,148 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 
 /* ---------- телефон ---------- */
 @media (max-width: 640px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: 32px 1fr auto; }
-  .winbtns, .titlebar .proto label { display: none; }
-  .rail { grid-row: 3; flex-direction: row; justify-content: space-around; padding: 6px max(8px, env(safe-area-inset-right, 0px)) max(6px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); border-right: 0; border-top: 1px solid var(--border); }
-  .rail .spacer, .rail .settings-link, .titlebar .sub { display: none; }
-  .rail a[aria-current="page"]::before { display: none; }
-  .page { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 32px; }
-  .hero { margin: -16px calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 48px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
-  .hero-row { gap: 16px; }
-  .hero-row > .poster { width: 120px; }
-  h1 { font-size: 26px; line-height: 32px; }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 20px 12px; }
-  .search { margin-left: 0; width: 100%; }
-  .toolbar { flex-wrap: nowrap; overflow-x: auto; margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px))); padding-right: 16px; padding-bottom: 4px; }
-  .toolbar .right { margin-left: 0; }
-  .chip { flex: none; }
-  .art .ttl { font-size: 11px; line-height: 14px; }
-  .ep { grid-template-columns: 28px 1fr auto 24px; padding: 6px 4px; }
-  .skip, .next { bottom: 150px; }
+  .winbtns, .titlebar .proto label, .titlebar .sub { display: none; }
 }
-@media (min-width: 641px) { .rail a.avatar-wrap.is-settings { background: none; color: var(--fg2); } .rail a.avatar-wrap.is-settings::before { display: none; } }
+.app.m .device { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; }
+.app.m .device > .main { grid-column: 1; grid-row: 2; }
+.app.m .device > .rail { grid-column: 1; grid-row: 3; }
+.app.m .homebar { grid-row: 4; }
+.app.m .hover-cta, .app.m .kbd { display: none; }
+.app.m .rail .settings-link { display: none; }
+.app.m .rail { flex-direction: row; justify-content: space-around; padding: 6px max(8px, env(safe-area-inset-right, 0px)) max(6px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); border-right: 0; border-top: 1px solid var(--border); }
+.app.m .rail .spacer, .app.m .rail .settings-link { display: none; }
+.app.m .rail a[aria-current="page"]::before { display: none; }
+.app.m .page { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 32px; }
+.app.m .hero { margin: -16px calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 48px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
+.app.m .hero-row { gap: 16px; }
+.app.m .hero-row > .poster { width: 120px; }
+.app.m h1 { font-size: 26px; line-height: 32px; }
+.app.m .grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 20px 12px; }
+.app.m .search { margin-left: 0; width: 100%; }
+.app.m .toolbar { flex-wrap: nowrap; overflow-x: auto; margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px))); padding-right: 16px; padding-bottom: 4px; }
+.app.m .toolbar .right { margin-left: 0; }
+.app.m .chip { flex: none; }
+.app.m .art .ttl { font-size: 11px; line-height: 14px; }
+.app.m .ep { grid-template-columns: 28px 1fr auto 24px; padding: 6px 4px; }
+.app.m .skip, .app.m .next { bottom: 150px; }
+.app:not(.m) .rail a.avatar-wrap.is-settings { background: none; color: var(--fg2); }
+.app:not(.m) .rail a.avatar-wrap.is-settings::before { display: none; }
+
+/* ---------- рамка телефона (iOS / Android на широком экране) ---------- */
+.app.framed { background: color-mix(in srgb, var(--bg) 70%, #000); }
+.app.framed .device { justify-self: center; align-self: center; height: min(844px, calc(100% - 24px)); aspect-ratio: 390 / 844; max-width: calc(100% - 32px); border-radius: 44px; overflow: hidden; box-shadow: 0 0 0 10px #05060A, 0 0 0 11px #2C3144, var(--shadow-3); }
+.app.framed.land .device { height: auto; width: min(844px, calc(100% - 48px)); aspect-ratio: 844 / 390; }
+.app.framed .sbar { display: flex; grid-row: 1; justify-content: space-between; align-items: center; padding: 14px 28px 6px; font: 600 15px/20px var(--f-text); color: var(--fg); background: var(--bg); }
+.app.framed .sbar svg { height: 12px; width: auto; }
+.app.framed .sbar .sicons { display: flex; gap: 6px; align-items: center; }
+.app.framed .homebar { display: block; height: 22px; position: relative; background: var(--rail-bg, var(--bg)); }
+.app.framed .homebar::after { content: ""; position: absolute; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: var(--fg); }
+.app.framed.land .sbar, .app.framed.land .rail, .app.framed.land .homebar { display: none; }
+.app.m.land .device > .main { grid-row: 1 / -1; }
+
+/* ---------- общий мобильный ---------- */
+.app.m .mnav { display: flex; position: absolute; left: 0; right: 0; top: 0; z-index: 3; align-items: center; gap: 4px; height: 52px; padding: 0 8px; }
+.app.m .mnav a { display: inline-flex; align-items: center; gap: 2px; color: #FFFFFF; text-decoration: none; font-size: 17px; height: 44px; padding: 0 8px; border-radius: var(--r-pill); }
+.app.m .hero { padding-top: 64px; }
+.app.m .actions .btn { flex: 1 1 auto; justify-content: center; }
+.sheet-wrap { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; justify-content: flex-end; background: #00000066; }
+.sheet { background: var(--s1); color: var(--fg); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sheet .st { padding: 14px 16px 8px; font-size: 13px; color: var(--fg2); text-align: center; }
+.sheet button.opt { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 16px; font-size: 17px; text-align: left; }
+.sheet button.opt:active { background: var(--pressed); }
+.sheet .radio { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--fg2); display: grid; place-items: center; }
+.sheet .radio.on { border-color: var(--accent); }
+.sheet .radio.on::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.sheet-wrap > .cancel { display: none; }
+.navrow { display: inline-flex; align-items: center; gap: 4px; color: var(--fg2); font-size: 15px; min-height: 44px; }
+.navrow svg { transform: rotate(-90deg); width: 18px; height: 18px; }
+.pl-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); gap: 40px; align-items: center; transition: opacity .22s var(--ease); }
+.pl-center .pl-btn { width: 56px; height: 56px; background: #0000004D; }
+.pl-center .pl-btn svg { width: 30px; height: 30px; }
+.pl-center .pl-btn.big { width: 72px; height: 72px; }
+.pl-center .pl-btn.big svg { width: 42px; height: 42px; }
+.app.m .pl-center { display: flex; }
+.app.m .frame-art::after { content: none; }
+.app.m .hide-ui .pl-center { opacity: 0; }
+.app.m .ctrls #rw, .app.m .ctrls #fw, .app.m .ctrls #pp, .app.m .center-play { display: none; }
+.app.m .pl-top { padding-top: 12px; }
+.app.m .pl-bot { padding-bottom: 12px; }
+.app.m .skip, .app.m .next { bottom: 96px; }
+.app.m .next { width: 280px; }
+.app.m .next .thumb { display: none; }
+.app.m .toast { bottom: 96px; }
+
+/* ---------- iOS ---------- */
+.app[data-platform="ios"].m { --rail-bg: color-mix(in srgb, var(--s1) 86%, transparent); }
+.app[data-platform="ios"].m .rail { background: var(--rail-bg); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border-top: 0.5px solid var(--border-strong); padding-top: 6px; padding-bottom: 2px; }
+.app[data-platform="ios"].m .rail a { background: none; color: var(--fg3); font-size: 10px; font-weight: 500; gap: 1px; padding: 2px 0; }
+.app[data-platform="ios"].m .rail a[aria-current="page"] { color: var(--accent); }
+.app[data-platform="ios"].m .rail svg { width: 26px; height: 26px; }
+.app[data-platform="ios"].m .rail .avatar { width: 26px; height: 26px; font-size: 10px; }
+.app[data-platform="ios"].m h1 { font-size: 30px; line-height: 36px; }
+.app[data-platform="ios"].m .page { padding-block: 4px 32px; }
+.app[data-platform="ios"] .switch { width: 51px; height: 31px; border-radius: 16px; border: 0; background: color-mix(in srgb, var(--fg3) 32%, transparent); }
+.app[data-platform="ios"] .switch::after { top: 2px; left: 2px; width: 27px; height: 27px; background: #FFFFFF; box-shadow: 0 3px 8px #00000026, 0 1px 1px #00000029; }
+.app[data-platform="ios"] .switch[aria-checked="true"] { background: var(--accent); }
+.app[data-platform="ios"] .switch[aria-checked="true"]::after { transform: translateX(20px); background: #FFFFFF; }
+.app[data-platform="ios"] .seg { background: color-mix(in srgb, var(--fg3) 20%, transparent); border-radius: 9px; padding: 2px; }
+.app[data-platform="ios"] .seg button { height: 28px; border-radius: 7px; font-size: 13px; }
+.app[data-platform="ios"] .seg button[aria-pressed="true"] { background: var(--s3); box-shadow: 0 3px 8px #0000001F, 0 3px 1px #0000000A; }
+.app[data-platform="ios"].m .searchbig { height: 36px; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--fg3) 20%, transparent); padding: 0 8px; box-shadow: none; }
+.app[data-platform="ios"].m .searchbig input { font-size: 17px; }
+.app[data-platform="ios"].m .group > .srow { border: 0; min-height: 44px; padding: 8px 16px; position: relative; }
+.app[data-platform="ios"].m .group > .srow + .srow::before { content: ""; position: absolute; left: 16px; right: 0; top: 0; height: 0.5px; background: var(--border-strong); }
+.app[data-platform="ios"].m .group > .overline + .srow { border-radius: 10px 10px 0 0; }
+.app[data-platform="ios"].m .group > .srow:last-child { border-radius: 0 0 10px 10px; }
+.app[data-platform="ios"].m .group > .overline + .srow:last-child { border-radius: 10px; }
+.app[data-platform="ios"].m .group > .overline { padding-left: 16px; font-weight: 400; letter-spacing: .02em; }
+.app[data-platform="ios"].m .btn { height: 44px; border-radius: 12px; font-size: 16px; }
+.app[data-platform="ios"].m .mnav a { color: var(--accent); background: none; font-weight: 400; }
+.app[data-platform="ios"].m .mnav a svg { transform: none; }
+.app[data-platform="ios"] .sheet-wrap { padding: 0 8px 8px; gap: 8px; }
+.app[data-platform="ios"].framed .sheet-wrap { padding-bottom: 34px; }
+.app[data-platform="android"].framed .sheet { padding-bottom: 28px; }
+.app[data-platform="ios"] .sheet { border-radius: 14px; background: color-mix(in srgb, var(--s2) 94%, transparent); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); overflow: hidden; }
+.app[data-platform="ios"] .sheet button.opt { justify-content: center; color: var(--accent); border-top: 0.5px solid var(--border-strong); font-size: 18px; }
+.app[data-platform="ios"] .sheet button.opt svg { display: none; }
+.app[data-platform="ios"] .sheet .radio { display: none; }
+.app[data-platform="ios"] .sheet button.opt.on { font-weight: 600; }
+.app[data-platform="ios"] .sheet button.opt.danger { color: var(--bad); }
+.app[data-platform="ios"] .sheet-wrap > .cancel { display: block; width: 100%; height: 56px; background: var(--s2); border-radius: 14px; color: var(--accent); font-weight: 600; font-size: 18px; }
+
+/* ---------- Android (Material 3) ---------- */
+.app[data-platform="android"].m { --rail-bg: var(--s1); }
+.app[data-platform="android"].m .rail { background: var(--s1); border-top: 0; padding: 12px 0 16px; height: 80px; align-items: flex-start; }
+.app[data-platform="android"].m .rail a { background: none; width: auto; min-width: 64px; padding: 0; gap: 4px; color: var(--fg2); font-size: 12px; font-weight: 500; }
+.app[data-platform="android"].m .rail a > svg { box-sizing: content-box; padding: 4px 20px; border-radius: 16px; }
+.app[data-platform="android"].m .rail a[aria-current="page"] { color: var(--fg); font-weight: 600; }
+.app[data-platform="android"].m .rail a[aria-current="page"] > svg { background: var(--accent-soft); color: var(--accent); }
+.app[data-platform="android"].m .rail .avatar { width: 24px; height: 24px; font-size: 10px; margin: 4px 20px; }
+.app[data-platform="android"].m .rail a[aria-current="page"] > .avatar { box-shadow: 0 0 0 4px var(--accent-soft), 0 0 0 20px transparent; outline: 32px solid transparent; }
+.app[data-platform="android"].m .rail .syncdot { right: 18px; top: 0; }
+.app[data-platform="android"].m .homebar::after { width: 108px; height: 4px; margin-left: -54px; bottom: 9px; background: var(--fg2); }
+.app[data-platform="android"].framed .sbar { padding: 10px 24px 4px; font-size: 14px; }
+.app[data-platform="android"].m h1 { font-size: 28px; line-height: 36px; }
+.app[data-platform="android"] .switch { width: 52px; height: 32px; border-radius: 16px; border: 2px solid var(--border-strong); background: var(--s3); }
+.app[data-platform="android"] .switch::after { top: 6px; left: 6px; width: 16px; height: 16px; background: var(--fg2); }
+.app[data-platform="android"] .switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.app[data-platform="android"] .switch[aria-checked="true"]::after { top: 2px; left: 2px; width: 24px; height: 24px; transform: translateX(20px); background: var(--on-accent); }
+.app[data-platform="android"] .seg { background: none; padding: 0; gap: 0; border: 1px solid var(--border-strong); border-radius: 20px; overflow: hidden; }
+.app[data-platform="android"] .seg button { height: 38px; border-radius: 0; padding: 0 14px; color: var(--fg); }
+.app[data-platform="android"] .seg button + button { border-left: 1px solid var(--border-strong); }
+.app[data-platform="android"] .seg button[aria-pressed="true"] { background: var(--accent-soft); box-shadow: none; }
+.app[data-platform="android"] .seg button[aria-pressed="true"]::before { content: "✓ "; }
+.app[data-platform="android"] .chip { border-radius: 8px; }
+.app[data-platform="android"] .chip[aria-pressed="true"]::before { content: "✓"; font-weight: 600; }
+.app[data-platform="android"] .btn-filled, .app[data-platform="android"] .btn-outline, .app[data-platform="android"] .btn-tonal { border-radius: 20px; }
+.app[data-platform="android"].m .searchbig { height: 56px; border: 0; border-radius: 28px; background: var(--s2); box-shadow: none; padding: 0 16px; }
+.app[data-platform="android"].m .group > .srow { background: none; border: 0; border-radius: 0 !important; padding: 12px 0; min-height: 64px; }
+.app[data-platform="android"].m .group > .overline { color: var(--accent); text-transform: none; letter-spacing: .01em; font-size: 14px; font-weight: 500; }
+.app[data-platform="android"].m .mnav a { background: #0000004D; width: 44px; justify-content: center; padding: 0; }
+.app[data-platform="android"] .sheet { border-radius: 28px 28px 0 0; background: var(--s2); padding-top: 8px; padding-bottom: 16px; }
+.app[data-platform="android"] .sheet::before { content: ""; display: block; width: 32px; height: 4px; border-radius: 2px; background: var(--fg3); margin: 8px auto 8px; }
+.app[data-platform="android"] .sheet .st { text-align: left; font-size: 14px; font-weight: 500; color: var(--fg2); padding: 4px 24px 8px; }
+.app[data-platform="android"] .sheet button.opt { padding: 0 24px; font-size: 16px; min-height: 56px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; animation: none !important; }
   .card:hover .poster { transform: none; }
@@ -376,6 +502,12 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
         <option value="error">ошибка сети</option>
         <option value="out">не вошёл</option>
       </select>
+      <label for="demoPlatform">Платформа:</label>
+      <select id="demoPlatform" aria-label="Платформа">
+        <option value="windows">Windows</option>
+        <option value="ios">iOS</option>
+        <option value="android">Android</option>
+      </select>
       <button class="tb-btn" id="themeBtn" type="button">Тема</button>
     </div>
     <div class="winbtns" aria-hidden="true">
@@ -384,8 +516,12 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
       <span><svg viewBox="0 0 12 12"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor"/></svg></span>
     </div>
   </header>
-  <nav class="rail" id="rail" aria-label="Разделы"></nav>
-  <main class="main" id="main"></main>
+  <div class="device" id="device">
+    <div class="sbar" aria-hidden="true"><span class="num">9:41</span><span class="sicons"><svg viewBox="0 0 24 12"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg viewBox="0 0 28 12"><rect x="0.5" y="0.5" width="23" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="2" y="2" width="17" height="8" rx="1.5"/><rect x="25" y="4" width="2" height="4" rx="1"/></svg></span></div>
+    <nav class="rail" id="rail" aria-label="Разделы"></nav>
+    <main class="main" id="main"></main>
+    <div class="homebar" aria-hidden="true"></div>
+  </div>
 </div>
 
 <script>
@@ -455,7 +591,7 @@ const DAN_EPS = ['Так начинается любовь, да?','Это же 
 // Абстрактный источник: названия студий условные
 const DUBS = [{n:'Студия А', k:'Озвучка · 1080p'},{n:'Студия Б', k:'Озвучка · 720p'},{n:'Субтитры', k:'Русские · 1080p'},{n:'Оригинал', k:'Японский · 1080p'}];
 
-const S = { genres:new Set(), format:'all', sort:'pop', hideMine:false, tab:'CURRENT', view:'grid', titleId:1, titleTab:'eps', dub:0, theme:null, adult:true, login:'start' };
+const S = { genres:new Set(), format:'all', sort:'pop', hideMine:false, tab:'CURRENT', view:'grid', titleId:1, titleTab:'eps', dub:0, lang:'ru', theme:null, adult:true, login:'start' };
 try { const t = localStorage.getItem('ai-theme'); if (t) { S.theme = t; document.documentElement.dataset.theme = t; } } catch(e) {}
 
 const $ = s => document.querySelector(s);
@@ -632,10 +768,10 @@ function viewSettings() {
     <section class="group"><div class="overline">Оформление</div>
       <div class="srow"><span class="lbl">Тема<small>Системная повторяет настройку Windows, iOS или Android</small></span>
         <div class="seg" role="group" aria-label="Тема">${[['system','Системная'],['dark','Тёмная'],['light','Светлая']].map(([k,l]) => `<button type="button" data-settheme="${k}" aria-pressed="${themePref() === k}">${l}</button>`).join('')}</div></div>
-      <div class="srow"><span class="lbl">Язык интерфейса</span><select class="select" id="setLang" aria-label="Язык интерфейса"><option value="ru">Русский</option><option value="en">English</option></select></div>
+      <div class="srow"><span class="lbl">Язык интерфейса${plat() === 'android' && isMob() ? `<small>${S.lang === 'en' ? 'English' : 'Русский'}</small>` : ''}</span>${!isMob() ? `<select class="select" id="setLang" aria-label="Язык интерфейса"><option value="ru"${S.lang === 'ru' ? ' selected' : ''}>Русский</option><option value="en"${S.lang === 'en' ? ' selected' : ''}>English</option></select>` : `<button class="navrow" type="button" data-act="lang" aria-label="Язык интерфейса: ${S.lang === 'en' ? 'English' : 'Русский'}">${plat() === 'android' ? ic('chev') : `${S.lang === 'en' ? 'English' : 'Русский'}${ic('chev')}`}</button>`}</div>
     </section>
     <section class="group"><div class="overline">О приложении</div>
-      <div class="srow"><span class="lbl">Версия<small class="num">0.1.0 (сборка 12) · Windows</small></span><button class="btn btn-text" type="button" data-act="copyver">Скопировать</button></div>
+      <div class="srow"><span class="lbl">Версия<small class="num">0.1.0 (сборка 12) · ${({windows:'Windows', ios:'iOS', android:'Android'})[plat()]}</small></span><button class="btn btn-text" type="button" data-act="copyver">Скопировать</button></div>
     </section>
     <p class="sample">Прототип: логин, Gist и номер сборки примерные.</p>
   </div></div>`;
@@ -685,6 +821,7 @@ function viewTitle() {
   }
   if (S.titleTab === 'similar') body = `<div class="hscroll">${DATA.filter(x => x.id !== a.id).slice(0,8).map(card).join('')}</div>`;
   return `<div class="page">
+    <div class="mnav"><a href="#catalog" aria-label="Назад">${plat() === 'ios' ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 4 7.4 12l8 8 1.4-1.4L10.2 12l6.6-6.6z"/></svg>Каталог` : ic('back')}</a></div>
     <div class="hero"><div class="banner" style="background:linear-gradient(120deg, hsl(${a.h} 50% 30%), hsl(${a.h+60} 55% 18%))"></div>
       <div class="hero-row"><div class="poster">${art(a, true)}</div>
         <div class="hero-info">
@@ -729,6 +866,7 @@ function viewPlayer() {
           ${DUBS.map((d,i) => `<button type="button" role="menuitemradio" aria-checked="${S.dub === i}" data-pdub="${i}"><span>${d.n}</span><small>${d.k}</small>${S.dub === i ? ic('check') : ''}</button>`).join('')}</div>
       </div>
     </div>
+    <div class="pl-center"><button class="pl-btn" type="button" data-pl="rw" aria-label="Назад 10 секунд">${ic('rw')}</button><button class="pl-btn big" type="button" data-pl="pp" aria-label="${P.playing ? 'Пауза' : 'Воспроизвести'}">${ic(P.playing ? 'pause' : 'play')}</button><button class="pl-btn" type="button" data-pl="fw" aria-label="Вперёд 10 секунд">${ic('fw')}</button></div>
     <button class="skip" id="skip" type="button" hidden>${ic('skip')}Пропустить опенинг</button>
     <div class="next" id="next" hidden></div>
     <div class="pl-bot">
@@ -812,15 +950,41 @@ function toast(msg, action, fn, top) {
   el.className = 'toast' + (top ? ' top' : ''); el.setAttribute('role', 'status');
   el.innerHTML = `${ic('COMPLETED')}<span>${esc(msg)}</span>${action ? `<button class="btn btn-text" type="button">${esc(action)}</button>` : ''}`;
   if (action) el.querySelector('button').onclick = () => { fn(); el.remove(); };
-  document.body.appendChild(el);
+  $('#device').appendChild(el);
   clearTimeout(toastT); toastT = setTimeout(() => el.remove(), 4000);
 }
 
 /* ---------- роутинг ---------- */
+/* ---------- платформа ---------- */
+const plat = () => $('#demoPlatform').value;
+const isMob = () => plat() !== 'windows' || innerWidth <= 640;
+function applyPlatform() {
+  const app = $('.app'), pf = plat();
+  app.dataset.platform = pf;
+  app.classList.toggle('m', isMob());
+  app.classList.toggle('framed', pf !== 'windows' && innerWidth > 640);
+  app.classList.toggle('land', isMob() && route() === 'player');
+}
+window.addEventListener('resize', applyPlatform);
+function openSheet(title, items, onPick) {
+  closeSheet();
+  const w = document.createElement('div'); w.className = 'sheet-wrap'; w.id = 'sheet';
+  w.innerHTML = `<div class="sheet" role="dialog" aria-label="${esc(title)}"><div class="st">${esc(title)}</div>${items.map((it, i) =>
+    `<button class="opt${it.on ? ' on' : ''}${it.danger ? ' danger' : ''}" type="button" data-i="${i}">${it.icon ? `<span style="color:var(${it.color});display:inline-flex">${ic(it.icon)}</span>` : ''}<span>${esc(it.label)}</span>${it.danger ? '' : `<span class="radio${it.on ? ' on' : ''}"></span>`}</button>`).join('')}</div><button class="cancel" type="button">Отмена</button>`;
+  w.addEventListener('click', e => {
+    const b = e.target.closest('button.opt');
+    if (b) { closeSheet(); onPick(items[+b.dataset.i]); }
+    else if (e.target === w || e.target.closest('.cancel')) closeSheet();
+  });
+  $('#device').appendChild(w);
+}
+function closeSheet() { const s = $('#sheet'); if (s) s.remove(); }
+
 const ROUTES = { catalog:viewCatalog, lists:viewLists, title:viewTitle, player:viewPlayer, login:viewLogin, search:viewSearch, settings:viewSettings };
 function route() { const h = location.hash.slice(1); return ROUTES[h] ? h : 'catalog'; }
 function render() {
   const r = route();
+  applyPlatform(); closeSheet();
   $('#rail').innerHTML = [['catalog','grid','Каталог'],['lists','lists','Списки'],['search','search','Поиск']].map(([k,i,l]) =>
     `<a href="#${k}" ${r === k || (k === 'catalog' && r === 'title') ? 'aria-current="page"' : ''}>${ic(i)}<span>${l}</span></a>`).join('')
     + `<span class="spacer"></span><a class="settings-link" href="#settings" ${r === 'settings' ? 'aria-current="page"' : ''} aria-label="Настройки">${ic('settings')}<span>Настройки</span></a>${(() => { const v = SYNC[syncState()]; const out = syncState() === 'out';
@@ -856,15 +1020,24 @@ document.addEventListener('click', e => {
   else if (d.tab) { S.tab = d.tab; render(); }
   else if (d.ttab) { S.titleTab = d.ttab; render(); }
   else if (d.dub) { S.dub = +d.dub; render(); }
+  else if (d.act === 'statusMenu' && isMob()) {
+    const a = DATA.find(x => x.id === S.titleId);
+    openSheet('Статус в списке', ORDER.map(k => ({ label:STATUS[k].label, icon:k, color:STATUS[k].v, on:a.st === k, v:k })).concat(a.st ? [{ label:'Удалить из списка', danger:true, v:'' }] : []), it => {
+      const old = a.st; a.st = it.v || undefined; render(); toast(a.st ? `Статус: ${STATUS[a.st].label}` : 'Удалено из списка', 'Отменить', () => { a.st = old; render(); });
+    });
+  }
+  else if (d.act === 'lang') {
+    openSheet('Язык интерфейса', [{label:'Русский', v:'ru', on:S.lang === 'ru'}, {label:'English', v:'en', on:S.lang === 'en'}], it => { S.lang = it.v; render(); toast(it.v === 'en' ? 'Language: English. Перевод интерфейса — после первого прохода' : 'Язык: русский'); });
+  }
   else if (d.act === 'statusMenu') { const m = $('#statusMenu'); m.hidden = !m.hidden; t.setAttribute('aria-expanded', !m.hidden); }
   else if ('setst' in d) {
     const a = DATA.find(x => x.id === S.titleId); const old = a.st;
     a.st = d.setst || undefined; if (a.st === 'CURRENT' && !a.pr) a.pr = 0;
     render(); toast(a.st ? `Статус: ${STATUS[a.st].label}` : 'Удалено из списка', 'Отменить', () => { a.st = old; render(); });
   }
-  else if (t.id === 'pp' || t.id === 'cplay') { P.playing = !P.playing; render(); }
-  else if (t.id === 'rw') { P.t = Math.max(0, P.t - 10); playerPaint(); }
-  else if (t.id === 'fw') { P.t = Math.min(P.dur, P.t + 10); playerPaint(); }
+  else if (d.pl === 'pp' || t.id === 'pp' || t.id === 'cplay') { P.playing = !P.playing; render(); }
+  else if (t.id === 'rw' || d.pl === 'rw') { P.t = Math.max(0, P.t - 10); playerPaint(); }
+  else if (t.id === 'fw' || d.pl === 'fw') { P.t = Math.min(P.dur, P.t + 10); playerPaint(); }
   else if (t.id === 'skip') { P.t = P.opB; playerPaint(); }
   else if (t.id === 'toEnd') { clearNext(); P.t = P.dur - 26; P.buf = P.dur; playerPaint(); }
   else if (t.id === 'nextBtn' || t.id === 'goNext') goNext();
@@ -876,8 +1049,10 @@ document.addEventListener('click', e => {
 document.addEventListener('click', e => { if (!e.target.closest('.actions')) { const m = $('#statusMenu'); if (m) m.hidden = true; } }, true);
 document.addEventListener('change', e => {
   if (e.target.id === 'sort') { S.sort = e.target.value; render(); }
+  if (e.target.id === 'demoPlatform') render();
   if (e.target.id === 'demoSync') { if (e.target.value === 'out') S.login = 'start'; render(); }
   if (e.target.id === 'demoState') { if (route() === 'search') paintSearch(); else if (route() !== 'catalog') location.hash = 'catalog'; else render(); }
+  if (e.target.id === 'setLang') S.lang = e.target.value;
   if (e.target.id === 'setLang') toast(e.target.value === 'en' ? 'Language: English. Перевод интерфейса — после первого прохода' : 'Язык: русский');
 });
 document.addEventListener('pointerdown', e => {
@@ -900,6 +1075,7 @@ document.addEventListener('pointermove', e => {
 document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.key.toLowerCase() === 'k') { e.preventDefault(); if (route() !== 'search') location.hash = 'search'; else $('#sq') && $('#sq').focus(); }
   if (e.key === 'Escape' && e.target.id === 'sq') { SQ = ''; e.target.value = ''; paintSearch(); }
+  if (e.key === 'Escape' && $('#sheet')) { closeSheet(); return; }
   if (!$('#player')) return;
   showUi();
   if (e.key === ' ' && e.target.tagName !== 'BUTTON') { e.preventDefault(); P.playing = !P.playing; render(); }
