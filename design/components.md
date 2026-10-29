@@ -19,6 +19,10 @@
 
 - **PosterCard** — обложка 2:3 (`AspectRatio`), радиус md (`ClipRRect`), ScoreBadge, ListStatusDot, полоса прогресса 3px. Под обложкой заголовок 2 строки (`maxLines: 2, overflow: ellipsis`), caption. Размеры задаёт сетка (`SliverGrid` с `SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 220, childAspectRatio: ...)`).
 - **ScoreBadge** — `averageScore` целым числом; текст цвета good/warn/bad, фон тот же цвет 12% поверх затемнения `#000000A0` на постере (на постере всегда тёмная подложка, чтобы читалось на любой обложке). Нет оценки — «—» `fg3`. Высота 22, радиус xs, `tabularFigures`.
+- **AdultBadge** — «18+», высота 20, радиус xs, фон `#B9302F`, белый текст 11/600 (контраст 5.9:1, одинаково в обеих темах). На постере под ScoreBadge, на карточке тайтла — первым в строке мета.
+- **SyncBar** — полоса на `surface1` с рамкой `border`, радиус md: иконка состояния, текст (жирное начало + пояснение), справа одна кнопка (outline или tonal). `Semantics(liveRegion: true)`.
+- **SyncDot** — точка 10 на пункте профиля в навигации, обводка 2px цвета фона.
+- **DeviceCodeField** — код `display` 28 с разрядкой, кнопка «Копировать» (`Clipboard.setData`) → тост «Код скопирован».
 - **ListStatusDot** — круг 24 цвета статуса с белой иконкой; рядом с цветом всегда иконка (без опоры только на цвет).
 - **StatusButton** — `MenuAnchor`: кнопка с иконкой и подписью текущего статуса, меню из 5 статусов + «Удалить из списка». Без статуса: «Добавить в список».
 - **FilterChip / SortMenu** — высота 32, радиус pill, рамка `border`; выбранный — `accentSoft` + `accent`. Сортировка — `MenuAnchor` с галочкой у текущего пункта.
