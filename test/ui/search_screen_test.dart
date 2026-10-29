@@ -20,6 +20,26 @@ void main() {
   int searchRequests() =>
       h.catalogRequests.where((v) => v.containsKey('search')).length;
 
+  testWidgets('Ctrl+K works on the Russian layout (physical key)', (
+    tester,
+  ) async {
+    await h.pump(tester);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    // На другой раскладке физическая K даёт другую логическую клавишу
+    // (на русской — «л»; симулятор знает только латиницу, берём R).
+    await tester.sendKeyEvent(
+      LogicalKeyboardKey.keyR,
+      physicalKey: PhysicalKeyboardKey.keyK,
+    );
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await UiHarness.settle(tester);
+    expect(
+      find.text('Название на русском, английском или ромадзи'),
+      findsOneWidget,
+    );
+    await h.dispose(tester);
+  });
+
   testWidgets('Ctrl+K opens search; trending chips shown', (tester) async {
     await openSearch(tester);
     expect(

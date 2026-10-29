@@ -17,12 +17,16 @@ class AppSettings extends ChangeNotifier {
   bool _showAdult = true;
   ThemePreference _theme = ThemePreference.system;
   List<String> _recentSearches = const [];
+  bool _musicRecognition = false;
 
   /// «Показывать 18+»: одно значение для фильтра каталога, поиска и
   /// настроек.
   bool get showAdult => _showAdult;
   ThemePreference get theme => _theme;
   List<String> get recentSearches => _recentSearches;
+
+  /// «Распознавать музыку», по умолчанию выключено.
+  bool get musicRecognition => _musicRecognition;
 
   ThemeMode get themeMode => switch (_theme) {
     ThemePreference.system => ThemeMode.system,
@@ -34,6 +38,7 @@ class AppSettings extends ChangeNotifier {
     _showAdult = await _prefs.showAdult();
     _theme = await _prefs.theme();
     _recentSearches = await _prefs.recentSearches();
+    _musicRecognition = await _prefs.musicRecognition();
     notifyListeners();
   }
 
@@ -42,6 +47,13 @@ class AppSettings extends ChangeNotifier {
     _showAdult = value;
     notifyListeners();
     await _prefs.setShowAdult(value);
+  }
+
+  Future<void> setMusicRecognition(bool value) async {
+    if (value == _musicRecognition) return;
+    _musicRecognition = value;
+    notifyListeners();
+    await _prefs.setMusicRecognition(value);
   }
 
   Future<void> setTheme(ThemePreference value) async {

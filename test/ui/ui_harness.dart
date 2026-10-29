@@ -8,6 +8,7 @@ import 'package:anime_viewer/data/cache/app_database.dart';
 import 'package:anime_viewer/data/github/gist_client.dart';
 import 'package:anime_viewer/data/github/token_store.dart';
 import 'package:anime_viewer/data/library/library_repository.dart';
+import 'package:anime_viewer/data/music/music_recognition.dart';
 import 'package:anime_viewer/data/settings/app_preferences.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:anime_viewer/main.dart';
@@ -39,6 +40,7 @@ class UiHarness {
     db = AppDatabase(NativeDatabase.memory());
     fake = FakeAniList(_route);
     final library = LibraryRepository(db);
+    final preferences = AppPreferences(db);
     services = AppServices(
       db: db,
       anime: AnimeRepository(
@@ -46,13 +48,18 @@ class UiHarness {
         db: db,
       ),
       library: library,
-      preferences: AppPreferences(db),
+      preferences: preferences,
       sync: SyncService(
         library: library,
         db: db,
         tokens: MemoryTokenStore(),
         auth: () => null,
         gistClient: (token) => GistClient(token),
+      ),
+      music: MusicRecognitionGate(
+        isEnabled: preferences.musicRecognition,
+        hasApiKey: false,
+        recognizer: const StubMusicRecognizer(),
       ),
     );
     settings = AppSettings(services.preferences);

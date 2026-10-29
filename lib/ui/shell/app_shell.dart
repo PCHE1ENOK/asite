@@ -26,10 +26,6 @@ enum AppTab {
   final IconData icon;
 }
 
-class _OpenSearchIntent extends Intent {
-  const _OpenSearchIntent();
-}
-
 /// Каркас приложения: NavRail на широких экранах, нижняя навигация на
 /// телефоне. У каждой вкладки свой навигатор, поэтому карточка тайтла
 /// открывается внутри вкладки и панель навигации остаётся видна.
@@ -120,61 +116,57 @@ class AppShellState extends State<AppShell> {
       child: pages,
     );
 
-    return Shortcuts(
-      shortcuts: const {
-        SingleActivator(LogicalKeyboardKey.keyK, control: true):
-            _OpenSearchIntent(),
-        SingleActivator(LogicalKeyboardKey.keyK, meta: true):
-            _OpenSearchIntent(),
+    return Focus(
+      // Ctrl+K по физической клавише: на русской раскладке логическая
+      // клавиша приходит как «л».
+      onKeyEvent: (node, event) {
+        final keys = HardwareKeyboard.instance;
+        if (event is KeyDownEvent &&
+            event.physicalKey == PhysicalKeyboardKey.keyK &&
+            (keys.isControlPressed || keys.isMetaPressed)) {
+          select(AppTab.search);
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
       },
-      child: Actions(
-        actions: {
-          _OpenSearchIntent: CallbackAction<_OpenSearchIntent>(
-            onInvoke: (_) {
-              select(AppTab.search);
-              return null;
-            },
-          ),
-        },
-        child: Focus(
-          autofocus: true,
-          child: Scaffold(
-            backgroundColor: t.bg,
-            body: compact
-                ? SafeArea(bottom: false, child: body)
-                : Row(
-                    children: [
-                      _Rail(
-                        selected: _tab,
-                        extended: width >= AppLayout.large,
-                        onSelect: select,
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          backgroundColor: t.bg,
+          body: compact
+              ? SafeArea(bottom: false, child: body)
+              : Row(
+                  children: [
+                    _Rail(
+                      selected: _tab,
+                      extended: width >= AppLayout.large,
+                      onSelect: select,
+                    ),
+                    VerticalDivider(width: 1, color: t.border),
+                    Expanded(child: body),
+                  ],
+                ),
+          bottomNavigationBar: compact
+              ? NavigationBar(
+                  selectedIndex: _tab.index,
+                  onDestinationSelected: (i) => select(AppTab.values[i]),
+                  destinations: [
+                    for (final tab in AppTab.values)
+                      NavigationDestination(
+                        icon: tab == AppTab.settings
+                            ? _ProfileIcon(icon: Symbols.person_rounded)
+                            : Icon(tab.icon),
+                        selectedIcon: tab == AppTab.settings
+                            ? _ProfileIcon(
+                                icon: Symbols.person_rounded,
+                                fill: 1,
+                              )
+                            : Icon(tab.icon, fill: 1),
+                        label: tab == AppTab.settings ? 'Профиль' : tab.label,
                       ),
-                      VerticalDivider(width: 1, color: t.border),
-                      Expanded(child: body),
-                    ],
-                  ),
-            bottomNavigationBar: compact
-                ? NavigationBar(
-                    selectedIndex: _tab.index,
-                    onDestinationSelected: (i) => select(AppTab.values[i]),
-                    destinations: [
-                      for (final tab in AppTab.values)
-                        NavigationDestination(
-                          icon: tab == AppTab.settings
-                              ? _ProfileIcon(icon: Symbols.person_rounded)
-                              : Icon(tab.icon),
-                          selectedIcon: tab == AppTab.settings
-                              ? _ProfileIcon(
-                                  icon: Symbols.person_rounded,
-                                  fill: 1,
-                                )
-                              : Icon(tab.icon, fill: 1),
-                          label: tab == AppTab.settings ? 'Профиль' : tab.label,
-                        ),
-                    ],
-                  )
-                : null,
-          ),
+                  ],
+                )
+              : null,
         ),
       ),
     );

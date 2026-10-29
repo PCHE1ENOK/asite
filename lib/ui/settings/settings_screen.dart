@@ -64,6 +64,22 @@ class SettingsScreen extends StatelessWidget {
                         ],
                       ),
                       _Group(
+                        title: 'Плеер',
+                        rows: [
+                          _Row(
+                            title: 'Распознавать музыку',
+                            subtitle: 'Короткий фрагмент звука из серии отправляется на сервер AcoustID для распознавания. Кнопка «Что играет» в плеере',
+                            trailing: Switch.adaptive(
+                              value: settings.musicRecognition,
+                              onChanged: settings.setMusicRecognition,
+                            ),
+                            onTap: () => settings.setMusicRecognition(
+                              !settings.musicRecognition,
+                            ),
+                          ),
+                        ],
+                      ),
+                      _Group(
                         title: 'Оформление',
                         rows: [
                           _Row(

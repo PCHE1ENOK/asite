@@ -18,7 +18,7 @@ void main() {
     await openSettings(tester);
     expect(find.text('Вход не выполнен'), findsOneWidget);
 
-    await tester.tap(find.byType(Switch));
+    await tester.tap(find.byType(Switch).first);
     await UiHarness.settle(tester);
     expect(h.settings.showAdult, isFalse);
     expect(await tester.runAsync(h.services.preferences.showAdult), isFalse);
@@ -33,6 +33,26 @@ void main() {
     expect(h.settings.theme, ThemePreference.light);
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.light);
+    await h.dispose(tester);
+  });
+
+  testWidgets('music recognition is off by default and can be enabled', (
+    tester,
+  ) async {
+    await openSettings(tester);
+    expect(h.settings.musicRecognition, isFalse);
+    expect(
+      find.textContaining('отправляется на сервер AcoustID'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Распознавать музыку'));
+    await UiHarness.settle(tester);
+    expect(h.settings.musicRecognition, isTrue);
+    expect(
+      await tester.runAsync(h.services.preferences.musicRecognition),
+      isTrue,
+    );
     await h.dispose(tester);
   });
 }

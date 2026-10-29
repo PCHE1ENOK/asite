@@ -14,6 +14,7 @@ class AppPreferences {
   static const _onboardingSeen = 'onboarding_seen';
   static const _showAdult = 'show_adult';
   static const _theme = 'theme';
+  static const _musicRecognition = 'music_recognition';
   static const _recentSearches = 'recent_searches';
 
   /// Сколько недавних запросов хранится.
@@ -30,6 +31,14 @@ class AppPreferences {
 
   Future<void> setShowAdult(bool value) =>
       _db.putSetting(_showAdult, value ? '1' : '0');
+
+  /// «Распознавать музыку»: по умолчанию выключено, потому что фрагмент
+  /// звука уходит на сервер AcoustID.
+  Future<bool> musicRecognition() async =>
+      await _db.setting(_musicRecognition) == '1';
+
+  Future<void> setMusicRecognition(bool value) =>
+      _db.putSetting(_musicRecognition, value ? '1' : '0');
 
   /// Тема, по умолчанию системная.
   Future<ThemePreference> theme() async {

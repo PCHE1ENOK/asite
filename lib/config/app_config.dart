@@ -8,4 +8,11 @@ abstract final class AppConfig {
   static const githubClientId = String.fromEnvironment('GITHUB_CLIENT_ID');
 
   static bool get hasGitHubClientId => githubClientId.isNotEmpty;
+
+  /// Ключ приложения AcoustID (бесплатный, регистрируется один раз на
+  /// acoustid.org и переиспользуется). Используется распознаванием музыки
+  /// (этап 4.5); без ключа распознавание недоступно.
+  static const acoustIdApiKey = String.fromEnvironment('ACOUSTID_API_KEY');
+
+  static bool get hasAcoustIdApiKey => acoustIdApiKey.isNotEmpty;
 }
