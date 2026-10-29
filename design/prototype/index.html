@@ -354,6 +354,42 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
 .switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--on-accent); }
 .srow .sync { margin: 0; border: 0; padding: 0; background: none; flex: 1 1 260px; }
+.pmenu { position: absolute; left: 76px; bottom: 12px; z-index: 40; width: 280px; background: var(--s2); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-3); padding: 4px; }
+.pmenu button, .pmenu .pm-link { width: 100%; min-height: 40px; padding: 6px 10px; border-radius: var(--r-sm); display: flex; align-items: center; gap: 10px; text-align: left; font-size: 14px; color: var(--fg); text-decoration: none; }
+.pmenu button:hover, .pmenu .pm-link:hover { background: var(--hover); }
+.pmenu small { display: block; color: var(--fg2); font-size: 12px; line-height: 16px; }
+.pmenu .chk { margin-left: auto; color: var(--accent); }
+.pmenu hr { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+.prow .avatar { flex: none; }
+.app.m .prow { flex-wrap: nowrap; gap: 12px; }
+.app.m .prow .lbl { flex: 1 1 0; }
+.app.m .prow .btn { height: 32px; padding: 0 10px; font-size: 13px; }
+.app.m .prow .icon-btn { width: 36px; height: 36px; flex: none; }
+.prow.cur { background: color-mix(in srgb, var(--accent) 8%, var(--s1)); }
+.prow .icon-btn { color: var(--fg3); }
+.prow .icon-btn:hover { color: var(--bad); }
+.btn-danger { background: var(--bad); color: var(--bg); }
+.btn-danger:hover { filter: brightness(1.08); }
+.dialog-wrap { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: #00000080; }
+.dialog { width: min(420px, 100%); background: var(--s2); color: var(--fg); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-3); padding: 24px; display: grid; gap: 14px; }
+.dialog h3 { font: 600 20px/26px var(--f-display); text-wrap: balance; }
+.dlg-text { margin: 0; color: var(--fg2); font-size: 14px; line-height: 20px; }
+.dlg-acts { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.dlg-err { color: var(--bad); font-size: 13px; }
+.field { display: grid; gap: 6px; font-size: 13px; color: var(--fg2); }
+.field input { height: 40px; border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--s1); padding: 0 12px; font-size: 15px; color: var(--fg); outline: none; }
+.field input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.pcolors { display: flex; gap: 10px; }
+.pcolors button { width: 32px; height: 32px; border-radius: 50%; }
+.pcolors button[aria-checked="true"] { box-shadow: 0 0 0 2px var(--s2), 0 0 0 4px var(--accent); }
+.switching { position: fixed; inset: 0; z-index: 90; display: grid; place-content: center; justify-items: center; gap: 14px; background: var(--bg); color: var(--fg2); font-size: 15px; animation: fadein .15s; }
+@keyframes fadein { from { opacity: 0; } }
+.app[data-platform="ios"] .dialog { border-radius: 14px; text-align: center; padding: 20px 16px 12px; }
+.app[data-platform="ios"] .dialog .dlg-acts { justify-content: stretch; }
+.app[data-platform="ios"] .dialog .dlg-acts .btn { flex: 1; justify-content: center; }
+.app[data-platform="ios"] .pcolors { justify-content: center; }
+.app[data-platform="android"] .dialog { border-radius: 28px; }
+.app[data-platform="android"] .btn-danger { border-radius: 20px; }
 .sample { font-size: 12px; color: var(--fg3); margin-top: 40px; }
 
 /* ---------- телефон ---------- */
@@ -527,6 +563,7 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
   .app[data-platform="ios"].m { --rail-bg: var(--s1); }
   .app[data-platform="ios"] .switch, .app[data-platform="ios"] .seg, .app[data-platform="ios"].m .searchbig { background: var(--s3); }
   .app[data-platform="ios"] .sheet { background: var(--s2); }
+  .prow.cur { background: var(--s1); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; animation: none !important; }
@@ -645,6 +682,24 @@ const DAN_EPS = ['Так начинается любовь, да?','Это же 
 // Абстрактный источник: названия студий условные
 const DUBS = [{n:'Студия А', k:'Озвучка · 1080p'},{n:'Студия Б', k:'Озвучка · 720p'},{n:'Субтитры', k:'Русские · 1080p'},{n:'Оригинал', k:'Японский · 1080p'}];
 
+/* ---------- профили: списки, вход в GitHub и синхронизация — у каждого свои ---------- */
+const PROFILES = [
+  { id:'yu', name:'Юки', h:225, gh:'yuki-dev', sync:'ok', total:184, lists:null },
+  { id:'ka', name:'Каито', h:20, gh:null, sync:'out', total:3, lists:{ 4:{st:'CURRENT', pr:3}, 6:{st:'COMPLETED', pr:12}, 12:{st:'PLANNING'} } },
+];
+let CUR = 'yu';
+const prof = (id = CUR) => PROFILES.find(x => x.id === id);
+const avatarHtml = (p, size) => `<span class="avatar" style="background:hsl(${p.h} 70% 66%)${size ? `;width:${size}px;height:${size}px;font-size:${Math.round(size * .4)}px` : ''}">${esc(p.name[0])}</span>`;
+function saveLists() { const p = prof(); p.lists = {}; DATA.forEach(a => { if (a.st) p.lists[a.id] = { st:a.st, pr:a.pr }; }); p.sync = $('#demoSync').value; if (p.id !== 'yu') p.total = Object.keys(p.lists).length; }
+function loadLists(p) { DATA.forEach(a => { const v = p.lists && p.lists[a.id]; a.st = v ? v.st : undefined; a.pr = v ? (v.pr || 0) : undefined; }); $('#demoSync').value = p.sync; }
+function switchProfile(id) {
+  if (id === CUR) return;
+  saveLists(); CUR = id; const p = prof(); loadLists(p); S.login = 'start'; closeSheet(); closeDialog();
+  const ov = document.createElement('div'); ov.className = 'switching'; ov.innerHTML = `${avatarHtml(p, 56)}<div>Переключаем на профиль «${esc(p.name)}»…</div>`;
+  $('#device').appendChild(ov);
+  setTimeout(() => { ov.remove(); render(); toast(`Профиль «${p.name}»`); }, 650);
+}
+
 const S = { genres:new Set(), format:'all', sort:'pop', hideMine:false, tab:'CURRENT', view:'grid', titleId:1, titleTab:'eps', dub:0, lang:'ru', music:false, musicDemo:'found', theme:null, adult:true, login:'start' };
 try { const t = localStorage.getItem('ai-theme'); if (t) { S.theme = t; document.documentElement.dataset.theme = t; } } catch(e) {}
 
@@ -702,9 +757,10 @@ function viewCatalog() {
 }
 
 /* ---------- Мои списки ---------- */
+const a_bar = counts => `<div class="statusbar" role="img" aria-label="${ORDER.map(k => STATUS[k].label + ' ' + counts[k]).join(', ')}">${ORDER.filter(k => counts[k]).map(k => `<i style="flex:${counts[k]};background:var(${STATUS[k].v})" title="${STATUS[k].label}: ${counts[k]}"></i>`).join('')}</div>`;
 function viewLists() {
   // Пропорции для полосы — примерные счётчики пользователя
-  const counts = { CURRENT:4, PLANNING:23, COMPLETED:142, PAUSED:6, DROPPED:9 };
+  const counts = CUR === 'yu' ? { CURRENT:4, PLANNING:23, COMPLETED:142, PAUSED:6, DROPPED:9 } : ORDER.reduce((o, k) => (o[k] = DATA.filter(a => a.st === k).length, o), {});
   const tot = ORDER.reduce((s,k) => s + counts[k], 0);
   const items = DATA.filter(a => a.st === S.tab);
   const cont = S.tab === 'CURRENT' ? `<div class="overline" style="margin-bottom:12px">Продолжить</div><div class="continue">${items.map(a => `
@@ -717,7 +773,7 @@ function viewLists() {
   return `<div class="page">
     <div class="head"><h1>Мои списки</h1></div>
     ${syncBar()}<div class="cap">Всего ${tot} тайтлов</div>
-    <div class="statusbar" role="img" aria-label="${ORDER.map(k => STATUS[k].label + ' ' + counts[k]).join(', ')}">${ORDER.map(k => `<i style="flex:${counts[k]};background:var(${STATUS[k].v})" title="${STATUS[k].label}: ${counts[k]}"></i>`).join('')}</div>
+    ${tot ? a_bar(counts) : `<div class="statusbar" role="img" aria-label="Списки пусты"><i style="flex:1;background:var(--s3);border-radius:4px"></i></div>`}
     <div class="legend">${ORDER.map(k => `<span><span style="color:var(${STATUS[k].v});display:inline-flex">${ic(k)}</span>${STATUS[k].label} <b>${counts[k]}</b></span>`).join('')}</div>
     <div class="tabs" role="tablist">${ORDER.map(k => `<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${S.tab === k}">${STATUS[k].label}<span class="count">${counts[k]}</span></button>`).join('')}</div>
     ${cont}${body}
@@ -756,15 +812,18 @@ function viewLogin() {
     <div class="steps"><span>1. Откройте <code>github.com/login/device</code> в браузере</span><span>2. Введите этот код и подтвердите доступ</span></div>
     <div class="code"><b>WDJB-MJHT</b><button class="btn btn-outline" type="button" data-login="copy" style="height:36px">${ic('copy')}Копировать</button></div>
     <div class="wait">${ic('sync')}Ждём подтверждения на GitHub · код действует 15 мин</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-tonal" type="button" data-login="done">Демо: подтверждено</button><button class="btn btn-text" type="button" data-login="fail">Демо: ошибка</button><button class="btn btn-text" type="button" data-login="start">Отмена</button></div>`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-tonal" type="button" data-login="done">Демо: подтверждено</button><button class="btn btn-text" type="button" data-login="fail">Демо: ошибка</button><button class="btn btn-text" type="button" data-login="taken">Демо: аккаунт уже в другом профиле</button><button class="btn btn-text" type="button" data-login="start">Отмена</button></div>`;
   if (st === 'done') body = `
-    <div class="sync ok">${ic('cloud_done')}<span class="msg"><b>Вы вошли как yuki-dev.</b> Списки объединены с Gist «anime-lists»: 184 тайтла, по 5 взята более свежая запись.</span></div>
+    <div class="sync ok">${ic('cloud_done')}<span class="msg"><b>Профиль «${esc(prof().name)}» привязан к ${esc(prof().gh || 'yuki-dev')}.</b> Списки объединены с Gist «anime-lists»: 184 тайтла, по 5 взята более свежая запись.</span></div>
     <a class="btn btn-filled" href="#lists" style="text-decoration:none;justify-self:start">Открыть мои списки</a>`;
+  if (st === 'taken') { const o = PROFILES.find(x => x.id !== CUR && x.gh) || PROFILES[0]; body = `
+    <div class="sync error">${ic('DROPPED')}<span class="msg"><b>Этот аккаунт уже привязан к профилю «${esc(o.name)}».</b> Один аккаунт GitHub — один профиль, иначе списки разных людей смешаются. Войдите другим аккаунтом или переключитесь на профиль «${esc(o.name)}».</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-filled" type="button" data-login="code">Войти другим аккаунтом</button><button class="btn btn-outline" type="button" data-pfswitch="${o.id}">Переключиться на «${esc(o.name)}»</button></div>`; }
   if (st === 'fail') body = `
     <div class="err">Не удалось связаться с GitHub. Проверьте подключение к интернету. Списки на устройстве не пострадали.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-filled" type="button" data-login="code">Повторить</button><a class="btn btn-text" href="#catalog" style="text-decoration:none">Продолжить без входа</a></div>`;
   return `<div class="login"><div class="login-card">
-    <div class="overline">${st === 'start' ? 'Первый запуск · можно пропустить' : 'Аккаунт'}</div>
+    <div class="overline">${st === 'start' && CUR === 'yu' ? 'Первый запуск · можно пропустить' : `Профиль «${esc(prof().name)}»`}</div>
     <h1>${st === 'done' ? 'Готово' : 'Вход через GitHub'}</h1>
     <div class="lead">${st === 'code' ? 'GitHub попросит подтвердить вход на своей странице. Пароль в приложение не вводится.' : 'Нужен, чтобы ваши списки были на всех устройствах.'}</div>
     ${body}
@@ -810,12 +869,20 @@ function themePref() { return document.documentElement.dataset.theme || 'system'
 function viewSettings() {
   const sw = (id, on, label) => `<button class="switch" type="button" role="switch" id="${id}" aria-checked="${on}" aria-label="${label}"></button>`;
   const out = syncState() === 'out';
+  const cp = prof();
   return `<div class="page"><div class="head"><h1>Настройки</h1></div><div class="settings">
-    <section class="group"><div class="overline">Аккаунт и синхронизация</div>
+    <section class="group"><div class="overline">Профили</div>
+      ${PROFILES.map(x => `<div class="srow prow${x.id === CUR ? ' cur' : ''}">${avatarHtml(x, 36)}<span class="lbl">${esc(x.name)}${x.id === CUR ? ' <span class="tag">текущий</span>' : ''}<small>${x.total} ${x.total === 1 ? 'тайтл' : x.total < 5 && x.total > 0 ? 'тайтла' : 'тайтлов'} · ${x.gh ? 'GitHub ' + esc(x.gh) : 'без входа в GitHub'}</small></span>
+        ${x.id === CUR ? '' : `<button class="btn btn-outline" type="button" data-pfswitch="${x.id}" style="height:36px">Переключить</button>`}
+        ${PROFILES.length > 1 ? '' : '<!--'}<button class="icon-btn" type="button" data-pfask="${x.id}" aria-label="Удалить профиль ${esc(x.name)}" title="Удалить профиль">${ic('DROPPED')}</button>${PROFILES.length > 1 ? '' : '-->'}</div>`).join('')}
+      <div class="srow"><button class="btn btn-text" type="button" data-act="pfAdd" style="padding:0">${ic('plus')}Добавить профиль</button></div>
+    </section>
+    <section class="group"><div class="overline">Аккаунт профиля «${esc(cp.name)}»</div>
       ${out ? '' : `<div class="srow">${syncBar()}</div>`}
-      <div class="srow"><span class="lbl">${out ? 'Вход не выполнен<small>Списки хранятся только на этом устройстве</small>' : 'GitHub · yuki-dev<small>Приватный Gist «anime-lists» · 184 тайтла</small>'}</span>
+      <div class="srow"><span class="lbl">${out ? 'Вход не выполнен<small>Списки хранятся только на этом устройстве</small>' : `GitHub · ${esc(cp.gh || 'yuki-dev')}<small>Приватный Gist «anime-lists» · ${cp.total} тайтлов</small>`}</span>
         ${out ? `<a class="btn btn-filled" href="#login" style="text-decoration:none">${ic('login')}Войти через GitHub</a>` : `<button class="btn btn-outline" type="button" data-act="logout">Выйти из GitHub</button>`}</div>
     </section>
+    <div class="cap" style="margin-bottom:-16px">Настройки ниже общие для всех профилей на этом устройстве.</div>
     <section class="group"><div class="overline">Каталог</div>
       <div class="srow"><span class="lbl">Показывать 18+ <span class="tag adult-tag">18+</span><small>Тайтлы для взрослых видны в каталоге и поиске с пометкой 18+. Этот же фильтр есть в каталоге.</small></span>${sw('setAdult', S.adult, 'Показывать 18+')}</div>
     </section>
@@ -1062,13 +1129,42 @@ function openSheet(title, items, onPick) {
   closeSheet();
   const w = document.createElement('div'); w.className = 'sheet-wrap'; w.id = 'sheet';
   w.innerHTML = `<div class="sheet" role="dialog" aria-label="${esc(title)}"><div class="st">${esc(title)}</div>${items.map((it, i) =>
-    `<button class="opt${it.on ? ' on' : ''}${it.danger ? ' danger' : ''}" type="button" data-i="${i}">${it.icon ? `<span style="color:var(${it.color});display:inline-flex">${ic(it.icon)}</span>` : ''}<span>${esc(it.label)}</span>${it.danger ? '' : `<span class="radio${it.on ? ' on' : ''}"></span>`}</button>`).join('')}</div><button class="cancel" type="button">Отмена</button>`;
+    `<button class="opt${it.on ? ' on' : ''}${it.danger ? ' danger' : ''}" type="button" data-i="${i}">${it.add ? ic('plus') : ''}${it.icon ? `<span style="color:var(${it.color});display:inline-flex">${ic(it.icon)}</span>` : ''}<span>${esc(it.label)}</span>${it.danger || it.add ? '' : `<span class="radio${it.on ? ' on' : ''}"></span>`}</button>`).join('')}</div><button class="cancel" type="button">Отмена</button>`;
   w.addEventListener('click', e => {
     const b = e.target.closest('button.opt');
     if (b) { closeSheet(); onPick(items[+b.dataset.i]); }
     else if (e.target === w || e.target.closest('.cancel')) closeSheet();
   });
   $('#device').appendChild(w);
+}
+function openDialog(html) { closeDialog(); const w = document.createElement('div'); w.className = 'dialog-wrap'; w.id = 'dialog'; w.innerHTML = `<div class="dialog" role="dialog" aria-modal="true">${html}</div>`; w.addEventListener('click', e => { if (e.target === w || e.target.closest('[data-dlg="close"]')) closeDialog(); }); $('#device').appendChild(w); const f = w.querySelector('input, .btn'); if (f) f.focus(); }
+function closeDialog() { const d = $('#dialog'); if (d) d.remove(); }
+const PCOLORS = [225, 20, 150, 290, 45];
+function askAddProfile() {
+  openDialog(`<h3>Новый профиль</h3><p class="dlg-text">У профиля свои списки, вход в GitHub и синхронизация. Настройки 18+, темы, языка и распознавания музыки общие для всех.</p>
+    <label class="field"><span>Имя</span><input id="pfName" maxlength="20" placeholder="Например, Аня" autocomplete="off"></label>
+    <div class="pcolors" role="radiogroup" aria-label="Цвет">${PCOLORS.map((h, i) => `<button type="button" role="radio" aria-checked="${i === 2}" data-pcolor="${h}" style="background:hsl(${h} 70% 66%)" aria-label="Цвет ${i + 1}"></button>`).join('')}</div>
+    <div class="dlg-err" id="pfErr" hidden>Введите имя профиля</div>
+    <div class="dlg-acts"><button class="btn btn-text" type="button" data-dlg="close">Отмена</button><button class="btn btn-filled" type="button" data-act="pfCreate">Создать и переключиться</button></div>`);
+}
+function askDeleteProfile(id) {
+  const p = prof(id);
+  if (id === CUR) { openDialog(`<h3>Это текущий профиль</h3><p class="dlg-text">Чтобы удалить профиль «${esc(p.name)}», сначала переключитесь на другой.</p><div class="dlg-acts"><button class="btn btn-filled" type="button" data-dlg="close">Понятно</button></div>`); return; }
+  openDialog(`<h3>Удалить профиль «${esc(p.name)}»?</h3>
+    <p class="dlg-text">Локальные списки этого профиля (${p.total} ${p.total === 1 ? 'тайтл' : p.total < 5 ? 'тайтла' : 'тайтлов'}) будут удалены с устройства.${p.gh ? ` Gist на GitHub (${esc(p.gh)}) не трогается — списки можно вернуть, войдя этим аккаунтом в другой профиль.` : ' Профиль не привязан к GitHub, восстановить списки будет нельзя.'}</p>
+    <div class="dlg-acts"><button class="btn btn-text" type="button" data-dlg="close">Отмена</button><button class="btn btn-danger" type="button" data-pfdel="${id}">Удалить профиль</button></div>`);
+}
+function profileMenu() {
+  const p = prof();
+  if (isMob()) {
+    openSheet('Профиль', PROFILES.map(x => ({ label:x.name + (x.id === CUR ? ' · текущий' : ''), on:x.id === CUR, v:x.id })).concat([{ label:'Добавить профиль', v:'+', danger:false, add:true }]), it => { if (it.v === '+') askAddProfile(); else switchProfile(it.v); });
+    return;
+  }
+  const m = $('#pmenu'); if (m) { m.remove(); return; }
+  const el = document.createElement('div'); el.className = 'pmenu'; el.id = 'pmenu'; el.setAttribute('role', 'menu');
+  el.innerHTML = `<div class="overline" style="padding:8px 10px 4px">Профиль</div>${PROFILES.map(x => `<button type="button" role="menuitemradio" aria-checked="${x.id === CUR}" data-pfswitch="${x.id}">${avatarHtml(x, 28)}<span><div>${esc(x.name)}</div><small>${x.gh ? 'GitHub · ' + esc(x.gh) : 'Без входа в GitHub'}</small></span>${x.id === CUR ? `<span class="chk">${ic('check')}</span>` : ''}</button>`).join('')}
+    <hr><button type="button" data-act="pfAdd">${ic('plus')}Добавить профиль</button><a href="#settings" class="pm-link">${ic('settings')}Управление профилями</a>`;
+  $('#device').appendChild(el);
 }
 function closeSheet() { const s = $('#sheet'); if (s) s.remove(); }
 
@@ -1080,7 +1176,7 @@ function render() {
   $('#rail').innerHTML = [['catalog','grid','Каталог'],['lists','lists','Списки'],['search','search','Поиск']].map(([k,i,l]) =>
     `<a href="#${k}" ${r === k || (k === 'catalog' && r === 'title') ? 'aria-current="page"' : ''}>${ic(i)}<span>${l}</span></a>`).join('')
     + `<span class="spacer"></span><a class="settings-link" href="#settings" ${r === 'settings' ? 'aria-current="page"' : ''} aria-label="Настройки">${ic('settings')}<span>Настройки</span></a>${(() => { const v = SYNC[syncState()]; const out = syncState() === 'out';
-      return `<a class="avatar-wrap${r === 'settings' ? ' is-settings' : ''}" href="#settings" ${r === 'login' || r === 'settings' ? 'aria-current="page"' : ''} title="${out ? 'Войти через GitHub' : 'Синхронизация: ' + v.text.replace(/<[^>]+>/g, '')}">${out ? ic('login') : '<span class="avatar">Ю</span>'}${v.dot ? `<span class="syncdot" style="background:var(${v.dot})"></span>` : ''}<span>${out ? 'Войти' : 'Профиль'}</span></a>`; })()}`;
+      return `<a class="avatar-wrap${r === 'settings' ? ' is-settings' : ''}" href="#settings" ${r === 'login' || r === 'settings' ? 'aria-current="page"' : ''} data-act="${isMob() ? '' : 'pmenu'}" aria-haspopup="${isMob() ? 'false' : 'menu'}" title="Профиль «${esc(prof().name)}»${out ? ' · без входа в GitHub' : ' · ' + v.text.replace(/<[^>]+>/g, '')}">${avatarHtml(prof())}${v.dot ? `<span class="syncdot" style="background:var(${v.dot})"></span>` : ''}<span>${isMob() ? 'Профиль' : esc(prof().name)}</span></a>`; })()}`;
   clearInterval(P.timer); clearNext();
   $('#main').innerHTML = ROUTES[r]();
   if (r !== 'player') $('#main').scrollTop = 0;
@@ -1101,14 +1197,27 @@ document.addEventListener('click', e => {
   else if (d.act === 'reset') { S.genres.clear(); S.format = 'all'; S.hideMine = false; S.adult = true; $('#demoState').value = 'data'; render(); }
   else if (d.act === 'sync') { $('#demoSync').value = 'syncing'; render(); setTimeout(() => { $('#demoSync').value = 'ok'; render(); }, 1200); }
   else if (d.login === 'copy') { try { navigator.clipboard.writeText('WDJB-MJHT').catch(() => {}); } catch(e) {} toast('Код скопирован'); }
-  else if (d.login) { S.login = d.login; if (d.login === 'done') $('#demoSync').value = 'ok'; render(); }
+  else if (d.login) { S.login = d.login; if (d.login === 'done') { $('#demoSync').value = 'ok'; const p = prof(); if (!p.gh) p.gh = p.name === 'Каито' ? 'kaito-watches' : 'user-' + p.id; p.sync = 'ok'; } render(); }
   else if (d.sq) { SQ = d.sq; const i = $('#sq'); if (i) { i.value = SQ; i.focus(); } paintSearch(); }
   else if (d.act === 'clearRecent') { RECENT.length = 0; paintSearch(); }
   else if (d.act === 'sretry') { $('#demoState').value = 'data'; paintSearch(); }
   else if (t.id === 'setAdult') { S.adult = !S.adult; t.setAttribute('aria-checked', S.adult); }
   else if (d.settheme) { const v = d.settheme; if (v === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = v; try { v === 'system' ? localStorage.removeItem('ai-theme') : localStorage.setItem('ai-theme', v); } catch(e) {} render(); }
-  else if (d.act === 'logout') { $('#demoSync').value = 'out'; S.login = 'start'; render(); toast('Вы вышли из GitHub. Списки остались на устройстве'); }
+  else if (d.act === 'logout') { prof().gh = null; prof().sync = 'out'; $('#demoSync').value = 'out'; S.login = 'start'; render(); toast('Вы вышли из GitHub. Списки остались на устройстве'); }
   else if (d.act === 'copyver') { try { navigator.clipboard.writeText('0.1.0 (12) windows').catch(() => {}); } catch(e) {} toast('Версия скопирована'); }
+  else if (d.act === 'pmenu' && !isMob()) { e.preventDefault(); profileMenu(); return; }
+  else if (d.pfswitch) { const m = $('#pmenu'); if (m) m.remove(); switchProfile(d.pfswitch); }
+  else if (d.act === 'pfAdd') { const m = $('#pmenu'); if (m) m.remove(); askAddProfile(); }
+  else if (d.pcolor) { t.parentNode.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', b === t)); }
+  else if (d.act === 'pfCreate') {
+    const name = ($('#pfName').value || '').trim();
+    if (!name) { $('#pfErr').hidden = false; $('#pfName').focus(); return; }
+    if (PROFILES.some(x => x.name.toLowerCase() === name.toLowerCase())) { $('#pfErr').textContent = 'Профиль с таким именем уже есть'; $('#pfErr').hidden = false; return; }
+    const h = +($('.pcolors [aria-checked="true"]') || {dataset:{pcolor:150}}).dataset.pcolor;
+    const id = 'p' + Date.now(); PROFILES.push({ id, name, h, gh:null, sync:'out', total:0, lists:{} }); closeDialog(); switchProfile(id);
+  }
+  else if (d.pfask) askDeleteProfile(d.pfask);
+  else if (d.pfdel) { const p = prof(d.pfdel); PROFILES.splice(PROFILES.indexOf(p), 1); closeDialog(); render(); toast(`Профиль «${p.name}» удалён с устройства${p.gh ? '. Gist на GitHub не тронут' : ''}`); }
   else if (d.act === 'retry') { $('#demoState').value = 'loading'; render(); setTimeout(() => { $('#demoState').value = 'data'; render(); }, 900); }
   else if (d.tab) { S.tab = d.tab; render(); }
   else if (d.ttab) { S.titleTab = d.ttab; render(); }
@@ -1146,11 +1255,12 @@ document.addEventListener('click', e => {
   else if (d.pdub) { S.dub = +d.pdub; P.dubOpen = false; render(); toast(`Озвучка: ${DUBS[S.dub].n}. Позиция сохранена`, null, null, true); }
   if (!t.closest('.actions')) { const m = $('#statusMenu'); if (m) m.hidden = true; }
 });
-document.addEventListener('click', e => { if (!e.target.closest('.actions')) { const m = $('#statusMenu'); if (m) m.hidden = true; } }, true);
+document.addEventListener('click', e => { if (!e.target.closest('#pmenu') && !e.target.closest('[data-act="pmenu"]')) { const m = $('#pmenu'); if (m) m.remove(); } if (!e.target.closest('.actions')) { const m = $('#statusMenu'); if (m) m.hidden = true; } }, true);
 document.addEventListener('change', e => {
   if (e.target.id === 'sort') { S.sort = e.target.value; render(); }
   if (e.target.id === 'demoPlatform') render();
   if (e.target.id === 'musDemo') { S.musicDemo = e.target.value; runMusic(); }
+  if (e.target.id === 'demoSync') prof().sync = e.target.value;
   if (e.target.id === 'demoSync') { if (e.target.value === 'out') S.login = 'start'; render(); }
   if (e.target.id === 'demoState') { if (route() === 'search') paintSearch(); else if (route() !== 'catalog') location.hash = 'catalog'; else render(); }
   if (e.target.id === 'setLang') S.lang = e.target.value;
@@ -1177,6 +1287,9 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.code === 'KeyK') { e.preventDefault(); if (route() !== 'search') location.hash = 'search'; else $('#sq') && $('#sq').focus(); }
   if (e.key === 'Escape' && e.target.id === 'sq') { SQ = ''; e.target.value = ''; paintSearch(); }
   if (e.key === 'Escape' && $('#sheet')) { closeSheet(); return; }
+  if (e.key === 'Escape' && $('#dialog')) { closeDialog(); return; }
+  if (e.key === 'Escape' && $('#pmenu')) { $('#pmenu').remove(); return; }
+  if (e.key === 'Enter' && e.target.id === 'pfName') { $('[data-act="pfCreate"]').click(); }
   if (!$('#player')) return;
   showUi();
   if (e.code === 'Space' && e.target.tagName !== 'BUTTON') { e.preventDefault(); P.playing = !P.playing; render(); }
