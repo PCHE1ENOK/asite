@@ -302,6 +302,31 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .wait { display: flex; gap: 10px; align-items: center; color: var(--fg2); font-size: 14px; }
 .wait svg { animation: spin 1.2s linear infinite; color: var(--accent); }
 .err { color: var(--bad); font-size: 14px; }
+.searchbig { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 14px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--s1); max-width: 720px; margin-bottom: 20px; }
+.searchbig:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.searchbig input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 16px; color: var(--fg); }
+.searchbig input::placeholder { color: var(--fg3); }
+.suggest { display: grid; gap: 20px; max-width: 720px; margin-bottom: 24px; }
+.suggest .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.sline { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: var(--r-sm); text-decoration: none; color: inherit; }
+.sline:hover { background: var(--hover); }
+.sline .mini { width: 32px; aspect-ratio: 2 / 3; border-radius: var(--r-xs); position: relative; overflow: hidden; flex: none; }
+.sline .mini .glyph, .sline .mini .ttl { display: none; }
+.sline mark { background: color-mix(in srgb, var(--accent) 35%, transparent); color: var(--fg); border-radius: 2px; }
+.settings { max-width: 720px; display: grid; gap: 28px; }
+.group { display: grid; gap: 0; }
+.group > .overline { margin-bottom: 8px; }
+.srow { display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 10px 16px; background: var(--s1); border: 1px solid var(--border); border-top-width: 0; flex-wrap: wrap; }
+.group > .overline + .srow { border-top-width: 1px; border-radius: var(--r-md) var(--r-md) 0 0; }
+.group > .srow:last-child { border-radius: 0 0 var(--r-md) var(--r-md); }
+.group > .overline + .srow:last-child { border-radius: var(--r-md); }
+.srow .lbl { flex: 1 1 220px; min-width: 0; }
+.srow .lbl small { display: block; color: var(--fg2); font-size: 13px; line-height: 18px; }
+.switch { width: 44px; height: 24px; border-radius: 12px; background: var(--s3); border: 1px solid var(--border-strong); position: relative; flex: none; transition: background .15s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--fg2); transition: transform .15s var(--ease), background .15s; }
+.switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--on-accent); }
+.srow .sync { margin: 0; border: 0; padding: 0; background: none; flex: 1 1 260px; }
 .sample { font-size: 12px; color: var(--fg3); margin-top: 40px; }
 
 /* ---------- телефон ---------- */
@@ -325,6 +350,7 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
   .ep { grid-template-columns: 28px 1fr auto 24px; padding: 6px 4px; }
   .skip, .next { bottom: 150px; }
 }
+@media (min-width: 641px) { .rail a.avatar-wrap.is-settings { background: none; color: var(--fg2); } .rail a.avatar-wrap.is-settings::before { display: none; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; animation: none !important; }
   .card:hover .poster { transform: none; }
@@ -335,8 +361,8 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
   <header class="titlebar">
     <span class="brand">Ai</span><span class="sub">Прототип · примерные данные</span>
     <div class="proto">
-      <label for="demoState">Каталог:</label>
-      <select id="demoState" aria-label="Состояние каталога">
+      <label for="demoState">Данные:</label>
+      <select id="demoState" aria-label="Состояние данных каталога и поиска">
         <option value="data">с данными</option>
         <option value="loading">загрузка</option>
         <option value="empty">пусто</option>
@@ -463,7 +489,7 @@ function viewCatalog() {
   else body = `<div class="grid">${list.map(card).join('')}</div>`;
   const active = S.genres.size || S.format !== 'all' || S.hideMine || !S.adult;
   return `<div class="page">
-    <div class="head"><h1>Каталог</h1><label class="search">${ic('search')}<input id="q" placeholder="Поиск по названию" aria-label="Поиск"><span class="kbd">Ctrl K</span></label></div>
+    <div class="head"><h1>Каталог</h1><a class="search" href="#search" style="text-decoration:none">${ic('search')}<span style="flex:1">Поиск по названию</span><span class="kbd">Ctrl K</span></a></div>
     <div class="toolbar" role="group" aria-label="Фильтры">
       ${['all','TV','Фильм'].map(f => `<button class="chip" type="button" data-format="${f}" aria-pressed="${S.format === f}">${f === 'all' ? 'Все форматы' : f}</button>`).join('')}
       <span class="sep"></span>
@@ -553,6 +579,65 @@ function viewLogin() {
     <div class="lead">${st === 'code' ? 'GitHub попросит подтвердить вход на своей странице. Пароль в приложение не вводится.' : 'Нужен, чтобы ваши списки были на всех устройствах.'}</div>
     ${body}
     <p class="sample">Прототип: код, логин и число тайтлов примерные.</p>
+  </div></div>`;
+}
+
+/* ---------- Поиск ---------- */
+const RECENT = ['фрирен', 'chainsaw', 'алхимик'];
+let SQ = '';
+function viewSearch() {
+  return `<div class="page">
+    <div class="head"><h1>Поиск</h1></div>
+    <label class="searchbig">${ic('search')}<input id="sq" type="search" placeholder="Название на русском, английском или ромадзи" aria-label="Поиск по названию" autocomplete="off" value="${esc(SQ)}"><span class="kbd">Esc</span></label>
+    <div id="sres"></div>
+    <p class="sample">Примерные данные. Поиск идёт по каталогу AniList (Page.media(search:)), подсказки появляются с 2 символов, запрос — через 300 мс после ввода.</p>
+  </div>`;
+}
+function hl(t, q) { const i = t.toLowerCase().indexOf(q.toLowerCase()); return i < 0 ? esc(t) : esc(t.slice(0,i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length)); }
+let sTimer;
+function paintSearch(loading) {
+  const box = $('#sres'); if (!box) return;
+  const demo = $('#demoState').value, q = SQ.trim();
+  if (demo === 'error') { box.innerHTML = `<div class="state">${ic('cloud_off')}<h3>Поиск недоступен без сети</h3><div>Проверьте подключение. Ваши списки открываются и без интернета.</div><button class="btn btn-filled" type="button" data-act="sretry">Повторить</button></div>`; return; }
+  if (!q) { box.innerHTML = `<div class="suggest">
+      <div><div class="overline" style="margin-bottom:8px">Недавние запросы</div><div class="row">${RECENT.map(r => `<button class="chip" type="button" data-sq="${esc(r)}">${ic('rw')}${esc(r)}</button>`).join('')}<button class="btn btn-text" type="button" data-act="clearRecent">Очистить</button></div></div>
+      <div><div class="overline" style="margin-bottom:8px">Популярное сейчас</div><div class="row">${['Дандадан','Монолог фармацевта','Кайдзю №8','Блю Лок'].map(r => `<button class="chip" type="button" data-sq="${esc(r)}">${esc(r)}</button>`).join('')}</div></div>
+    </div>`; return; }
+  if (loading || demo === 'loading') { box.innerHTML = `<div class="grid" aria-busy="true">${Array.from({length:6}, () => `<div class="card"><div class="poster skel"></div><div class="skel" style="height:14px;width:80%"></div></div>`).join('')}</div>`; return; }
+  const res = demo === 'empty' ? [] : DATA.filter(a => (S.adult || !a.adult) && (a.t + ' ' + a.o).toLowerCase().includes(q.toLowerCase()));
+  if (!res.length) { box.innerHTML = `<div class="state">${ic('empty')}<h3>Ничего не нашлось по «${esc(q)}»</h3><div>Проверьте написание или попробуйте английское название.</div></div>`; return; }
+  box.innerHTML = `${q.length >= 2 ? `<div class="suggest"><div>${res.slice(0,3).map(a => `<a class="sline" href="#title" data-open="${a.id}"><span class="mini">${art(a, true)}</span><span><div>${hl(a.t, q)}</div><div class="cap">${hl(a.o, q)} · ${a.f} · ${a.y}</div></span><span class="score ${scoreCls(a.sc)}" style="position:static;margin-left:auto"><i></i>${a.sc}</span></a>`).join('')}</div></div>` : ''}
+    <div class="overline" style="margin-bottom:12px">Результаты · ${res.length}</div><div class="grid">${res.map(card).join('')}</div>`;
+}
+document.addEventListener('input', e => {
+  if (e.target.id !== 'sq') return;
+  SQ = e.target.value; clearTimeout(sTimer);
+  if (SQ.trim()) { paintSearch(true); sTimer = setTimeout(() => paintSearch(), 300); } else paintSearch();
+});
+
+/* ---------- Настройки ---------- */
+function themePref() { return document.documentElement.dataset.theme || 'system'; }
+function viewSettings() {
+  const sw = (id, on, label) => `<button class="switch" type="button" role="switch" id="${id}" aria-checked="${on}" aria-label="${label}"></button>`;
+  const out = syncState() === 'out';
+  return `<div class="page"><div class="head"><h1>Настройки</h1></div><div class="settings">
+    <section class="group"><div class="overline">Аккаунт и синхронизация</div>
+      ${out ? '' : `<div class="srow">${syncBar()}</div>`}
+      <div class="srow"><span class="lbl">${out ? 'Вход не выполнен<small>Списки хранятся только на этом устройстве</small>' : 'GitHub · yuki-dev<small>Приватный Gist «anime-lists» · 184 тайтла</small>'}</span>
+        ${out ? `<a class="btn btn-filled" href="#login" style="text-decoration:none">${ic('login')}Войти через GitHub</a>` : `<button class="btn btn-outline" type="button" data-act="logout">Выйти из GitHub</button>`}</div>
+    </section>
+    <section class="group"><div class="overline">Каталог</div>
+      <div class="srow"><span class="lbl">Показывать 18+ <span class="tag adult-tag">18+</span><small>Тайтлы для взрослых видны в каталоге и поиске с пометкой 18+. Этот же фильтр есть в каталоге.</small></span>${sw('setAdult', S.adult, 'Показывать 18+')}</div>
+    </section>
+    <section class="group"><div class="overline">Оформление</div>
+      <div class="srow"><span class="lbl">Тема<small>Системная повторяет настройку Windows, iOS или Android</small></span>
+        <div class="seg" role="group" aria-label="Тема">${[['system','Системная'],['dark','Тёмная'],['light','Светлая']].map(([k,l]) => `<button type="button" data-settheme="${k}" aria-pressed="${themePref() === k}">${l}</button>`).join('')}</div></div>
+      <div class="srow"><span class="lbl">Язык интерфейса</span><select class="select" id="setLang" aria-label="Язык интерфейса"><option value="ru">Русский</option><option value="en">English</option></select></div>
+    </section>
+    <section class="group"><div class="overline">О приложении</div>
+      <div class="srow"><span class="lbl">Версия<small class="num">0.1.0 (сборка 12) · Windows</small></span><button class="btn btn-text" type="button" data-act="copyver">Скопировать</button></div>
+    </section>
+    <p class="sample">Прототип: логин, Gist и номер сборки примерные.</p>
   </div></div>`;
 }
 
@@ -732,17 +817,18 @@ function toast(msg, action, fn, top) {
 }
 
 /* ---------- роутинг ---------- */
-const ROUTES = { catalog:viewCatalog, lists:viewLists, title:viewTitle, player:viewPlayer, login:viewLogin };
+const ROUTES = { catalog:viewCatalog, lists:viewLists, title:viewTitle, player:viewPlayer, login:viewLogin, search:viewSearch, settings:viewSettings };
 function route() { const h = location.hash.slice(1); return ROUTES[h] ? h : 'catalog'; }
 function render() {
   const r = route();
   $('#rail').innerHTML = [['catalog','grid','Каталог'],['lists','lists','Списки'],['search','search','Поиск']].map(([k,i,l]) =>
-    `<a href="#${k === 'search' ? 'catalog' : k}" ${r === k || (k === 'catalog' && r === 'title') ? 'aria-current="page"' : ''}>${ic(i)}<span>${l}</span></a>`).join('')
-    + `<span class="spacer"></span><a class="settings-link" href="#catalog" aria-label="Настройки">${ic('settings')}<span>Настройки</span></a>${(() => { const v = SYNC[syncState()]; const out = syncState() === 'out';
-      return `<a class="avatar-wrap" href="${out ? '#login' : '#lists'}" ${r === 'login' ? 'aria-current="page"' : ''} title="${out ? 'Войти через GitHub' : 'Синхронизация: ' + v.text.replace(/<[^>]+>/g, '')}">${out ? ic('login') : '<span class="avatar">Ю</span>'}${v.dot ? `<span class="syncdot" style="background:var(${v.dot})"></span>` : ''}<span>${out ? 'Войти' : 'Профиль'}</span></a>`; })()}`;
+    `<a href="#${k}" ${r === k || (k === 'catalog' && r === 'title') ? 'aria-current="page"' : ''}>${ic(i)}<span>${l}</span></a>`).join('')
+    + `<span class="spacer"></span><a class="settings-link" href="#settings" ${r === 'settings' ? 'aria-current="page"' : ''} aria-label="Настройки">${ic('settings')}<span>Настройки</span></a>${(() => { const v = SYNC[syncState()]; const out = syncState() === 'out';
+      return `<a class="avatar-wrap${r === 'settings' ? ' is-settings' : ''}" href="#settings" ${r === 'login' || r === 'settings' ? 'aria-current="page"' : ''} title="${out ? 'Войти через GitHub' : 'Синхронизация: ' + v.text.replace(/<[^>]+>/g, '')}">${out ? ic('login') : '<span class="avatar">Ю</span>'}${v.dot ? `<span class="syncdot" style="background:var(${v.dot})"></span>` : ''}<span>${out ? 'Войти' : 'Профиль'}</span></a>`; })()}`;
   clearInterval(P.timer); clearNext();
   $('#main').innerHTML = ROUTES[r]();
   if (r !== 'player') $('#main').scrollTop = 0;
+  if (r === 'search') { paintSearch(); const i = $('#sq'); if (i) i.focus(); }
   if (r === 'player') { P.timer = setInterval(playerTick, 1000); playerPaint(); showUi(); }
 }
 window.addEventListener('hashchange', () => { P.dubOpen = false; render(); });
@@ -759,6 +845,13 @@ document.addEventListener('click', e => {
   else if (d.act === 'sync') { $('#demoSync').value = 'syncing'; render(); setTimeout(() => { $('#demoSync').value = 'ok'; render(); }, 1200); }
   else if (d.login === 'copy') { try { navigator.clipboard.writeText('WDJB-MJHT').catch(() => {}); } catch(e) {} toast('Код скопирован'); }
   else if (d.login) { S.login = d.login; if (d.login === 'done') $('#demoSync').value = 'ok'; render(); }
+  else if (d.sq) { SQ = d.sq; const i = $('#sq'); if (i) { i.value = SQ; i.focus(); } paintSearch(); }
+  else if (d.act === 'clearRecent') { RECENT.length = 0; paintSearch(); }
+  else if (d.act === 'sretry') { $('#demoState').value = 'data'; paintSearch(); }
+  else if (t.id === 'setAdult') { S.adult = !S.adult; t.setAttribute('aria-checked', S.adult); }
+  else if (d.settheme) { const v = d.settheme; if (v === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = v; try { v === 'system' ? localStorage.removeItem('ai-theme') : localStorage.setItem('ai-theme', v); } catch(e) {} render(); }
+  else if (d.act === 'logout') { $('#demoSync').value = 'out'; S.login = 'start'; render(); toast('Вы вышли из GitHub. Списки остались на устройстве'); }
+  else if (d.act === 'copyver') { try { navigator.clipboard.writeText('0.1.0 (12) windows').catch(() => {}); } catch(e) {} toast('Версия скопирована'); }
   else if (d.act === 'retry') { $('#demoState').value = 'loading'; render(); setTimeout(() => { $('#demoState').value = 'data'; render(); }, 900); }
   else if (d.tab) { S.tab = d.tab; render(); }
   else if (d.ttab) { S.titleTab = d.ttab; render(); }
@@ -784,7 +877,8 @@ document.addEventListener('click', e => { if (!e.target.closest('.actions')) { c
 document.addEventListener('change', e => {
   if (e.target.id === 'sort') { S.sort = e.target.value; render(); }
   if (e.target.id === 'demoSync') { if (e.target.value === 'out') S.login = 'start'; render(); }
-  if (e.target.id === 'demoState') { if (route() !== 'catalog') location.hash = 'catalog'; else render(); }
+  if (e.target.id === 'demoState') { if (route() === 'search') paintSearch(); else if (route() !== 'catalog') location.hash = 'catalog'; else render(); }
+  if (e.target.id === 'setLang') toast(e.target.value === 'en' ? 'Language: English. Перевод интерфейса — после первого прохода' : 'Язык: русский');
 });
 document.addEventListener('pointerdown', e => {
   const tl = e.target.closest('#tl'); if (!tl) return;
@@ -804,7 +898,8 @@ document.addEventListener('pointermove', e => {
   tip.style.left = (r.left + r.width / 2 - box.left) + 'px'; tip.style.top = (r.top - box.top - 26) + 'px'; tip.hidden = false;
 });
 document.addEventListener('keydown', e => {
-  if (e.ctrlKey && e.key.toLowerCase() === 'k') { const q = $('#q'); if (q) { e.preventDefault(); q.focus(); } }
+  if (e.ctrlKey && e.key.toLowerCase() === 'k') { e.preventDefault(); if (route() !== 'search') location.hash = 'search'; else $('#sq') && $('#sq').focus(); }
+  if (e.key === 'Escape' && e.target.id === 'sq') { SQ = ''; e.target.value = ''; paintSearch(); }
   if (!$('#player')) return;
   showUi();
   if (e.key === ' ' && e.target.tagName !== 'BUTTON') { e.preventDefault(); P.playing = !P.playing; render(); }
