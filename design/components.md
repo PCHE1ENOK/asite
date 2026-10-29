@@ -26,6 +26,7 @@
 - **Switch** — трек 44×24 радиус pill: выкл. — `surface3` с рамкой `borderStrong`, ручка `fg2` (6.2:1 к треку); вкл. — `accent`, ручка `onAccent`. Роль `switch`, вся строка настроек кликабельна. На iOS — `CupertinoSwitch`, на Android — `Switch` M3.
 - **SearchField** — высота 48, радиус md, рамка `borderStrong`, в фокусе `accent` 2px. Подсветка совпадений в подсказках — `accent` 35% под текстом `fg`.
 - **SettingsGroup / SettingsRow** — заголовок `overline`, строки на `surface1` с общей рамкой; слева подпись + пояснение `fg2`, справа один контрол.
+- **MusicPanel** — поповер плеера 340, `#161923E6` + blur 24, радиус md, отступ 12. Заголовок `overline` со временем фрагмента, обложка 64 радиус sm, название `display` 16, исполнитель `fg2`-аналог плеера (`#FFFFFFB8`), кнопки 36. Состояния: off / listening / found / notfound / error. `Semantics(liveRegion: true)` — результат зачитывается скринридером.
 - **ListStatusDot** — круг 24 цвета статуса с белой иконкой; рядом с цветом всегда иконка (без опоры только на цвет).
 - **StatusButton** — `MenuAnchor`: кнопка с иконкой и подписью текущего статуса, меню из 5 статусов + «Удалить из списка». Без статуса: «Добавить в список».
 - **FilterChip / SortMenu** — высота 32, радиус pill, рамка `border`; выбранный — `accentSoft` + `accent`. Сортировка — `MenuAnchor` с галочкой у текущего пункта.
