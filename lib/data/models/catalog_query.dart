@@ -29,6 +29,7 @@ class CatalogQuery {
     this.seasonYear,
     this.minScore,
     this.includeAdult = true,
+    this.excludeIds = const [],
   });
 
   final String? search;
@@ -55,6 +56,9 @@ class CatalogQuery {
   /// показываются с пометкой (`Anime.isAdult`).
   final bool includeAdult;
 
+  /// Не показывать эти тайтлы («Скрыть из моих списков»).
+  final List<int> excludeIds;
+
   bool get hasSearch => search != null && search!.trim().isNotEmpty;
 
   /// Переменные для `AniListQueries.catalog`, без пагинации.
@@ -72,6 +76,7 @@ class CatalogQuery {
       if (seasonYear != null) 'seasonYear': seasonYear,
       if (minScore != null) 'minScore': minScore,
       if (!includeAdult) 'isAdult': false,
+      if (excludeIds.isNotEmpty) 'excludeIds': [...excludeIds]..sort(),
     };
   }
 

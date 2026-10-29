@@ -82,7 +82,10 @@ class AppShellState extends State<AppShell> {
       onOpenSearch: () => select(AppTab.search),
       now: widget.now,
     ),
-    AppTab.lists => ListsScreen(onOpenCatalog: () => select(AppTab.catalog)),
+    AppTab.lists => ListsScreen(
+      onOpenCatalog: () => select(AppTab.catalog),
+      onOpenTitle: _openTitle,
+    ),
     AppTab.search => SearchScreen(key: _searchKey, onOpenTitle: _openTitle),
     AppTab.settings => const SettingsScreen(),
   };

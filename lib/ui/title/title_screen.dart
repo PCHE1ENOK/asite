@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../data/anilist/anilist_client.dart';
 import '../../data/anime_repository.dart';
 import '../../data/models/anime.dart';
+import '../../data/models/library_entry.dart';
 import '../app_scope.dart';
 import '../format.dart';
 import '../theme/app_theme.dart';
@@ -16,6 +17,7 @@ import '../widgets/cover_image.dart';
 import '../widgets/poster_card.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/state_views.dart';
+import '../widgets/status_widgets.dart';
 import 'episode_list.dart';
 import 'title_charts.dart';
 
@@ -97,13 +99,14 @@ class _TitleScreenState extends State<TitleScreen>
             return const Center(child: CircularProgressIndicator());
           }
           return ListenableBuilder(
-            listenable: _tabs,
+            listenable: Listenable.merge([_tabs, AppScope.of(context).library]),
             builder: (context, _) => CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(
                   child: _Header(
                     anime: anime,
                     details: details,
+                    entry: AppScope.of(context).library[anime.id],
                     width: width,
                     gutter: gutter,
                   ),
@@ -225,16 +228,65 @@ class _TitleScreenState extends State<TitleScreen>
       ];
     }
     final duration = d.anime.duration;
+    final progress = AppScope.of(context).library[d.id]?.progress ?? 0;
     return [
       SliverPadding(
         padding: pad,
         sliver: SliverList.builder(
           itemCount: episodes.length,
-          itemBuilder: (context, i) =>
-              _EpisodeRow(episode: episodes[i], duration: duration),
+          itemBuilder: (context, i) {
+            final e = episodes[i];
+            final watched = e.number <= progress;
+            return _EpisodeRow(
+              episode: e,
+              duration: duration,
+              watched: watched,
+              isNext: e.aired && e.number == progress + 1,
+              onToggle: e.aired ? () => _toggleEpisode(d, e, watched) : null,
+            );
+          },
         ),
       ),
     ];
+  }
+
+  Future<void> _toggleEpisode(
+    AnimeDetails d,
+    EpisodeInfo e,
+    bool watched,
+  ) async {
+    final library = AppScope.of(context).services.library;
+    final messenger = ScaffoldMessenger.of(context);
+    final r = watched
+        ? await library.unmarkWatched(d.id, e.number)
+        : await library.markWatched(
+            d.id,
+            e.number,
+            totalEpisodes: d.anime.episodes,
+          );
+    final statusNote = r.before?.status == r.after.status
+        ? ''
+        : r.after.status == ListStatus.completed
+        ? ' · тайтл просмотрен'
+        : r.before == null
+        ? ' · статус «Смотрю»'
+        : ' · статус «${Fmt.status(r.after.status)}»';
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 4),
+          content: Text(
+            watched
+                ? 'Отметка с серии ${e.number} снята$statusNote'
+                : 'Серия ${e.number} отмечена просмотренной$statusNote',
+          ),
+          action: SnackBarAction(
+            label: 'Отменить',
+            onPressed: () => library.restore(d.id, r.before),
+          ),
+        ),
+      );
   }
 }
 
@@ -242,12 +294,14 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.anime,
     required this.details,
+    required this.entry,
     required this.width,
     required this.gutter,
   });
 
   final Anime anime;
   final AnimeDetails? details;
+  final LibraryEntry? entry;
   final double width;
   final double gutter;
 
@@ -347,8 +401,9 @@ class _Header extends StatelessWidget {
                 ),
               ),
               icon: const Icon(Symbols.play_arrow_rounded, fill: 1),
-              label: const Text('Начать просмотр'),
+              label: Text(_playLabel()),
             ),
+            StatusButton(mediaId: a.id),
             if (d?.siteUrl case final url?)
               OutlinedButton.icon(
                 onPressed: () => launchUrl(
@@ -400,6 +455,21 @@ class _Header extends StatelessWidget {
   }
 }
 
+extension on _Header {
+  /// «Смотреть серию 6», если тайтл начат и следующая серия вышла.
+  String _playLabel() {
+    final e = entry;
+    final d = details;
+    if (e == null || e.progress == 0 || d == null) return 'Начать просмотр';
+    final episodes = buildEpisodes(d);
+    final next = e.progress + 1;
+    if (next <= episodes.length && episodes[next - 1].aired) {
+      return 'Смотреть серию $next';
+    }
+    return 'Начать просмотр';
+  }
+}
+
 class _ScoreBlock extends StatelessWidget {
   const _ScoreBlock({required this.anime, required this.details});
 
@@ -439,10 +509,21 @@ class _ScoreBlock extends StatelessWidget {
 }
 
 class _EpisodeRow extends StatelessWidget {
-  const _EpisodeRow({required this.episode, required this.duration});
+  const _EpisodeRow({
+    required this.episode,
+    required this.duration,
+    required this.watched,
+    required this.isNext,
+    required this.onToggle,
+  });
 
   final EpisodeInfo episode;
   final int? duration;
+  final bool watched;
+
+  /// Следующая к просмотру — выделена `accentSoft`.
+  final bool isNext;
+  final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -457,8 +538,10 @@ class _EpisodeRow extends StatelessWidget {
     return Container(
       height: 56,
       decoration: BoxDecoration(
+        color: isNext ? t.accentSoft : null,
         border: Border(bottom: BorderSide(color: t.border)),
       ),
+      padding: const EdgeInsets.only(left: 8),
       child: Row(
         children: [
           SizedBox(
@@ -484,6 +567,24 @@ class _EpisodeRow extends StatelessWidget {
               trailing,
               style: AppText.caption.copyWith(color: e.aired ? t.fg2 : t.fg3),
             ),
+          SizedBox(
+            width: 48,
+            child: onToggle == null
+                ? null
+                : IconButton(
+                    tooltip: watched
+                        ? 'Снять отметку'
+                        : 'Отметить просмотренной',
+                    onPressed: onToggle,
+                    icon: Icon(
+                      watched
+                          ? Symbols.check_circle_rounded
+                          : Symbols.radio_button_unchecked_rounded,
+                      fill: watched ? 1 : 0,
+                      color: watched ? t.status[ListStatus.completed] : t.fg3,
+                    ),
+                  ),
+          ),
         ],
       ),
     );
@@ -664,7 +765,7 @@ class _Stats extends StatelessWidget {
         : block(
             'Статусы в списках',
             'Списки пользователей AniList',
-            StatusDistributionBar(buckets: d.statusDistribution),
+            StatusDistributionBar.fromBuckets(d.statusDistribution),
           );
     if (scores == null && statuses == null) {
       return const EmptyState(

@@ -21,7 +21,10 @@ void main() {
     await tester.tap(find.byType(Switch).first);
     await UiHarness.settle(tester);
     expect(h.settings.showAdult, isFalse);
-    expect(await tester.runAsync(h.services.preferences.showAdult), isFalse);
+    expect(
+      await UiHarness.run(tester, h.services.preferences.showAdult),
+      isFalse,
+    );
     await h.dispose(tester);
   });
 
@@ -50,7 +53,7 @@ void main() {
     await UiHarness.settle(tester);
     expect(h.settings.musicRecognition, isTrue);
     expect(
-      await tester.runAsync(h.services.preferences.musicRecognition),
+      await UiHarness.run(tester, h.services.preferences.musicRecognition),
       isTrue,
     );
     await h.dispose(tester);

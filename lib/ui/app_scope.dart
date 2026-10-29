@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app_services.dart';
 import '../data/settings/app_preferences.dart';
+import 'library_index.dart';
 
 /// Источник картинок по URL; в тестах подменяется.
 typedef ImageResolver = ImageProvider Function(String url);
@@ -81,12 +82,16 @@ class AppScope extends InheritedWidget {
     super.key,
     required this.services,
     required this.settings,
+    required this.library,
     this.imageResolver = networkImage,
     required super.child,
   });
 
   final AppServices services;
   final AppSettings settings;
+
+  /// Списки пользователя в памяти.
+  final LibraryIndex library;
   final ImageResolver imageResolver;
 
   static AppScope of(BuildContext context) =>
@@ -96,5 +101,6 @@ class AppScope extends InheritedWidget {
   bool updateShouldNotify(AppScope old) =>
       services != old.services ||
       settings != old.settings ||
+      library != old.library ||
       imageResolver != old.imageResolver;
 }

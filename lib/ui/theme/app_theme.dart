@@ -263,8 +263,10 @@ abstract final class AppTheme {
         contentTextStyle: AppText.label.copyWith(color: t.fg),
         actionTextColor: t.accent,
         behavior: SnackBarBehavior.floating,
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
+          side: BorderSide(color: t.borderStrong),
         ),
       ),
       tooltipTheme: TooltipThemeData(

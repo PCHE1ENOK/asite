@@ -95,10 +95,14 @@ abstract final class Fmt {
   };
 
   /// «TV · 2026 · 12 эп.»
-  static String posterCaption(Anime a) => [
+  /// С [progress] — «TV · 2024 · 5 / 12 эп.».
+  static String posterCaption(Anime a, {int? progress}) => [
     if (a.format != null) formats[a.format] ?? a.format!,
     if (a.seasonYear != null) '${a.seasonYear}',
-    if (a.episodes != null) '${a.episodes} эп.',
+    if (progress != null)
+      '$progress / ${a.episodes ?? '?'} эп.'
+    else if (a.episodes != null)
+      '${a.episodes} эп.',
   ].join(' · ');
 
   /// «TV · Осень 2026 · 12 эп. · 24 мин · MAPPA»

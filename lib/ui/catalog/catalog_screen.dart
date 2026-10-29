@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -6,6 +7,7 @@ import '../../data/models/anime.dart';
 import '../../data/models/catalog_query.dart';
 import '../app_scope.dart';
 import '../format.dart';
+import '../library_index.dart';
 import '../paged_anime_controller.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
@@ -35,6 +37,8 @@ class CatalogScreen extends StatefulWidget {
 class _CatalogScreenState extends State<CatalogScreen> {
   late PagedAnimeController _feed;
   late AppSettings _settings;
+  late LibraryIndex _library;
+  Set<int> _lastIds = const {};
   CatalogFilters _filters = const CatalogFilters();
   List<String> _genres = const [];
   bool _initialized = false;
@@ -49,6 +53,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
     final scope = AppScope.of(context);
     _settings = scope.settings..addListener(_onSettings);
     _lastAdult = _settings.showAdult;
+    _library = scope.library..addListener(_onLibrary);
+    _lastIds = _library.ids;
     _feed = PagedAnimeController(scope.services.anime)..addListener(_onFeed);
     _reload();
     _loadGenres();
@@ -57,6 +63,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
   @override
   void dispose() {
     _settings.removeListener(_onSettings);
+    _library.removeListener(_onLibrary);
     _feed.dispose();
     super.dispose();
   }
@@ -77,6 +84,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
     }
   }
 
+  void _onLibrary() {
+    final ids = _library.ids;
+    if (_filters.hideMine && !setEquals(ids, _lastIds)) {
+      _lastIds = ids;
+      _reload();
+    } else {
+      _lastIds = ids;
+    }
+  }
+
   void _onFeed() {
     final until = _feed.rateLimitedUntil;
     if (until != null && until != _shownRateLimit && mounted) {
@@ -90,8 +107,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
     }
   }
 
-  void _reload() =>
-      _feed.setQuery(_filters.toQuery(includeAdult: _settings.showAdult));
+  void _reload() => _feed.setQuery(
+    _filters.toQuery(includeAdult: _settings.showAdult, myIds: _library.ids),
+  );
 
   void _update(CatalogFilters filters) {
     setState(() => _filters = filters);
@@ -210,6 +228,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
         value: f.status,
         itemLabel: (s) => s == null ? 'Любой' : Fmt.releaseStatuses[s]!,
         onSelected: (s) => _update(f.copyWith(status: () => s)),
+      ),
+      PillButton(
+        label: 'Скрыть из моих списков',
+        selected: f.hideMine,
+        icon: f.hideMine ? Symbols.check_rounded : null,
+        onPressed: () => _update(f.copyWith(hideMine: !f.hideMine)),
       ),
       PillButton(
         label: 'Показывать 18+',

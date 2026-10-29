@@ -34,6 +34,65 @@ class LibraryRepository {
     return q.watch().map((rows) => [for (final r in rows) ?_fromRow(r)]);
   }
 
+  Stream<LibraryEntry?> watchEntry(int mediaId) =>
+      (_db.select(
+        _db.libraryEntries,
+      )..where((t) => t.mediaId.equals(mediaId))).watchSingleOrNull().map((r) {
+        final e = r == null ? null : _fromRow(r);
+        return e == null || e.deleted ? null : e;
+      });
+
+  /// Отмечает серию [episode] просмотренной: прогресс поднимается до неё.
+  /// Тайтл без статуса становится «Смотрю», последняя серия —
+  /// «Просмотрено». Возвращает прежнюю запись для «Отменить».
+  Future<({LibraryEntry? before, LibraryEntry after})> markWatched(
+    int mediaId,
+    int episode, {
+    int? totalEpisodes,
+  }) async {
+    final before = await entry(mediaId);
+    final last = totalEpisodes != null && episode >= totalEpisodes;
+    final after = await _update(mediaId, (e) {
+      // Уже просмотренная серия ничего не меняет.
+      if (!last && episode <= e.progress && before != null) return e;
+      final progress = episode > e.progress ? episode : e.progress;
+      final status = last
+          ? ListStatus.completed
+          : e.status == ListStatus.completed ||
+                e.status == ListStatus.planning ||
+                e.status == ListStatus.paused
+          ? ListStatus.current
+          : e.status;
+      return e.copyWith(progress: progress, status: status);
+    }, defaultStatus: ListStatus.current);
+    return (before: before, after: after);
+  }
+
+  /// Снимает отметку: прогресс становится [episode] - 1.
+  Future<({LibraryEntry? before, LibraryEntry after})> unmarkWatched(
+    int mediaId,
+    int episode,
+  ) async {
+    final before = await entry(mediaId);
+    final after = await _update(
+      mediaId,
+      (e) => e.copyWith(
+        progress: episode - 1,
+        status: e.status == ListStatus.completed ? ListStatus.current : null,
+      ),
+      defaultStatus: ListStatus.current,
+    );
+    return (before: before, after: after);
+  }
+
+  /// Возвращает тайтл к прежнему состоянию («Отменить»): [previous] или,
+  /// если записи не было, убирает его из списков.
+  Future<void> restore(int mediaId, LibraryEntry? previous) async {
+    if (previous == null) return remove(mediaId);
+    await _write(previous.copyWith(updatedAt: _stamp()), dirty: true);
+    onChanged?.call();
+  }
+
   /// Все записи, включая удалённые, для синхронизации.
   Future<List<LibraryEntry>> allForSync() async => [
     for (final r in await _db.select(_db.libraryEntries).get()) ?_fromRow(r),

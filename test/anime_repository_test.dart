@@ -134,4 +134,34 @@ void main() {
     offline = true;
     await expectLater(repo.getCatalog(query), throwsA(isA<AniListException>()));
   });
+
+  test('getSummaries: cache first, missing ids fetched by id_in', () async {
+    await repo.getCatalog(query); // кладёт 16498 и 154587 в кэш
+    fake.handler = (body) {
+      expect(body['query'], contains('query ByIds'));
+      expect((body['variables'] as Map)['ids'], [999]);
+      return jsonResponse(
+        '{"data":{"Page":{"pageInfo":{"hasNextPage":false},"media":[{"id":999,"title":{"romaji":"New"}}]}}}',
+      );
+    };
+
+    final map = await repo.getSummaries([16498, 999]);
+    expect(map.keys, unorderedEquals([16498, 999]));
+    expect(map[999]!.title.preferred, 'New');
+    expect((await repo.getCachedSummary(999))?.title.romaji, 'New');
+  });
+
+  test('getSummaries offline returns only cached', () async {
+    await repo.getCatalog(query);
+    offline = true;
+    final map = await repo.getSummaries([16498, 999]);
+    expect(map.keys, [16498]);
+  });
+
+  test('excludeIds becomes a sorted id_not_in variable', () {
+    expect(const CatalogQuery(excludeIds: [5, 2]).toVariables()['excludeIds'], [
+      2,
+      5,
+    ]);
+  });
 }

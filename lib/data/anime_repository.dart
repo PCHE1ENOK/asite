@@ -132,6 +132,34 @@ class AnimeRepository {
     }
   }
 
+  /// Краткие карточки по id: из кэша, недостающие — из сети пачками по 50.
+  /// Без сети возвращает то, что есть в кэше.
+  Future<Map<int, Anime>> getSummaries(Iterable<int> ids) async {
+    final wanted = ids.toSet().toList();
+    final result = <int, Anime>{
+      for (final row in await _db.animeByIds(wanted))
+        row.id: Anime.fromJson(
+          jsonDecode(row.summaryJson) as Map<String, dynamic>,
+        ),
+    };
+    final missing = wanted.where((id) => !result.containsKey(id)).toList();
+    try {
+      for (var i = 0; i < missing.length; i += 50) {
+        final chunk = missing.sublist(i, (i + 50).clamp(0, missing.length));
+        final items = await _client.fetchByIds(chunk);
+        await _db.upsertSummaries({
+          for (final a in items) a.id: jsonEncode(a.toJson()),
+        }, _now());
+        for (final a in items) {
+          result[a.id] = a;
+        }
+      }
+    } on AniListException {
+      // Без сети — только кэш.
+    }
+    return result;
+  }
+
   /// Краткая карточка из кэша без обращения к сети.
   Future<Anime?> getCachedSummary(int id) async {
     final row = await _db.animeById(id);

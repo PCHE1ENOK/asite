@@ -72,6 +72,17 @@ class AniListClient {
     return parseDetails(data);
   }
 
+  /// Краткие карточки по id (не больше 50 за раз), в порядке ответа.
+  Future<List<Anime>> fetchByIds(List<int> ids) async {
+    if (ids.isEmpty) return const [];
+    assert(ids.length <= 50);
+    final data = await rawQuery(AniListQueries.byIds, {
+      'ids': ids,
+      'perPage': ids.length,
+    });
+    return parseCatalog(data).items;
+  }
+
   /// Список жанров AniList.
   Future<List<String>> fetchGenres() async {
     final data = await rawQuery(AniListQueries.genres, const {});

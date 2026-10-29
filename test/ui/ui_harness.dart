@@ -94,6 +94,24 @@ class UiHarness {
       }
       return jsonResponse(fixture('catalog_page_30.json'));
     }
+    if (query.contains('query ByIds')) {
+      final ids = (vars['ids'] as List).cast<int>().toSet();
+      final page = jsonDecode(fixture('catalog_page_30.json')) as Map;
+      final media = [
+        for (final m in page['data']['Page']['media'] as List)
+          if (ids.contains(m['id'])) m,
+      ];
+      return jsonResponse(
+        jsonEncode({
+          'data': {
+            'Page': {
+              'pageInfo': {'hasNextPage': false},
+              'media': media,
+            },
+          },
+        }),
+      );
+    }
     if (query.contains('query Details')) {
       return jsonResponse(fixture('details_response.json'));
     }
@@ -122,6 +140,36 @@ class UiHarness {
     await settle(tester);
   }
 
+  /// Выполняет операцию с базой в тестовом времени: после запуска
+  /// приложения обращения к базе из `runAsync` могут ждать блокировку,
+  /// которую держит операция в тестовом времени.
+  static Future<T> run<T>(WidgetTester tester, Future<T> Function() op) async {
+    var done = false;
+    late T value;
+    Object? error;
+    op().then(
+      (v) {
+        value = v;
+        done = true;
+      },
+      onError: (Object e) {
+        error = e;
+        done = true;
+      },
+    );
+    for (var i = 0; i < 100 && !done; i++) {
+      await tester.pump(const Duration(milliseconds: 10));
+      if (!done) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 5)),
+        );
+      }
+    }
+    if (!done) throw StateError('database operation did not complete');
+    if (error != null) throw error!;
+    return value;
+  }
+
   /// Даёт отработать запросам к поддельному API и базе.
   static Future<void> settle(WidgetTester tester) async {
     for (var i = 0; i < 5; i++) {
@@ -134,6 +182,9 @@ class UiHarness {
 
   Future<void> dispose(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox.shrink());
-    await tester.runAsync(db.close);
+    // Подписки drift закрываются по таймеру; ждём их в тестовом времени.
+    await tester.pump(const Duration(seconds: 1));
+    await run(tester, db.close);
+    await tester.pump(const Duration(seconds: 1));
   }
 }

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../../data/models/anime.dart';
+import '../../data/models/library_entry.dart';
+import '../app_scope.dart';
 import '../format.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import 'badges.dart';
 import 'cover_image.dart';
 import 'skeleton.dart';
+import 'status_widgets.dart';
 
 /// Постер тайтла 2:3 с рейтингом, бейджем 18+ и подписью.
 class PosterCard extends StatefulWidget {
@@ -28,10 +31,21 @@ class _PosterCardState extends State<PosterCard> {
   bool _focus = false;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: AppScope.of(context).library,
+    builder: (context, _) => _build(context),
+  );
+
+  Widget _build(BuildContext context) {
     final t = context.tokens;
     final a = widget.anime;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final entry = AppScope.of(context).library[a.id];
+    final watching =
+        entry != null &&
+        (entry.status == ListStatus.current ||
+            entry.status == ListStatus.repeating);
+    final total = a.episodes;
 
     final cover = AnimatedScale(
       scale: _hover && !reduceMotion ? 1.03 : 1,
@@ -54,6 +68,29 @@ class _PosterCardState extends State<PosterCard> {
               color: a.coverImage.color,
               radius: AppRadius.md - 2,
             ),
+            if (entry != null)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: ListStatusDot(status: entry.status),
+              ),
+            if (watching && total != null && total > 0 && entry.progress > 0)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(AppRadius.md - 2),
+                  ),
+                  child: LinearProgressIndicator(
+                    value: (entry.progress / total).clamp(0, 1),
+                    minHeight: 3,
+                    color: t.status[ListStatus.current],
+                    backgroundColor: Colors.black.withValues(alpha: 0.4),
+                  ),
+                ),
+              ),
             Positioned(
               left: 8,
               top: 8,
@@ -80,6 +117,7 @@ class _PosterCardState extends State<PosterCard> {
         Fmt.posterCaption(a),
         if (a.averageScore != null) 'рейтинг ${a.averageScore}',
         if (a.isAdult) '18+',
+        if (entry != null) 'в списке: ${Fmt.status(entry.status)}',
       ].join(', '),
       excludeSemantics: true,
       child: FocusableActionDetector(
@@ -96,6 +134,10 @@ class _PosterCardState extends State<PosterCard> {
         },
         child: GestureDetector(
           onTap: widget.onTap,
+          onSecondaryTapUp: (d) =>
+              showStatusContextMenu(context, d.globalPosition, a.id),
+          onLongPressStart: (d) =>
+              showStatusContextMenu(context, d.globalPosition, a.id),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -120,7 +162,9 @@ class _PosterCardState extends State<PosterCard> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      Fmt.posterCaption(a),
+                      watching && entry.progress > 0
+                          ? Fmt.posterCaption(a, progress: entry.progress)
+                          : Fmt.posterCaption(a),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppText.caption.copyWith(color: t.fg2),

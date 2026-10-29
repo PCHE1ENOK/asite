@@ -1,6 +1,7 @@
-// Скриншоты экранов для визуальной проверки:
+// Скриншоты экранов для отчёта и визуальной проверки (golden-рендер в
+// headless-режиме, не запуск на устройстве):
 // flutter test test/screenshots --update-goldens --dart-define=SCREENSHOTS=true
-// PNG пишутся в test/screenshots/out/ (не в git).
+// PNG пишутся в golden/ в корне репозитория.
 @Tags(['screenshots'])
 library;
 
@@ -11,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:anime_viewer/data/models/library_entry.dart';
 import 'package:anime_viewer/data/settings/app_preferences.dart';
 
 import '../ui/ui_harness.dart';
@@ -118,6 +120,18 @@ void main() {
     await tester.runAsync(loadFonts);
     await prerender(tester, urls);
     final h = UiHarness(images: resolve);
+    await tester.runAsync(() async {
+      final lib = h.services.library;
+      await lib.setStatus(1000, ListStatus.current);
+      await lib.setProgress(1000, 12);
+      await lib.setStatus(1001, ListStatus.current);
+      await lib.markWatched(1001, 5, totalEpisodes: 25);
+      await lib.setStatus(1003, ListStatus.completed);
+      await lib.setStatus(1005, ListStatus.planning);
+      await lib.setStatus(1007, ListStatus.paused);
+      await lib.setStatus(1009, ListStatus.dropped);
+      await lib.setStatus(1013, ListStatus.planning);
+    });
     await tester.runAsync(
       () => h.services.preferences.setTheme(
         brightness == Brightness.dark
@@ -134,7 +148,7 @@ void main() {
     await _precacheAll(tester);
     await expectLater(
       find.byType(MaterialApp),
-      matchesGoldenFile('out/$name.png'),
+      matchesGoldenFile('../../golden/$name.png'),
     );
   }
 
@@ -171,6 +185,13 @@ void main() {
     await tester.tap(find.text('Настройки').first);
     await UiHarness.settle(tester);
     await shot(tester, '08-settings-dark');
+
+    await tester.tap(find.text('Списки').first);
+    await UiHarness.settle(tester);
+    await shot(tester, '14-lists-grid-dark');
+    await tester.tap(find.byTooltip('Список'));
+    await tester.pumpAndSettle();
+    await shot(tester, '15-lists-list-dark');
     await h.dispose(tester);
   }, skip: !enabled);
 
@@ -182,6 +203,9 @@ void main() {
     );
     await shot(tester, '09-catalog-light');
     await openTitle(tester);
+    await tester.tap(find.byTooltip('Отметить просмотренной').first);
+    await UiHarness.settle(tester);
+    await shot(tester, '16-title-episode-marked-light');
     await tester.tap(find.text('Статистика'));
     await tester.pumpAndSettle();
     await shot(tester, '10-title-stats-light');

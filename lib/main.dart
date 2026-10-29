@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'app_services.dart';
 import 'ui/app_scope.dart';
+import 'ui/library_index.dart';
 import 'ui/login_flow.dart';
 import 'ui/shell/app_shell.dart';
 import 'ui/theme/app_theme.dart';
@@ -48,6 +49,13 @@ class AnimeViewerApp extends StatefulWidget {
 
 class _AnimeViewerAppState extends State<AnimeViewerApp> {
   late bool _onboarding = widget.showOnboarding;
+  late final _library = LibraryIndex(widget.services.library);
+
+  @override
+  void dispose() {
+    _library.dispose();
+    super.dispose();
+  }
 
   void _finishOnboarding() {
     widget.services.preferences.markOnboardingSeen();
@@ -59,6 +67,7 @@ class _AnimeViewerAppState extends State<AnimeViewerApp> {
     return AppScope(
       services: widget.services,
       settings: widget.settings,
+      library: _library,
       imageResolver: widget.imageResolver,
       child: ListenableBuilder(
         listenable: widget.settings,

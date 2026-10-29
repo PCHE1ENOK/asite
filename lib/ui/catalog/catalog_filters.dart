@@ -57,6 +57,7 @@ class CatalogFilters {
     this.genres = const {},
     this.formats = const {},
     this.status,
+    this.hideMine = false,
   });
 
   final AnimeSort sort;
@@ -64,6 +65,9 @@ class CatalogFilters {
   final Set<String> genres;
   final Set<String> formats;
   final String? status;
+
+  /// «Скрыть из моих списков».
+  final bool hideMine;
 
   static const sorts = [
     AnimeSort.popularity,
@@ -92,7 +96,8 @@ class CatalogFilters {
       season != null ||
       genres.isNotEmpty ||
       formats.isNotEmpty ||
-      status != null;
+      status != null ||
+      hideMine;
 
   CatalogFilters copyWith({
     AnimeSort? sort,
@@ -100,17 +105,23 @@ class CatalogFilters {
     Set<String>? genres,
     Set<String>? formats,
     String? Function()? status,
+    bool? hideMine,
   }) => CatalogFilters(
     sort: sort ?? this.sort,
     season: season == null ? this.season : season(),
     genres: genres ?? this.genres,
     formats: formats ?? this.formats,
     status: status == null ? this.status : status(),
+    hideMine: hideMine ?? this.hideMine,
   );
 
   CatalogFilters cleared() => CatalogFilters(sort: sort);
 
-  CatalogQuery toQuery({required bool includeAdult}) => CatalogQuery(
+  /// [myIds] — тайтлы из моих списков, исключаются при [hideMine].
+  CatalogQuery toQuery({
+    required bool includeAdult,
+    Set<int> myIds = const {},
+  }) => CatalogQuery(
     sort: sort,
     season: season?.season,
     seasonYear: season?.year,
@@ -121,5 +132,6 @@ class CatalogFilters {
     ],
     status: status,
     includeAdult: includeAdult,
+    excludeIds: hideMine ? myIds.toList() : const [],
   );
 }

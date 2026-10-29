@@ -103,16 +103,27 @@ class ScoreHistogram extends StatelessWidget {
 
 /// Составная полоса по статусам с легендой (иконка, подпись, число, %).
 class StatusDistributionBar extends StatelessWidget {
-  const StatusDistributionBar({super.key, required this.buckets});
+  const StatusDistributionBar({
+    super.key,
+    required this.amounts,
+    required this.caption,
+  });
 
-  final List<StatusBucket> buckets;
+  /// Распределение статусов AniList (`stats.statusDistribution`).
+  factory StatusDistributionBar.fromBuckets(
+    List<StatusBucket> buckets,
+  ) => StatusDistributionBar(
+    amounts: {for (final b in buckets) ?ListStatus.fromApi(b.status): b.amount},
+    caption: (total) =>
+        '${Fmt.thousands(total)} ${Fmt.plural(total, 'пользователь', 'пользователя', 'пользователей')}',
+  );
+
+  final Map<ListStatus, int> amounts;
+  final String Function(int total) caption;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final amounts = {
-      for (final b in buckets) ?ListStatus.fromApi(b.status): b.amount,
-    };
     final segments = [
       for (final s in statusBarOrder)
         if ((amounts[s] ?? 0) > 0) (s, amounts[s]!),
@@ -123,10 +134,7 @@ class StatusDistributionBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '${Fmt.thousands(total)} ${Fmt.plural(total, 'пользователь', 'пользователя', 'пользователей')}',
-          style: AppText.caption.copyWith(color: t.fg2),
-        ),
+        Text(caption(total), style: AppText.caption.copyWith(color: t.fg2)),
         const SizedBox(height: 12),
         ExcludeSemantics(
           child: ClipRRect(

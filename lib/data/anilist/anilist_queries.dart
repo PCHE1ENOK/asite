@@ -29,7 +29,7 @@ query Catalog(
   \$page: Int, \$perPage: Int, \$sort: [MediaSort], \$search: String,
   \$genres: [String], \$excludedGenres: [String], \$formats: [MediaFormat],
   \$status: MediaStatus, \$season: MediaSeason, \$seasonYear: Int,
-  \$minScore: Int, \$isAdult: Boolean
+  \$minScore: Int, \$isAdult: Boolean, \$excludeIds: [Int]
 ) {
   Page(page: \$page, perPage: \$perPage) {
     pageInfo { total perPage currentPage lastPage hasNextPage }
@@ -37,7 +37,8 @@ query Catalog(
       type: ANIME, sort: \$sort, search: \$search,
       genre_in: \$genres, genre_not_in: \$excludedGenres, format_in: \$formats,
       status: \$status, season: \$season, seasonYear: \$seasonYear,
-      averageScore_greater: \$minScore, isAdult: \$isAdult
+      averageScore_greater: \$minScore, isAdult: \$isAdult,
+      id_not_in: \$excludeIds
     ) {
       ...MediaSummary
     }
@@ -78,6 +79,18 @@ query Details(\$id: Int) {
     }
     recommendations(perPage: 12, sort: [RATING_DESC]) {
       nodes { mediaRecommendation { ...MediaSummary } }
+    }
+  }
+}
+$_mediaSummary''';
+
+  /// Краткие карточки по списку id (до 50 за запрос).
+  static const byIds = '''
+query ByIds(\$ids: [Int], \$perPage: Int) {
+  Page(page: 1, perPage: \$perPage) {
+    pageInfo { total perPage currentPage lastPage hasNextPage }
+    media(id_in: \$ids, type: ANIME) {
+      ...MediaSummary
     }
   }
 }
