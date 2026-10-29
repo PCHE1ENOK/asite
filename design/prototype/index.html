@@ -371,7 +371,19 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .app.framed .sbar .sicons { display: flex; gap: 6px; align-items: center; }
 .app.framed .homebar { display: block; height: 22px; position: relative; background: var(--rail-bg, var(--bg)); }
 .app.framed .homebar::after { content: ""; position: absolute; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: var(--fg); }
-.app.framed.land .sbar, .app.framed.land .rail, .app.framed.land .homebar { display: none; }
+.app.framed.land .rail { display: none; }
+.app.framed.land .sbar { position: absolute; top: 0; left: 0; right: 0; z-index: 5; padding: 8px 48px; background: transparent; color: #FFFFFF; pointer-events: none; }
+.app.framed.land .homebar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; background: transparent; pointer-events: none; }
+.app.framed.land .homebar::after { background: #FFFFFFB3; bottom: 6px; }
+.app.m.land:not(.fs) .pl-top { padding-top: 34px; }
+.app.m.land:not(.fs) .pl-bot { padding-bottom: 22px; }
+/* полный экран плеера: только видео и управление */
+.app.fs { grid-template-rows: minmax(0, 1fr); }
+.app.fs .titlebar, .app.fs .device > .rail, .app.fs .sbar, .app.fs .homebar { display: none !important; }
+.app.fs .device { grid-row: 1; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.app.fs .device > .main { grid-column: 1; grid-row: 1; }
+.app.fs:not(.framed) .device { background: #000; }
+.app.framed.fs .device { box-shadow: 0 0 0 10px #05060A, 0 0 0 11px #2C3144; }
 .app.m.land .device > .main { grid-row: 1 / -1; }
 
 /* ---------- общий мобильный ---------- */
@@ -542,6 +554,7 @@ const I = {
   rw:'M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z', fw:'M12 5V1l5 5-5 5V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z',
   vol:'M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z',
   full:'M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z',
+  full_exit:'M5 16h3v3h2v-5H5zm3-8H5v2h5V5H8zm6 11h2v-3h3v-2h-5zm2-11V5h-2v5h5V8z',
   heart:'M12 21.4 10.6 20C5.4 15.4 2 12.3 2 8.5A5.4 5.4 0 0 1 7.5 3 6 6 0 0 1 12 5a6 6 0 0 1 4.5-2A5.4 5.4 0 0 1 22 8.5c0 3.8-3.4 6.9-8.6 11.5z',
   plus:'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z', skip:'M4 18l8.5-6L4 6zm9-12v12l8.5-6z',
   cc:'M19 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1zm7 0h-1.5v-.5h-2v3h2V13H18v1a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1z',
@@ -846,7 +859,7 @@ function viewTitle() {
 }
 
 /* ---------- Плеер ---------- */
-const P = { dur:1440, t:70, buf:300, playing:true, opA:50, opB:140, ui:true, hideT:null, timer:null, dubOpen:false, next:null, marked:false };
+const P = { dur:1440, t:70, buf:300, playing:true, opA:50, opB:140, ui:true, fs:false, hideT:null, timer:null, dubOpen:false, next:null, marked:false };
 function fmtT(s) { s = Math.max(0, Math.round(s)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
 function viewPlayer() {
   const a = DATA.find(x => x.id === S.titleId) || DATA[0];
@@ -883,7 +896,7 @@ function viewPlayer() {
         <span class="grow"></span>
         <button class="pl-pill" type="button" id="toEnd" title="Демо: перемотать к титрам">Демо: к титрам</button>
         <button class="pl-btn" type="button" aria-label="Громкость">${ic('vol')}</button>
-        <button class="pl-btn" type="button" aria-label="Полный экран">${ic('full')}</button>
+        <button class="pl-btn" type="button" id="fsBtn" aria-pressed="${P.fs}" aria-label="${P.fs ? 'Выйти из полноэкранного режима' : 'Полный экран'}" title="${P.fs ? 'Выйти из полноэкранного режима (Esc)' : 'Полный экран (F)'}">${ic(P.fs ? 'full_exit' : 'full')}</button>
       </div>
     </div>
   </div>`;
@@ -936,6 +949,12 @@ function showNext() {
 }
 function clearNext() { if (P.next && P.next.iv) clearInterval(P.next.iv); P.next = null; const b = $('#next'); if (b) b.hidden = true; }
 function goNext() { clearNext(); P.t = 0; P.buf = 240; P.marked = false; P.playing = true; render(); }
+function toggleFs(v) {
+  P.fs = v === undefined ? !P.fs : v;
+  applyPlatform();
+  const b = $('#fsBtn'); if (b) { b.innerHTML = ic(P.fs ? 'full_exit' : 'full'); b.setAttribute('aria-pressed', P.fs); b.setAttribute('aria-label', P.fs ? 'Выйти из полноэкранного режима' : 'Полный экран'); b.title = P.fs ? 'Выйти из полноэкранного режима (Esc)' : 'Полный экран (F)'; }
+  showUi();
+}
 function showUi() {
   const pl = $('#player'); if (!pl) return;
   pl.classList.remove('hide-ui'); clearTimeout(P.hideT);
@@ -964,6 +983,8 @@ function applyPlatform() {
   app.classList.toggle('m', isMob());
   app.classList.toggle('framed', pf !== 'windows' && innerWidth > 640);
   app.classList.toggle('land', isMob() && route() === 'player');
+  if (route() !== 'player') P.fs = false;
+  app.classList.toggle('fs', P.fs);
 }
 window.addEventListener('resize', applyPlatform);
 function openSheet(title, items, onPick) {
@@ -1040,6 +1061,7 @@ document.addEventListener('click', e => {
   else if (t.id === 'fw' || d.pl === 'fw') { P.t = Math.min(P.dur, P.t + 10); playerPaint(); }
   else if (t.id === 'skip') { P.t = P.opB; playerPaint(); }
   else if (t.id === 'toEnd') { clearNext(); P.t = P.dur - 26; P.buf = P.dur; playerPaint(); }
+  else if (t.id === 'fsBtn') toggleFs();
   else if (t.id === 'nextBtn' || t.id === 'goNext') goNext();
   else if (t.id === 'cancelNext') { clearNext(); P.next = { cancelled:true }; }
   else if (t.id === 'dubBtn') { P.dubOpen = !P.dubOpen; $('#dubPop').hidden = !P.dubOpen; t.setAttribute('aria-expanded', P.dubOpen); showUi(); }
@@ -1083,6 +1105,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') { P.t = Math.min(P.dur, P.t + 10); playerPaint(); }
   if (e.key.toLowerCase() === 's' && !$('#skip').hidden) { P.t = P.opB; playerPaint(); }
   if (e.key === 'N' && e.shiftKey) goNext();
+  if (e.key.toLowerCase() === 'f' && !e.ctrlKey && e.target.tagName !== 'INPUT') toggleFs();
+  if (e.key === 'Escape' && P.fs && !(P.next && P.next.iv) && !P.dubOpen) { toggleFs(false); return; }
   if (e.key === 'Escape') { if (P.next && P.next.iv) { clearNext(); P.next = { cancelled:true }; } else if (P.dubOpen) { P.dubOpen = false; $('#dubPop').hidden = true; } }
 });
 $('#themeBtn').onclick = () => {
