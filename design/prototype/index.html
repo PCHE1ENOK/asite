@@ -530,6 +530,33 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .app.m .vseg button { font-size: 13px; white-space: nowrap; padding: 0 8px; }
 .app.m .note-card { grid-template-columns: minmax(0, 1fr); }
 .app.m .note-card > .btn { justify-self: start; }
+.com-head { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; }
+.com-head h3 { display: flex; gap: 8px; align-items: baseline; }
+.com-list { display: grid; gap: 4px; max-width: 760px; }
+.com { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.com .av { width: 36px; height: 36px; border-radius: 50%; flex: none; display: grid; place-items: center; color: #0E1016; font: 600 14px var(--f-text); }
+.com .skel.av { background: var(--skel); }
+.cbody { min-width: 0; flex: 1; display: grid; gap: 4px; }
+.cmeta { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 13px; }
+.cmeta span { color: var(--fg3); font-size: 12px; }
+.ctext { margin: 0; color: var(--fg); max-width: 65ch; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.ctext.open { -webkit-line-clamp: unset; display: block; }
+.cbody .more { justify-self: start; height: 28px; padding: 0 6px; margin-left: -6px; }
+.cacts { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--fg2); }
+.cacts svg { width: 16px; height: 16px; }
+.likes { display: inline-flex; gap: 6px; align-items: center; }
+.ylink { display: inline-flex; gap: 6px; align-items: center; color: var(--accent); text-decoration: none; min-height: 32px; }
+.ylink:hover { text-decoration: underline; }
+.cmore { margin-top: 12px; }
+.spin.sm { width: 16px; height: 16px; border-width: 2px; }
+.com-src { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--fg3); margin: 16px 0 0; }
+.com-src svg { width: 14px; height: 14px; }
+.state.small { padding: 32px 16px; }
+.state .btn svg { width: 18px; height: 18px; color: inherit; }
+.player .ytcom { --bg:#0E1016; --s1:#161923; --s2:#1E2230; --s3:#272C3D; --border:#2C3144; --border-strong:#3B4159; --fg:#ECEEF5; --fg2:#A7ADC0; --fg3:#878EA4; --accent:#8399FF; --accent-soft:#8399FF26; --skel:#1E2230; --skel-shine:#272C3D; --hover:#ECEEF50F; color-scheme: dark; color: var(--fg); background: var(--s1); grid-column: 1; overflow-y: auto; padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); border-top: 1px solid #FFFFFF14; }
+.player.yt.has-com { grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 42%); }
+.player.yt.has-com.has-eps .eppanel { grid-row: 2 / 5; }
+.app.m .player.yt.has-com { grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 50%); }
 .sample { font-size: 12px; color: var(--fg3); margin-top: 40px; }
 
 /* ---------- телефон ---------- */
@@ -549,7 +576,7 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 }
 @media (max-height: 500px) and (min-width: 641px) {
   /* телефон в альбомной: переключатели в одну строку */
-  .titlebar .proto { grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: end; }
+  .titlebar .proto { grid-template-columns: repeat(5, minmax(0, 1fr)) auto; align-items: end; }
   .titlebar #themeBtn { grid-column: auto; }
 }
 .app.m .device { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; }
@@ -759,6 +786,14 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
         <option value="ytblocked">YouTube: недоступно в регионе</option>
         <option value="ytnoembed">YouTube: без встроенного плеера</option>
       </select></span>
+      <span class="pf"><label for="demoComments">Комментарии:</label>
+      <select id="demoComments" aria-label="Состояние комментариев">
+        <option value="ok">есть</option>
+        <option value="loading">загрузка</option>
+        <option value="empty">пусто</option>
+        <option value="off">отключены</option>
+        <option value="error">ошибка сети</option>
+      </select></span>
       <span class="pf"><label for="demoPlatform">Платформа:</label>
       <select id="demoPlatform" aria-label="Платформа">
         <option value="windows">Windows</option>
@@ -806,6 +841,7 @@ const I = {
   thumb_down:'M15 3H6c-.8 0-1.5.5-1.8 1.2l-3 7.1c-.1.2-.2.5-.2.7v2a2 2 0 0 0 2 2h6.3l-1 4.6v.3c0 .4.2.8.4 1.1l1.1 1L16.4 16c.4-.4.6-.9.6-1.4V5a2 2 0 0 0-2-2zm4 0v12h4V3z',
   edit:'M3 17.2V21h3.8l11-11-3.8-3.8zM20.7 7a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.8 3.8z',
   dash:'M5 11h14v2H5z',
+  chat:'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 9h12v2H6zm8 5H6v-2h8zm4-6H6V6h12z',
   full_exit:'M5 16h3v3h2v-5H5zm3-8H5v2h5V5H8zm6 11h2v-3h3v-2h-5zm2-11V5h-2v5h5V8z',
   heart:'M12 21.4 10.6 20C5.4 15.4 2 12.3 2 8.5A5.4 5.4 0 0 1 7.5 3 6 6 0 0 1 12 5a6 6 0 0 1 4.5-2A5.4 5.4 0 0 1 22 8.5c0 3.8-3.4 6.9-8.6 11.5z',
   plus:'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z', skip:'M4 18l8.5-6L4 6zm9-12v12l8.5-6z',
@@ -851,6 +887,7 @@ const DATA = [
   {id:19, t:'Пример тайтла 18+', o:'Placeholder', f:'OVA', y:2024, s:'Лето', ep:2, d:28, sc:61, pop:40, g:['Романтика'], h:350, adult:true},
   {id:18, t:'Унесённые призраками', o:'Sen to Chihiro no Kamikakushi', f:'Фильм', y:2001, s:'Лето', ep:1, d:125, sc:86, pop:690, g:['Приключения','Фэнтези'], h:170},
 ];
+const HAS_YT = new Set([1, 2, 9]);
 const GENRES = ['Экшен','Приключения','Драма','Комедия','Фэнтези','Фантастика','Мистика','Романтика','Спорт','Повседневность'];
 const DAN_EPS = ['Так начинается любовь, да?','Это же пришелец, верно?!','Битва бабули с бабулей!','Надрать зад Турбо-бабке','Ну и где твои шарики?!','Появляется опасная женщина','К миру добрее','Странное у меня предчувствие','Слияние! Серпо, Дуверский демон, Несси!','Видели когда-нибудь увечья скота?','Первая любовь','Пойдём в проклятый дом'];
 // Абстрактный источник: названия студий условные
@@ -1109,6 +1146,44 @@ function viewSettings() {
   </div></div>`;
 }
 
+/* ---------- Комментарии к официальному видео YouTube ---------- */
+// Примерные комментарии: авторы вымышленные
+const COMMENTS = [
+  { a:'Мария К.', h:330, d:'2 дня назад', likes:1240, top:5, t:'Опенинг невозможно пропустить — каждый раз досматриваю до конца.' },
+  { a:'kenji_fan', h:200, d:'5 дней назад', likes:860, top:7, t:'Сцена с погоней снята так, что я забыл моргать. Отдельное спасибо за звук: каждый удар чувствуется. Отдельно хочется сказать про цвет — ночные сцены не превращаются в серую кашу, всё читается. И монтаж: ни одного лишнего кадра, темп держит до самого конца серии.' },
+  { a:'Аня', h:150, d:'1 день назад', likes:412, top:4, t:'Посмотрела первую серию по совету подруги — теперь жду каждую неделю.' },
+  { a:'Doom_Scroller', h:20, d:'3 часа назад', likes:37, top:2, t:'Кто здесь после 6-й серии?' },
+  { a:'Ольга Р.', h:280, d:'6 дней назад', likes:298, top:8, t:'Хорошо, что правообладатель выкладывает серии официально. Так и надо.' },
+  { a:'pixelmonk', h:60, d:'4 дня назад', likes:154, top:6, t:'Рисовка на уровне полного метра.' },
+  { a:'Тимур', h:100, d:'12 часов назад', likes:12, top:3, t:'Субтитры отличные, спасибо переводчикам.' },
+  { a:'lofi_lena', h:310, d:'1 час назад', likes:4, top:1, t:'Возвращаюсь пересматривать этот момент уже третий раз.' },
+];
+const MORE = [
+  { a:'Сергей', h:170, d:'неделю назад', likes:96, top:9, t:'Главное — не читать комментарии до просмотра :)' },
+  { a:'nekoyama', h:240, d:'неделю назад', likes:51, top:10, t:'Саундтрек уже в плейлисте.' },
+];
+const C = { sort:'top', open:new Set(), more:false, loadingMore:false };
+function commentsView() {
+  const st = $('#demoComments').value;
+  const head = `<div class="com-head"><h3>Комментарии${st === 'ok' ? ' <span class="count">' + (C.more ? 10 : 8) + ' из 1 284</span>' : ''}</h3>
+    ${st === 'ok' || st === 'loading' ? `<div class="seg" role="group" aria-label="Сортировка комментариев"><button type="button" data-csort="top" aria-pressed="${C.sort === 'top'}">По популярности</button><button type="button" data-csort="new" aria-pressed="${C.sort === 'new'}">По времени</button></div>` : ''}</div>`;
+  const foot = `<p class="com-src">${ic('play')}Комментарии — с YouTube</p>`;
+  if (st === 'loading') return head + `<div class="com-list" aria-busy="true">${Array.from({length:4}, () => `<div class="com skel-row"><span class="skel av"></span><div style="display:grid;gap:6px;flex:1"><span class="skel" style="height:12px;width:30%"></span><span class="skel" style="height:12px;width:90%"></span><span class="skel" style="height:12px;width:70%"></span></div></div>`).join('')}</div>` + foot;
+  if (st === 'empty') return head + `<div class="state small">${ic('chat')}<h3>Комментариев пока нет</h3><div>Будьте первым — комментарии пишутся на YouTube.</div><a class="btn btn-outline" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a></div>` + foot;
+  if (st === 'off') return head + `<div class="state small">${ic('DROPPED')}<h3>Комментарии отключены для этого видео</h3><div>Так решил правообладатель на YouTube.</div></div>` + foot;
+  if (st === 'error') return head + `<div class="state small">${ic('cloud_off')}<h3>Не удалось загрузить комментарии</h3><div>Проверьте подключение к интернету.</div><button class="btn btn-filled" type="button" data-act="cRetry">Повторить</button></div>` + foot;
+  // «По времени»: top — порядковый номер от самого нового
+  const list = COMMENTS.concat(C.more ? MORE : []).slice().sort((x, y) => C.sort === 'top' ? y.likes - x.likes : x.top - y.top);
+  return head + `<div class="com-list">${list.map((c, i) => { const id = c.a, open = C.open.has(id);
+    return `<article class="com"><span class="av" style="background:hsl(${c.h} 55% 55%)" aria-hidden="true">${esc(c.a[0].toUpperCase())}</span>
+      <div class="cbody"><div class="cmeta"><b>${esc(c.a)}</b><span>${esc(c.d)}</span></div>
+        <p class="ctext${open ? ' open' : ''}" id="ct-${i}">${esc(c.t)}</p>
+        ${c.t.length > 140 ? `<button class="btn btn-text more" type="button" data-cmore="${esc(id)}" aria-expanded="${open}" aria-controls="ct-${i}">${open ? 'Свернуть' : 'Ещё'}</button>` : ''}
+        <div class="cacts"><span class="likes">${ic('thumb_up')}<span class="num">${c.likes.toLocaleString('ru-RU')}</span></span><a class="ylink" href="https://www.youtube.com/" target="_blank" rel="noopener">${ic('ext')}Открыть на YouTube</a></div></div></article>`; }).join('')}</div>
+    ${C.more ? '' : `<button class="btn btn-outline cmore" type="button" data-act="cMore" ${C.loadingMore ? 'disabled' : ''}>${C.loadingMore ? '<span class="spin sm"></span>Загружаем…' : 'Показать ещё'}</button>`}` + foot;
+}
+function paintComments() { document.querySelectorAll('.comments-wrap, .ytcom').forEach(w => { w.innerHTML = commentsView(); }); }
+
 /* ---------- Заметка: блок на карточке и редактор ---------- */
 function noteBlock(a) {
   const n = notesOf()[a.id], pf = prof();
@@ -1202,7 +1277,8 @@ function viewTitle() {
   const tsi = Math.min(S.tseason || 0, seasonsOf(a).length - 1);
   const eps = Array.from({length: Math.min(seasonsOf(a)[tsi].ep, 12)}, (_, i) => i + 1);
   const name = n => epTitle(a, tsi, n);
-  const tabs = { eps:'Серии', about:'Описание', stats:'Статистика', similar:'Похожие' };
+  const tabs = Object.assign({ eps:'Серии', about:'Описание', stats:'Статистика' }, HAS_YT.has(a.id) ? { comments:'Комментарии' } : {}, { similar:'Похожие' });
+  if (S.titleTab === 'comments' && !HAS_YT.has(a.id)) S.titleTab = 'eps';
   let body = '';
   const ss = seasonsOf(a);
   if (S.titleTab === 'eps') body = `${$('#demoPlayer').value === 'empty' ? `<div class="sync pending" style="margin-bottom:16px">${ic('cc')}<span class="msg"><b>Источники видео не подключены.</b> Серии можно отмечать просмотренными вручную, кнопка «Смотреть» откроет плеер с объяснением.</span></div>` : ''}
@@ -1223,6 +1299,7 @@ function viewTitle() {
       <div class="statusbar" role="img" aria-label="${ORDER.map(k => STATUS[k].label + ' ' + SDIST[k]).join(', ')}">${ORDER.map(k => `<i style="flex:${SDIST[k]};background:var(${STATUS[k].v})"></i>`).join('')}</div>
       <div class="legend" style="display:grid;gap:8px">${ORDER.map(k => `<span><span style="color:var(${STATUS[k].v});display:inline-flex">${ic(k)}</span>${STATUS[k].label} <b>${fmtK(SDIST[k])}</b> <span class="muted num">${Math.round(SDIST[k]/tot*100)}%</span></span>`).join('')}</div></section></div>`;
   }
+  if (S.titleTab === 'comments') body = `<div class="comments-wrap">${commentsView()}</div>`;
   if (S.titleTab === 'similar') body = `<div class="hscroll">${DATA.filter(x => x.id !== a.id).slice(0,8).map(card).join('')}</div>`;
   return `<div class="page">
     <div class="mnav"><a href="#catalog" aria-label="Назад">${plat() === 'ios' ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 4 7.4 12l8 8 1.4-1.4L10.2 12l6.6-6.6z"/></svg>Каталог` : ic('back')}</a></div>
@@ -1315,14 +1392,15 @@ function viewPlayerYT(a) {
   else if (!has) stage = `<div class="pl-state card">${ic('cc')}<div class="big">Официального видео для серии ${n} нет</div><div class="sub">Правообладатель выложил на YouTube только серии ${ok.join(', ')}. Остальные можно отмечать просмотренными вручную.</div><div class="acts"><button class="btn btn-filled" type="button" data-act="ytEps">Открыть доступные серии</button><button class="btn btn-outline" type="button" data-act="markEp">${ic('check')}Отметить серию ${n} просмотренной</button></div></div>`;
   else stage = `<div class="yt-embed" role="img" aria-label="Встроенный плеер YouTube: ${esc(a.t)}, серия ${n}"><div class="yt-ph"><span class="yt-play">${ic('play')}</span><span>Встроенный плеер YouTube</span><small>Свои кнопки, субтитры и качество — внутри плеера. Мы ничего поверх не рисуем.</small></div></div>`;
   const bottom = st === 'ytend' ? `<div class="yt-bar end"><span class="msg">Серия ${n} закончилась и отмечена просмотренной</span><span class="grow"></span><span class="cap" style="color:#FFFFFFB8">Далее: серия ${n + 1} · ${esc(epTitle(a, 0, n + 1))}</span><button class="btn btn-filled" type="button" data-act="ytNext">${ic('play')}Смотреть · 8</button><button class="btn btn-text" type="button" data-act="ytStay">Остаться</button></div>`
-    : `<div class="yt-bar"><span class="src">${ic('play')}Официальное видео правообладателя на YouTube</span><span class="grow"></span>${has && st === 'yt' ? `<span class="cap" style="color:#FFFFFFB8">Прогресс считается сам · отметка на 85%</span>` : ''}<button class="btn btn-text" type="button" data-act="markEp">${ic('check')}Просмотрено</button><button class="btn btn-outline" type="button" data-act="ytNext">${ic('next')}Серия ${n + 1}</button></div>`;
-  return `<div class="player yt${P.epOpen ? ' has-eps' : ''}" id="player">
+    : `<div class="yt-bar"><span class="src">${ic('play')}Официальное видео правообладателя на YouTube</span><span class="grow"></span>${has && st === 'yt' ? `<span class="cap" style="color:#FFFFFFB8">Прогресс считается сам · отметка на 85%</span>` : ''}<button class="btn btn-text" type="button" data-act="markEp">${ic('check')}Просмотрено</button><button class="btn btn-text" type="button" data-act="ytComments" aria-expanded="${!!P.comOpen}">${ic('chat')}Комментарии</button><button class="btn btn-outline" type="button" data-act="ytNext">${ic('next')}Серия ${n + 1}</button></div>`;
+  return `<div class="player yt${P.epOpen ? ' has-eps' : ''}${P.comOpen && has && st === 'yt' ? ' has-com' : ''}" id="player">
     <div class="yt-top"><a class="pl-btn" href="#title" aria-label="Назад к тайтлу">${ic('back')}</a>
       <div class="pl-title"><div>${esc(a.t)}</div><div>Серия ${n} · ${esc(epName)}</div></div><span class="grow"></span>
       <button class="pl-btn" type="button" id="epBtn" aria-haspopup="dialog" aria-expanded="${P.epOpen}" aria-label="Серии" title="Серии">${ic('lists')}</button>
       <button class="pl-btn" type="button" id="fsBtn" aria-pressed="${P.fs}" aria-label="${P.fs ? 'Выйти из полноэкранного режима' : 'Полный экран'}">${ic(P.fs ? 'full_exit' : 'full')}</button></div>
     <div class="yt-stage">${stage}</div>
     ${bottom}
+    ${P.comOpen && has && st === 'yt' ? `<section class="ytcom" aria-label="Комментарии к видео">${commentsView()}</section>` : ''}
     <aside class="eppanel" id="eppanel" ${P.epOpen ? '' : 'hidden'} aria-label="Серии">${epPanel(a, ok)}</aside>
   </div>`;
 }
@@ -1569,6 +1647,11 @@ document.addEventListener('click', e => {
   else if (d.pfdel) { const p = prof(d.pfdel); PROFILES.splice(PROFILES.indexOf(p), 1); closeDialog(); render(); toast(`Профиль «${p.name}» удалён с устройства${p.gh ? '. Gist на GitHub не тронут' : ''}`); }
   else if (d.act === 'retry') { $('#demoState').value = 'loading'; render(); setTimeout(() => { $('#demoState').value = 'data'; render(); }, 900); }
   else if (d.tab) { S.tab = d.tab; render(); }
+  else if (d.csort) { C.sort = d.csort; paintComments(); }
+  else if (d.cmore) { C.open.has(d.cmore) ? C.open.delete(d.cmore) : C.open.add(d.cmore); paintComments(); }
+  else if (d.act === 'cMore') { C.loadingMore = true; paintComments(); setTimeout(() => { C.loadingMore = false; C.more = true; paintComments(); }, 700); }
+  else if (d.act === 'cRetry') { $('#demoComments').value = 'loading'; paintComments(); setTimeout(() => { $('#demoComments').value = 'ok'; paintComments(); }, 800); }
+  else if (d.act === 'ytComments') { P.comOpen = !P.comOpen; render(); }
   else if (d.vf) { S.verdictFilter = d.vf; render(); }
   else if (d.act === 'nEdit') openEditor(S.titleId);
   else if (d.act === 'nClose') askCloseEditor();
@@ -1649,6 +1732,7 @@ document.addEventListener('click', e => { if (!e.target.closest('#pmenu') && !e.
 document.addEventListener('change', e => {
   if (e.target.id === 'sort') { S.sort = e.target.value; render(); }
   if (e.target.id === 'demoPlatform') render();
+  if (e.target.id === 'demoComments') { C.more = false; paintComments(); }
   if (e.target.id === 'nFail') E.failNext = e.target.checked;
   if (e.target.id === 'demoPlayer' && e.target.value === 'play') P.playing = true;
   if (e.target.id === 'demoPlayer') { if (route() === 'player' || route() === 'title') render(); else location.hash = 'player'; }
