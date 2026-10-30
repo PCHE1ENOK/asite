@@ -86,7 +86,8 @@ class TitleNote {
     this.summary = '',
     this.verdict = NoteVerdict.none,
     this.liked = '',
-    this.dropReason = '',
+    this.dropReasons = const [],
+    this.dropText = '',
     this.moments = const [],
     this.deleted = false,
   });
@@ -100,36 +101,45 @@ class TitleNote {
   /// Что понравилось.
   final String liked;
 
-  /// Причина, если брошено (до [maxDropReason] символов).
-  final String dropReason;
+  /// Причины бросания, выбранные чипами (из [dropReasonHints]).
+  final List<String> dropReasons;
+
+  /// Причина своими словами (до [maxDropText] символов).
+  final String dropText;
   final List<NoteMoment> moments;
   final DateTime updatedAt;
   final bool deleted;
 
-  static const maxDropReason = 500;
+  static const maxDropText = 500;
   static const maxSummary = 140;
 
-  /// Подсказки для причины «брошено».
+  /// Чипы-подсказки для причины «брошено».
   static const dropReasonHints = [
-    'Скучно',
     'Затянуто',
-    'Не понравились персонажи',
-    'Слабая история',
-    'Другое',
+    'Скучный сюжет',
+    'Не зашла рисовка',
+    'Не понравилась озвучка',
+    'Нет времени',
+    'Слишком мрачно',
   ];
+
+  /// Есть хоть какая-то причина бросания.
+  bool get hasDropReason =>
+      dropReasons.isNotEmpty || dropText.trim().isNotEmpty;
 
   bool get isEmpty =>
       summary.trim().isEmpty &&
       verdict == NoteVerdict.none &&
       liked.trim().isEmpty &&
-      dropReason.trim().isEmpty &&
+      !hasDropReason &&
       moments.isEmpty;
 
   TitleNote copyWith({
     String? summary,
     NoteVerdict? verdict,
     String? liked,
-    String? dropReason,
+    List<String>? dropReasons,
+    String? dropText,
     List<NoteMoment>? moments,
     DateTime? updatedAt,
     bool? deleted,
@@ -138,22 +148,30 @@ class TitleNote {
     summary: summary ?? this.summary,
     verdict: verdict ?? this.verdict,
     liked: liked ?? this.liked,
-    dropReason: dropReason ?? this.dropReason,
+    dropReasons: dropReasons ?? this.dropReasons,
+    dropText: dropText ?? this.dropText,
     moments: moments ?? this.moments,
     updatedAt: updatedAt ?? this.updatedAt,
     deleted: deleted ?? this.deleted,
   );
 
+  /// Читает и старый формат: единственная строка `dropReason`
+  /// (до появления чипов) переносится в [dropText] как есть.
   static TitleNote? tryFromJson(Map<String, dynamic> j) {
     final id = j['mediaId'];
     final updatedAt = DateTime.tryParse(j['updatedAt'] as String? ?? '');
     if (id is! int || updatedAt == null) return null;
+    final legacy = j['dropReason'];
     return TitleNote(
       mediaId: id,
       summary: j['summary'] as String? ?? '',
       verdict: NoteVerdict.fromApi(j['verdict'] as String?),
       liked: j['liked'] as String? ?? '',
-      dropReason: j['dropReason'] as String? ?? '',
+      dropReasons: [
+        for (final r in (j['dropReasons'] as List? ?? const []))
+          if (r is String && r.trim().isNotEmpty) r,
+      ],
+      dropText: j['dropText'] as String? ?? (legacy is String ? legacy : ''),
       moments: [
         for (final m in (j['moments'] as List? ?? const []))
           if (m is Map<String, dynamic>) ?NoteMoment.tryFromJson(m),
@@ -168,7 +186,8 @@ class TitleNote {
     if (summary.isNotEmpty) 'summary': summary,
     if (verdict != NoteVerdict.none) 'verdict': verdict.apiValue,
     if (liked.isNotEmpty) 'liked': liked,
-    if (dropReason.isNotEmpty) 'dropReason': dropReason,
+    if (dropReasons.isNotEmpty) 'dropReasons': dropReasons,
+    if (dropText.isNotEmpty) 'dropText': dropText,
     if (moments.isNotEmpty) 'moments': [for (final m in moments) m.toJson()],
     'updatedAt': updatedAt.toUtc().toIso8601String(),
     if (deleted) 'deleted': true,
@@ -181,7 +200,8 @@ class TitleNote {
       other.summary == summary &&
       other.verdict == verdict &&
       other.liked == liked &&
-      other.dropReason == dropReason &&
+      _listEq(other.dropReasons, dropReasons) &&
+      other.dropText == dropText &&
       _listEq(other.moments, moments) &&
       other.updatedAt.isAtSameMomentAs(updatedAt) &&
       other.deleted == deleted;
@@ -192,13 +212,14 @@ class TitleNote {
     summary,
     verdict,
     liked,
-    dropReason,
+    Object.hashAll(dropReasons),
+    dropText,
     Object.hashAll(moments),
     updatedAt.millisecondsSinceEpoch,
     deleted,
   );
 
-  static bool _listEq(List<NoteMoment> a, List<NoteMoment> b) {
+  static bool _listEq<T>(List<T> a, List<T> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
       if (a[i] != b[i]) return false;

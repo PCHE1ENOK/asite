@@ -50,7 +50,7 @@ void main() {
   testWidgets('no official video — no comments tab', (tester) async {
     await openTitle(tester);
     expect(find.text('Комментарии'), findsNothing);
-    expect(find.text('Заметка'), findsOneWidget);
+    expect(find.text('Похожие'), findsOneWidget);
     await h.dispose(tester);
   });
 

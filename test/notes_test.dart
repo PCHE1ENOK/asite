@@ -35,7 +35,8 @@ void main() {
         summary: '  Лучшее за сезон ',
         verdict: NoteVerdict.recommend,
         liked: 'Музыка',
-        dropReason: 'x' * 600,
+        dropReasons: const ['Затянуто', ' Затянуто ', 'Нет времени'],
+        dropText: 'x' * 600,
         moments: const [
           NoteMoment(episode: 5, text: 'Финал'),
           NoteMoment(
@@ -53,7 +54,8 @@ void main() {
     expect(n.summary, 'Лучшее за сезон');
     expect(n.verdict, NoteVerdict.recommend);
     expect(n.liked, 'Музыка');
-    expect(n.dropReason.length, TitleNote.maxDropReason);
+    expect(n.dropReasons, ['Затянуто', 'Нет времени'], reason: 'deduped');
+    expect(n.dropText.length, TitleNote.maxDropText);
     expect(n.moments.map((m) => m.episode), [
       2,
       5,
@@ -177,5 +179,45 @@ void main() {
     expect((await notes.note(16498))!.summary, 'Итог');
     final rows = await db.select(db.libraryEntries).get();
     expect(rows.single.progress, 3);
+  });
+
+  test('old single dropReason migrates to dropText', () {
+    final n = TitleNote.tryFromJson({
+      'mediaId': 7,
+      'updatedAt': '2026-01-01T00:00:00.000Z',
+      'dropReason': 'Затянуто, скучно',
+    })!;
+    expect(n.dropText, 'Затянуто, скучно');
+    expect(n.dropReasons, isEmpty);
+    expect(n.hasDropReason, isTrue);
+    final j = n.toJson();
+    expect(j['dropText'], 'Затянуто, скучно');
+    expect(j.containsKey('dropReason'), isFalse, reason: 'written in new form');
+  });
+
+  test('old payload in the database is read in the new form', () async {
+    await db
+        .into(db.notes)
+        .insert(
+          NotesCompanion.insert(
+            profileId: AppDatabase.defaultProfileId,
+            mediaId: 9,
+            payload: '{"summary":"s","dropReason":"Нет времени"}',
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+    final n = (await notes.note(9))!;
+    expect(n.dropText, 'Нет времени');
+    expect(n.summary, 's');
+  });
+
+  test('dropReasons round-trip through JSON', () {
+    final n = TitleNote(
+      mediaId: 1,
+      updatedAt: DateTime.utc(2026),
+      dropReasons: const ['Затянуто', 'Слишком мрачно'],
+      dropText: 'после 4-й серии',
+    );
+    expect(TitleNote.tryFromJson(n.toJson()), n);
   });
 }

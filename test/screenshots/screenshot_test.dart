@@ -208,10 +208,14 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.text('Заметка'));
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Редактировать'));
     await UiHarness.settle(tester);
     await tester.pumpAndSettle();
     await shot(tester, '22-title-note-dark');
+    await tester.tap(find.byTooltip('Закрыть'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Поиск').first);
     await UiHarness.settle(tester);

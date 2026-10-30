@@ -51,8 +51,7 @@ enum TitleTab {
   description('Описание'),
   stats('Статистика'),
   comments('Комментарии'),
-  similar('Похожие'),
-  note('Заметка');
+  similar('Похожие');
 
   const TitleTab(this.label);
 
@@ -212,6 +211,17 @@ class _TitleScreenState extends State<TitleScreen>
                       ),
                     ),
                   ),
+                if (details != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 16),
+                      child: NoteBlock(
+                        key: ValueKey(details.id),
+                        details: details,
+                        width: width,
+                      ),
+                    ),
+                  ),
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: gutter),
@@ -304,14 +314,6 @@ class _TitleScreenState extends State<TitleScreen>
           padding: pad,
           sliver: SliverToBoxAdapter(
             child: CommentsTab(key: ValueKey(d.id), videos: _videos),
-          ),
-        ),
-      ],
-      TitleTab.note => [
-        SliverPadding(
-          padding: pad,
-          sliver: SliverToBoxAdapter(
-            child: NoteEditor(key: ValueKey(d.id), details: d),
           ),
         ),
       ],

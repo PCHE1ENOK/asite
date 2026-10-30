@@ -52,7 +52,8 @@ class NotesRepository {
           );
 
   /// Сохраняет заметку. Пустая заметка удаляет существующую.
-  /// Причина «брошено» обрезается до [TitleNote.maxDropReason] символов.
+  /// Причина своими словами обрезается до [TitleNote.maxDropText] символов,
+  /// повторы чипов убираются.
   Future<TitleNote?> save(TitleNote note) async {
     if (note.isEmpty) {
       await delete(note.mediaId);
@@ -60,7 +61,11 @@ class NotesRepository {
     }
     final clean = note.copyWith(
       summary: _trim(note.summary, TitleNote.maxSummary),
-      dropReason: _trim(note.dropReason, TitleNote.maxDropReason),
+      dropReasons: {
+        for (final r in note.dropReasons)
+          if (r.trim().isNotEmpty) r.trim(),
+      }.toList(),
+      dropText: _trim(note.dropText, TitleNote.maxDropText),
       liked: note.liked.trim(),
       moments:
           [
