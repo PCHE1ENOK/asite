@@ -17,6 +17,8 @@ class AppPreferences {
   static const _theme = 'theme';
   static const _musicRecognition = 'music_recognition';
   static const _recentSearches = 'recent_searches';
+  static const _myMemoryConsent = 'mymemory_consent';
+  static const _myMemoryUsage = 'mymemory_usage';
 
   /// Сколько недавних запросов хранится.
   static const maxRecentSearches = 8;
@@ -50,6 +52,25 @@ class AppPreferences {
 
   Future<void> setTheme(ThemePreference value) =>
       _db.putSetting(_theme, value.name);
+
+  /// Согласие на отправку текста комментариев на сервер MyMemory
+  /// (перевод на ПК). По умолчанию нет.
+  Future<bool> myMemoryConsent() async =>
+      await _db.setting(_myMemoryConsent) == '1';
+
+  Future<void> setMyMemoryConsent(bool value) =>
+      _db.putSetting(_myMemoryConsent, value ? '1' : '0');
+
+  /// Сколько символов отправлено в MyMemory за день [day] (`ГГГГ-ММ-ДД`).
+  Future<int> myMemoryUsage(String day) async {
+    final v = await _db.setting(_myMemoryUsage);
+    final parts = v?.split('|');
+    if (parts == null || parts.length != 2 || parts[0] != day) return 0;
+    return int.tryParse(parts[1]) ?? 0;
+  }
+
+  Future<void> setMyMemoryUsage(String day, int chars) =>
+      _db.putSetting(_myMemoryUsage, '$day|$chars');
 
   String _recentKey(int profileId) =>
       ProfileRepository.settingKey(profileId, _recentSearches);

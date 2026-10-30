@@ -3,6 +3,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../data/sources/video_source.dart';
 import '../../data/sources/youtube_comments.dart';
+import '../../data/translation/translation.dart';
 import '../app_scope.dart';
 import '../format.dart';
 import '../player/youtube_player_screen.dart';
@@ -219,7 +220,176 @@ class _CommentTile extends StatefulWidget {
 class _CommentTileState extends State<_CommentTile> {
   bool _expanded = false;
 
+  /// Кнопка «Перевести на русский»: `null` — язык ещё определяем.
+  bool? _canTranslate;
+  String? _translation;
+  bool _showOriginal = false;
+  TranslationStage? _stage;
+  String? _error;
+  bool _started = false;
+
   static const maxLines = 4;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    final translator = AppScope.of(context).services.translator;
+    final text = widget.comment.text;
+    _translation = translator.cached(text);
+    translator.canTranslate(text).then((v) {
+      if (mounted) setState(() => _canTranslate = v);
+    });
+  }
+
+  Future<void> _translate() async {
+    final services = AppScope.of(context).services;
+    final translator = services.translator;
+    if (translator.server case final server?
+        when !await services.preferences.myMemoryConsent()) {
+      if (!mounted) return;
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: context.tokens.surface2,
+          title: Text('Перевод через $server', style: AppText.title),
+          content: Text(
+            'Текст комментария отправляется на сервер $server. '
+            'Сервис бесплатный, с дневным лимитом символов',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Перевести'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+      await services.preferences.setMyMemoryConsent(true);
+    }
+    if (!mounted) return;
+    setState(() {
+      _stage = TranslationStage.translating;
+      _error = null;
+    });
+    final r = await translator.translate(
+      widget.comment.text,
+      onStage: (stage) {
+        if (mounted) setState(() => _stage = stage);
+      },
+    );
+    if (!mounted) return;
+    setState(() {
+      _stage = null;
+      switch (r) {
+        case Translated(:final text):
+          _translation = text;
+          _showOriginal = false;
+        case TranslationQuotaExceeded():
+          _error = 'Лимит перевода исчерпан. Попробуйте завтра';
+        case TranslationFailed(:final message):
+          _error = message;
+      }
+    });
+  }
+
+  Widget _text(String text, TextStyle style) => LayoutBuilder(
+    builder: (context, constraints) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        maxLines: maxLines,
+        textDirection: Directionality.of(context),
+      )..layout(maxWidth: constraints.maxWidth);
+      final long = painter.didExceedMaxLines;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            text,
+            style: style,
+            maxLines: _expanded ? null : maxLines,
+            overflow: _expanded ? null : TextOverflow.ellipsis,
+          ),
+          if (long)
+            TextButton(
+              onPressed: () => setState(() => _expanded = !_expanded),
+              child: Text(_expanded ? 'Свернуть' : 'Ещё'),
+            ),
+        ],
+      );
+    },
+  );
+
+  /// Оригинал, перевод под ним и кнопки перевода.
+  Widget _body(BuildContext context, TextStyle style) {
+    final t = context.tokens;
+    final translation = _translation;
+    final server = AppScope.of(context).services.translator.server;
+    if (translation == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Простой текст: разметка не выполняется, ссылки не активны.
+          _text(widget.comment.text, style),
+          if (_stage case final stage?)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  const SizedBox.square(
+                    dimension: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    stage == TranslationStage.downloadingModel
+                        ? 'Загружаем языковой пакет…'
+                        : 'Переводим…',
+                    style: AppText.caption.copyWith(color: t.fg2),
+                  ),
+                ],
+              ),
+            )
+          else if (_canTranslate ?? false)
+            TextButton.icon(
+              onPressed: _translate,
+              icon: const Icon(Symbols.translate_rounded, size: 16),
+              label: const Text('Перевести на русский'),
+            ),
+          if (_error case final e?)
+            Text(e, style: AppText.caption.copyWith(color: t.bad)),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_showOriginal) ...[
+          Text(widget.comment.text, style: AppText.body.copyWith(color: t.fg2)),
+          const SizedBox(height: 8),
+        ],
+        Text(
+          server == null
+              ? 'Перевод на русский'
+              : 'Перевод на русский · $server',
+          style: AppText.caption.copyWith(color: t.fg3),
+        ),
+        const SizedBox(height: 2),
+        _text(translation, style),
+        TextButton.icon(
+          onPressed: () => setState(() => _showOriginal = !_showOriginal),
+          icon: const Icon(Symbols.translate_rounded, size: 16),
+          label: Text(_showOriginal ? 'Скрыть оригинал' : 'Показать оригинал'),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -263,34 +433,7 @@ class _CommentTileState extends State<_CommentTile> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                // Простой текст: разметка не выполняется, ссылки не активны.
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final painter = TextPainter(
-                      text: TextSpan(text: c.text, style: style),
-                      maxLines: maxLines,
-                      textDirection: Directionality.of(context),
-                    )..layout(maxWidth: constraints.maxWidth);
-                    final long = painter.didExceedMaxLines;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          c.text,
-                          style: style,
-                          maxLines: _expanded ? null : maxLines,
-                          overflow: _expanded ? null : TextOverflow.ellipsis,
-                        ),
-                        if (long)
-                          TextButton(
-                            onPressed: () =>
-                                setState(() => _expanded = !_expanded),
-                            child: Text(_expanded ? 'Свернуть' : 'Ещё'),
-                          ),
-                      ],
-                    );
-                  },
-                ),
+                _body(context, style),
                 const SizedBox(height: 4),
                 Row(
                   children: [

@@ -18,6 +18,8 @@ import 'data/sources/video_source.dart';
 import 'data/sources/youtube_comments.dart';
 import 'data/sources/youtube_source.dart';
 import 'data/sync/sync_service.dart';
+import 'data/translation/mlkit_translation.dart';
+import 'data/translation/translation.dart';
 
 /// Списки и синхронизация одного профиля.
 class ProfileSession {
@@ -48,6 +50,7 @@ class AppServices {
     required this.music,
     required this.sources,
     required this.comments,
+    required this.translator,
     required this.tokensFor,
     required ProfileSession Function(Profile) sessionFactory,
     required Profile initialProfile,
@@ -77,6 +80,7 @@ class AppServices {
         ),
       ]),
       comments: YouTubeCommentsClient(apiKey: AppConfig.youtubeApiKey),
+      translator: _translator(preferences),
       // Этап 4.5: заглушка заменится распознавателем на Chromaprint +
       // AcoustID, звук — из AudioSnippetSource слоя источников.
       music: MusicRecognitionGate(
@@ -121,6 +125,32 @@ class AppServices {
 
   /// Комментарии к официальным роликам YouTube.
   final YouTubeCommentsClient comments;
+
+  /// Перевод комментариев на русский.
+  final CommentTranslator translator;
+
+  /// Телефон — ML Kit на устройстве; ПК — бесплатный MyMemory
+  /// (ML Kit на ПК не работает).
+  static CommentTranslator _translator(AppPreferences preferences) {
+    final mobile =
+        !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+    if (mobile) {
+      final detector = MlKitLanguageDetector();
+      return CommentTranslator(
+        detector: detector,
+        engine: MlKitEngine(detector: detector),
+      );
+    }
+    return CommentTranslator(
+      detector: const ScriptLanguageDetector(),
+      engine: MyMemoryEngine(
+        usage: preferences.myMemoryUsage,
+        saveUsage: preferences.setMyMemoryUsage,
+      ),
+    );
+  }
 
   /// Хранилище токена GitHub профиля.
   final TokenStore Function(int profileId) tokensFor;

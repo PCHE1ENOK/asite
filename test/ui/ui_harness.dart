@@ -15,6 +15,7 @@ import 'package:anime_viewer/data/settings/app_preferences.dart';
 import 'package:anime_viewer/data/models/anime.dart';
 import 'package:anime_viewer/data/sources/video_source.dart';
 import 'package:anime_viewer/data/sources/youtube_comments.dart';
+import 'package:anime_viewer/data/translation/translation.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:anime_viewer/main.dart';
 import 'package:anime_viewer/ui/app_scope.dart';
@@ -64,6 +65,10 @@ class UiHarness {
           return commentsHandler(r.url);
         }),
       ),
+      translator: CommentTranslator(
+        detector: const ScriptLanguageDetector(),
+        engine: _DelegatingEngine(() => translationEngine),
+      ),
       music: MusicRecognitionGate(
         isEnabled: preferences.musicRecognition,
         hasApiKey: false,
@@ -94,7 +99,31 @@ class UiHarness {
       ),
     );
     settings = AppSettings(services.preferences);
+    translationEngine = MyMemoryEngine(
+      usage: preferences.myMemoryUsage,
+      saveUsage: preferences.setMyMemoryUsage,
+      httpClient: MockClient((r) async {
+        translateRequests.add(r.url);
+        return translateHandler(r.url);
+      }),
+    );
   }
+
+  /// Переводчик комментариев: по умолчанию MyMemory (как на ПК)
+  /// с ответами [translateHandler].
+  late TranslationEngine translationEngine;
+  http.Response Function(Uri) translateHandler = (uri) => http.Response.bytes(
+    utf8.encode(
+      jsonEncode({
+        'responseStatus': 200,
+        'responseData': {
+          'translatedText': 'Перевод: ${uri.queryParameters['q']}',
+        },
+      }),
+    ),
+    200,
+  );
+  final translateRequests = <Uri>[];
 
   late final AppDatabase db;
   late final FakeAniList fake;
@@ -247,4 +276,23 @@ class FakeVideoSource implements VideoSource {
 
   @override
   Future<List<EmbeddedVideo>> find(AnimeDetails title) async => videos;
+}
+
+class _DelegatingEngine implements TranslationEngine {
+  _DelegatingEngine(this._engine);
+
+  final TranslationEngine Function() _engine;
+
+  @override
+  String? get server => _engine().server;
+
+  @override
+  Future<TranslationResult> translate(
+    String text, {
+    String? source,
+    void Function(TranslationStage stage)? onStage,
+  }) => _engine().translate(text, source: source, onStage: onStage);
+
+  @override
+  Future<void> close() async {}
 }

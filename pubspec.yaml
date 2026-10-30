@@ -12,6 +12,8 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_secure_storage: ^11.2.0
+  google_mlkit_language_id: ^0.15.1
+  google_mlkit_translation: ^0.15.1
   http: ^1.6.0
   material_symbols_icons: ^4.2960.0
   package_info_plus: ^10.2.2
