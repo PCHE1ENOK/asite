@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -19,7 +20,7 @@ import 'youtube_embed.dart';
 /// не получает и не воспроизводит поток. Android, iOS, macOS —
 /// `webview_flutter`, Windows — WebView2; где встроить нельзя (или нет
 /// WebView2 Runtime), ролик открывается на youtube.com.
-class YouTubePlayerScreen extends StatelessWidget {
+class YouTubePlayerScreen extends StatefulWidget {
   const YouTubePlayerScreen({
     super.key,
     required this.video,
@@ -30,40 +31,121 @@ class YouTubePlayerScreen extends StatelessWidget {
   final AnimeDetails details;
 
   @override
+  State<YouTubePlayerScreen> createState() => _YouTubePlayerScreenState();
+}
+
+/// Открывает ссылку во внешнем приложении; если не вышло — сообщение,
+/// а не тишина.
+Future<void> openExternally(BuildContext context, Uri url) async {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  var ok = false;
+  try {
+    ok = await launchUrl(url, mode: LaunchMode.externalApplication);
+  } on Object {
+    ok = false;
+  }
+  if (!ok) {
+    messenger?.showSnackBar(
+      const SnackBar(content: Text('Не удалось открыть YouTube')),
+    );
+  }
+}
+
+class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
+  /// Полный экран — наш: панели прячутся, видео остаётся единственным
+  /// содержимым (iframe ничем не перекрывается).
+  bool _fullscreen = false;
+
+  EmbeddedVideo get video => widget.video;
+  AnimeDetails get details => widget.details;
+
+  void _setFullscreen(bool value) {
+    if (value == _fullscreen) return;
+    setState(() => _fullscreen = value);
+    SystemChrome.setEnabledSystemUIMode(
+      value ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_fullscreen) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+    super.dispose();
+  }
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    // F — по физической клавише (на русской раскладке это «а»).
+    if (event.physicalKey == PhysicalKeyboardKey.keyF) {
+      _setFullscreen(!_fullscreen);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.escape && _fullscreen) {
+      _setFullscreen(false);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final episode = video.episode;
+    return PopScope(
+      // «Назад» (жест на телефоне) сначала выходит из полного экрана.
+      canPop: !_fullscreen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _setFullscreen(false);
+      },
+      child: Focus(
+        autofocus: true,
+        onKeyEvent: _onKey,
+        child: _buildScaffold(context, t, episode),
+      ),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, AppTokens t, int? episode) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              details.anime.title.preferred,
-              style: AppText.labelStrong.copyWith(color: Colors.white),
+      appBar: _fullscreen
+          ? null
+          : AppBar(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    details.anime.title.preferred,
+                    style: AppText.labelStrong.copyWith(color: Colors.white),
+                  ),
+                  Text(
+                    [
+                      if (episode != null) 'Серия $episode',
+                      'Официальное видео · ${video.channel}',
+                    ].join(' · '),
+                    style: AppText.caption.copyWith(color: Colors.white70),
+                  ),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  tooltip: 'Открыть на YouTube',
+                  color: Colors.white,
+                  onPressed: () => openExternally(context, video.watchUrl),
+                  icon: const Icon(Symbols.open_in_new_rounded),
+                ),
+                IconButton(
+                  tooltip: 'Полный экран',
+                  color: Colors.white,
+                  onPressed: () => _setFullscreen(true),
+                  icon: const Icon(Symbols.fullscreen_rounded),
+                ),
+              ],
             ),
-            Text(
-              [
-                if (episode != null) 'Серия $episode',
-                'Официальное видео · ${video.channel}',
-              ].join(' · '),
-              style: AppText.caption.copyWith(color: Colors.white70),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Открыть на YouTube',
-            color: Colors.white,
-            onPressed: () =>
-                launchUrl(video.watchUrl, mode: LaunchMode.externalApplication),
-            icon: const Icon(Symbols.open_in_new_rounded),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -77,7 +159,7 @@ class YouTubePlayerScreen extends StatelessWidget {
                 EmbedKind.browser => _OpenOnYouTube(video: video),
               },
             ),
-            if (episode != null)
+            if (episode != null && !_fullscreen)
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: ListenableBuilder(
@@ -171,10 +253,7 @@ class _OpenOnYouTube extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: () => launchUrl(
-                video.watchUrl,
-                mode: LaunchMode.externalApplication,
-              ),
+              onPressed: () => openExternally(context, video.watchUrl),
               icon: const Icon(Symbols.play_arrow_rounded, fill: 1),
               label: const Text('Смотреть на YouTube'),
             ),

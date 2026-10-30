@@ -25,6 +25,9 @@ void main() {
     expect(src.host, 'www.youtube.com');
     expect(src.path, '/embed/dQw4w9WgXcQ');
     expect(src.queryParameters['origin'], playerOrigin);
+    // Полный экран — только наш: кнопка fullscreen iframe в WebView не
+    // работает без поддержки со стороны приложения.
+    expect(src.queryParameters['fs'], '0');
     expect(html, isNot(contains('<video')));
     expect(html, isNot(matches(RegExp(r'\.(m3u8|mpd|mp4|webm)\b'))));
   });

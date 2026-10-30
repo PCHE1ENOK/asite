@@ -40,6 +40,9 @@ String youtubePlayerHtml(String videoId) {
   final src = Uri.https('www.youtube.com', '/embed/$videoId', {
     'playsinline': '1',
     'rel': '0',
+    // Полный экран — только наш (кнопка fullscreen iframe в WebView не
+    // работает без поддержки приложения), design/screens.md §11.
+    'fs': '0',
     'origin': playerOrigin,
   });
   return '''<!doctype html>
