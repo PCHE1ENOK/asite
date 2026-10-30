@@ -287,11 +287,14 @@ class _DelegatingEngine implements TranslationEngine {
   String? get server => _engine().server;
 
   @override
-  Future<TranslationResult> translate(
-    String text, {
-    String? source,
-    void Function(TranslationStage stage)? onStage,
-  }) => _engine().translate(text, source: source, onStage: onStage);
+  Future<bool> needsPack(String? source) => _engine().needsPack(source);
+
+  @override
+  Future<bool> downloadPack(String? source) => _engine().downloadPack(source);
+
+  @override
+  Future<TranslationResult> translate(String text, {String? source}) =>
+      _engine().translate(text, source: source);
 
   @override
   Future<void> close() async {}

@@ -15,11 +15,13 @@ class _CountingEngine implements TranslationEngine {
   String? get server => null;
 
   @override
-  Future<TranslationResult> translate(
-    String text, {
-    String? source,
-    void Function(TranslationStage stage)? onStage,
-  }) async {
+  Future<bool> needsPack(String? source) async => false;
+
+  @override
+  Future<bool> downloadPack(String? source) async => true;
+
+  @override
+  Future<TranslationResult> translate(String text, {String? source}) async {
     calls++;
     return Translated('ru:$text');
   }
@@ -34,6 +36,13 @@ class _BrokenDetector implements LanguageDetector {
 }
 
 void main() {
+  test('language labels', () {
+    expect(languageTag('en'), 'англ.');
+    expect(languageFrom('ja'), 'с японского');
+    expect(languageTag(null), isNull);
+    expect(languageFrom('xx'), isNull);
+  });
+
   group('ScriptLanguageDetector', () {
     const d = ScriptLanguageDetector();
     test('russian, other cyrillic, latin, japanese', () async {
@@ -148,10 +157,7 @@ void main() {
       final e = engine((_) async => throw http.ClientException('offline'));
       final r = await e.translate('Hello');
       expect(r, isA<TranslationFailed>());
-      expect(
-        (r as TranslationFailed).message,
-        'Не удалось перевести. Проверьте подключение к интернету',
-      );
+      expect((r as TranslationFailed).message, translationOfflineMessage);
       final bad = engine((_) async => http.Response('not json', 200));
       expect(await bad.translate('Hello'), isA<TranslationFailed>());
     });

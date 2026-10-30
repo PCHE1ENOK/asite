@@ -17,8 +17,8 @@ class MlKitLanguageDetector implements LanguageDetector {
 }
 
 /// Перевод ML Kit на устройстве: ключ не нужен, текст не покидает
-/// устройство. Языковой пакет (~30 МБ) скачивается при первом переводе
-/// с этого языка — в том числе по мобильной сети.
+/// устройство. Языковой пакет (~30 МБ) скачивается по кнопке перед первым
+/// переводом с этого языка — в том числе по мобильной сети.
 class MlKitEngine implements TranslationEngine {
   MlKitEngine({this.detector});
 
@@ -37,11 +37,32 @@ class MlKitEngine implements TranslationEngine {
   }
 
   @override
-  Future<TranslationResult> translate(
-    String text, {
-    String? source,
-    void Function(TranslationStage stage)? onStage,
-  }) async {
+  Future<bool> needsPack(String? source) async {
+    final from = _language(source);
+    if (from == null || from == TranslateLanguage.russian) return false;
+    for (final lang in [from, TranslateLanguage.russian]) {
+      if (!await _models.isModelDownloaded(lang.bcpCode)) return true;
+    }
+    return false;
+  }
+
+  /// ML Kit не сообщает процент — интерфейс показывает неопределённый
+  /// прогресс.
+  @override
+  Future<bool> downloadPack(String? source) async {
+    final from = _language(source);
+    if (from == null) return false;
+    for (final lang in [from, TranslateLanguage.russian]) {
+      if (await _models.isModelDownloaded(lang.bcpCode)) continue;
+      if (!await _models.downloadModel(lang.bcpCode, isWifiRequired: false)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @override
+  Future<TranslationResult> translate(String text, {String? source}) async {
     final from = _language(source);
     if (from == null) {
       return const TranslationFailed(
@@ -49,20 +70,6 @@ class MlKitEngine implements TranslationEngine {
       );
     }
     if (from == TranslateLanguage.russian) return Translated(text);
-    for (final lang in [from, TranslateLanguage.russian]) {
-      if (await _models.isModelDownloaded(lang.bcpCode)) continue;
-      onStage?.call(TranslationStage.downloadingModel);
-      final ok = await _models.downloadModel(
-        lang.bcpCode,
-        isWifiRequired: false,
-      );
-      if (!ok) {
-        return const TranslationFailed(
-          'Не удалось скачать языковой пакет. Проверьте подключение к интернету',
-        );
-      }
-    }
-    onStage?.call(TranslationStage.translating);
     final translator = _translators[from] ??= OnDeviceTranslator(
       sourceLanguage: from,
       targetLanguage: TranslateLanguage.russian,

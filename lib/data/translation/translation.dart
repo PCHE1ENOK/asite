@@ -26,11 +26,41 @@ class TranslationFailed extends TranslationResult {
   final String message;
 }
 
-/// Этап перевода — для подписи в интерфейсе.
-enum TranslationStage {
-  /// Скачивается языковой пакет (только перевод на устройстве).
-  downloadingModel,
-  translating,
+/// Сообщение при ошибке сети.
+const translationOfflineMessage = 'Не удалось перевести: нет сети';
+
+/// Названия языков для подписей: метка у даты («англ.») и
+/// «Перевод с английского».
+const translationLanguageNames = <String, (String, String)>{
+  'en': ('англ.', 'английского'),
+  'ja': ('яп.', 'японского'),
+  'es': ('исп.', 'испанского'),
+  'pt': ('порт.', 'португальского'),
+  'fr': ('франц.', 'французского'),
+  'de': ('нем.', 'немецкого'),
+  'it': ('итал.', 'итальянского'),
+  'ko': ('кор.', 'корейского'),
+  'zh': ('кит.', 'китайского'),
+  'uk': ('укр.', 'украинского'),
+  'be': ('белор.', 'белорусского'),
+  'pl': ('польск.', 'польского'),
+  'tr': ('тур.', 'турецкого'),
+  'ar': ('араб.', 'арабского'),
+  'id': ('индонез.', 'индонезийского'),
+  'vi': ('вьет.', 'вьетнамского'),
+  'th': ('тайск.', 'тайского'),
+  'hi': ('хинди', 'хинди'),
+  'nl': ('нидерл.', 'нидерландского'),
+  'tl': ('тагальск.', 'тагальского'),
+};
+
+/// Метка языка у даты, например «англ.»; `null` — язык неизвестен.
+String? languageTag(String? code) => translationLanguageNames[code]?.$1;
+
+/// «с английского»; `null` — язык неизвестен.
+String? languageFrom(String? code) {
+  final name = translationLanguageNames[code]?.$2;
+  return name == null ? null : 'с $name';
 }
 
 /// Определение языка текста. `null` — определить не удалось.
@@ -43,12 +73,15 @@ abstract interface class TranslationEngine {
   /// Сервер, куда уходит текст; `null` — перевод на устройстве.
   String? get server;
 
+  /// Нужен ли языковой пакет для перевода с [source] (только на
+  /// устройстве; сервер пакетов не требует).
+  Future<bool> needsPack(String? source);
+
+  /// Скачивает пакет. `false` — не удалось.
+  Future<bool> downloadPack(String? source);
+
   /// [source] — код языка (BCP-47) или `null`, если неизвестен.
-  Future<TranslationResult> translate(
-    String text, {
-    String? source,
-    void Function(TranslationStage stage)? onStage,
-  });
+  Future<TranslationResult> translate(String text, {String? source});
 
   Future<void> close();
 }
@@ -123,22 +156,30 @@ class CommentTranslator {
   /// Перевод из кэша сессии.
   String? cached(String text) => _translations[text];
 
-  Future<TranslationResult> translate(
-    String text, {
-    void Function(TranslationStage stage)? onStage,
-  }) async {
+  /// Нужен языковой пакет (перевод на устройстве).
+  Future<bool> needsPack(String text) async {
+    try {
+      return await engine.needsPack(await language(text));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> downloadPack(String text) async {
+    try {
+      return await engine.downloadPack(await language(text));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<TranslationResult> translate(String text) async {
     if (_translations[text] case final t?) return Translated(t);
     final TranslationResult r;
     try {
-      r = await engine.translate(
-        text,
-        source: await language(text),
-        onStage: onStage,
-      );
+      r = await engine.translate(text, source: await language(text));
     } catch (_) {
-      return const TranslationFailed(
-        'Не удалось перевести. Проверьте подключение к интернету',
-      );
+      return const TranslationFailed(translationOfflineMessage);
     }
     if (r is Translated) _translations[text] = r.text;
     return r;
@@ -183,17 +224,18 @@ class MyMemoryEngine implements TranslationEngine {
   }
 
   @override
-  Future<TranslationResult> translate(
-    String text, {
-    String? source,
-    void Function(TranslationStage stage)? onStage,
-  }) async {
+  Future<bool> needsPack(String? source) async => false;
+
+  @override
+  Future<bool> downloadPack(String? source) async => true;
+
+  @override
+  Future<TranslationResult> translate(String text, {String? source}) async {
     final day = _day();
     var used = await usage(day);
     if (used + text.length > dailyLimit) {
       return const TranslationQuotaExceeded();
     }
-    onStage?.call(TranslationStage.translating);
     final out = StringBuffer();
     for (final chunk in splitForQuery(text)) {
       final http.Response res;
@@ -209,9 +251,7 @@ class MyMemoryEngine implements TranslationEngine {
             )
             .timeout(const Duration(seconds: 15));
       } on Object {
-        return const TranslationFailed(
-          'Не удалось перевести. Проверьте подключение к интернету',
-        );
+        return const TranslationFailed(translationOfflineMessage);
       }
       used += chunk.length;
       await saveUsage(day, used);

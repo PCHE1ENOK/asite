@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:anime_viewer/data/translation/translation.dart';
+import 'package:anime_viewer/ui/title/comments_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -9,24 +10,27 @@ import 'package:http/http.dart' as http;
 import 'comments_ui_test.dart' show thread, video;
 import 'ui_harness.dart';
 
-/// Перевод на устройстве: скачивание пакета ждёт [download].
+const en = 'Rewatching in 2026 and it still hits different';
+const ja = 'オープニングが最高すぎて毎回飛ばせない';
+
+/// Перевод на устройстве: пакет нужен, пока не скачан ([download]).
 class _DeviceEngine implements TranslationEngine {
-  final download = Completer<void>();
+  final download = Completer<bool>();
+  bool installed = false;
 
   @override
   String? get server => null;
 
   @override
-  Future<TranslationResult> translate(
-    String text, {
-    String? source,
-    void Function(TranslationStage stage)? onStage,
-  }) async {
-    onStage?.call(TranslationStage.downloadingModel);
-    await download.future;
-    onStage?.call(TranslationStage.translating);
-    return Translated('На устройстве: $text');
-  }
+  Future<bool> needsPack(String? source) async => !installed;
+
+  @override
+  Future<bool> downloadPack(String? source) async =>
+      installed = await download.future;
+
+  @override
+  Future<TranslationResult> translate(String text, {String? source}) async =>
+      Translated('На устройстве: $text');
 
   @override
   Future<void> close() async {}
@@ -44,7 +48,8 @@ void main() {
         jsonEncode({
           'items': [
             thread('ru', 'Первая серия до сих пор держит в напряжении'),
-            thread('en', 'Rewatching in 2026 and it still hits different'),
+            thread('en', en),
+            thread('ja', ja),
           ],
         }),
       ),
@@ -62,85 +67,71 @@ void main() {
     await UiHarness.settle(tester);
   }
 
-  Future<void> tapTranslate(WidgetTester tester) async {
-    await tester.ensureVisible(find.text('Перевести на русский'));
-    await tester.tap(find.text('Перевести на русский'));
+  Future<void> tap(WidgetTester tester, Finder f) async {
+    await tester.ensureVisible(f);
+    await tester.tap(f);
     await UiHarness.settle(tester);
     await tester.pumpAndSettle();
   }
 
-  Future<void> accept(WidgetTester tester) async {
-    await tester.tap(find.widgetWithText(FilledButton, 'Перевести'));
-    await UiHarness.settle(tester);
-    await tester.pumpAndSettle();
-  }
+  final translateButtons = find.text('Перевести на русский');
 
-  testWidgets('button only for non-russian; consent; original toggle; cache', (
+  testWidgets('PC: button only for non-russian, banner, original, cache', (
     tester,
   ) async {
     await openComments(tester);
-    expect(find.text('Перевести на русский'), findsOneWidget);
+    expect(translateButtons, findsNWidgets(2));
+    expect(find.text('яп.'), findsOneWidget, reason: 'language tag');
+    expect(find.text(CommentsTab.attribution), findsOneWidget);
 
-    // ПК: сначала пометка, что текст уходит на сервер MyMemory.
-    await tapTranslate(tester);
-    expect(find.text('Перевод через MyMemory'), findsOneWidget);
+    // Плашка MyMemory над списком; «Не переводить» — без запроса.
+    await tap(tester, translateButtons.first);
     expect(
-      find.textContaining('отправляется на сервер MyMemory'),
+      find.text(
+        'Текст комментария отправляется на сервер MyMemory для перевода',
+      ),
       findsOneWidget,
     );
-    await tester.tap(find.text('Отмена'));
-    await tester.pumpAndSettle();
+    await tap(tester, find.text('Не переводить'));
+    expect(find.text('Понятно'), findsNothing);
     expect(h.translateRequests, isEmpty);
+    expect(translateButtons, findsNWidgets(2));
 
-    await tapTranslate(tester);
-    await accept(tester);
-    const translated =
-        'Перевод: Rewatching in 2026 and it still hits different';
-    expect(find.text(translated), findsOneWidget);
-    expect(find.text('Перевод на русский · MyMemory'), findsOneWidget);
+    // «Понятно» запускает перевод.
+    await tap(tester, translateButtons.last);
+    await tap(tester, find.text('Понятно'));
+    expect(find.text('Перевод: $ja'), findsOneWidget);
+    expect(find.text('Перевод с японского · MyMemory'), findsOneWidget);
+    expect(find.text(ja), findsNothing, reason: 'original hidden');
+    expect(h.translateRequests.single.queryParameters['langpair'], 'ja|ru');
+
+    await tap(tester, find.text('Показать оригинал'));
     expect(
-      find.text('Rewatching in 2026 and it still hits different'),
-      findsNothing,
+      tester.getTopLeft(find.text(ja)).dy,
+      lessThan(tester.getTopLeft(find.text('Перевод: $ja')).dy),
     );
+    await tap(tester, find.text('Скрыть оригинал'));
+    expect(find.text(ja), findsNothing);
+
+    // Второй раз плашки нет; язык неизвестен — Autodetect.
+    await tap(tester, translateButtons);
+    expect(find.text('Понятно'), findsNothing);
+    expect(find.text('Перевод: $en'), findsOneWidget);
+    expect(find.text('Перевод · MyMemory'), findsOneWidget);
     expect(
-      h.translateRequests.single.queryParameters['langpair'],
+      h.translateRequests.last.queryParameters['langpair'],
       'Autodetect|ru',
     );
 
-    // «Показать оригинал»: оригинал над переводом.
-    await tester.tap(find.text('Показать оригинал'));
-    await tester.pump();
-    final original = find.text(
-      'Rewatching in 2026 and it still hits different',
-    );
-    expect(original, findsOneWidget);
-    expect(
-      tester.getTopLeft(original).dy,
-      lessThan(tester.getTopLeft(find.text(translated)).dy),
-    );
-    await tester.tap(find.text('Скрыть оригинал'));
-    await tester.pump();
-    expect(original, findsNothing);
-
-    // Кэш на сессию: после смены вкладки перевод без нового запроса.
-    await tester.tap(find.text('Описание'));
-    await UiHarness.settle(tester);
-    await tester.tap(find.text('Комментарии'));
-    await UiHarness.settle(tester);
-    expect(find.text(translated), findsOneWidget);
-    expect(h.translateRequests, hasLength(1));
-
-    // Согласие запомнено: второго вопроса нет.
-    expect(
-      await UiHarness.run(tester, h.services.preferences.myMemoryConsent),
-      isTrue,
-    );
+    // Кэш на сессию: после смены вкладки — без новых запросов.
+    await tap(tester, find.text('Описание'));
+    await tap(tester, find.text('Комментарии'));
+    expect(find.text('Перевод: $ja'), findsOneWidget);
+    expect(h.translateRequests, hasLength(2));
     await h.dispose(tester);
   });
 
-  testWidgets('quota exceeded and network error show a message', (
-    tester,
-  ) async {
+  testWidgets('PC: quota exceeded', (tester) async {
     await tester.runAsync(
       () => h.services.preferences.setMyMemoryConsent(true),
     );
@@ -149,50 +140,63 @@ void main() {
       200,
     );
     await openComments(tester);
-    await tapTranslate(tester);
+    await tap(tester, translateButtons.first);
     expect(
-      find.text('Лимит перевода исчерпан. Попробуйте завтра'),
+      find.text('Лимит перевода исчерпан, попробуйте завтра'),
       findsOneWidget,
     );
+    expect(translateButtons, findsOneWidget, reason: 'no retry for this one');
     await h.dispose(tester);
   });
 
-  testWidgets('network error does not crash and keeps the button', (
-    tester,
-  ) async {
+  testWidgets('network error: message and retry, no crash', (tester) async {
     await tester.runAsync(
       () => h.services.preferences.setMyMemoryConsent(true),
     );
     h.translateHandler = (_) => throw http.ClientException('offline');
     await openComments(tester);
-    await tapTranslate(tester);
+    await tap(tester, translateButtons.first);
     expect(tester.takeException(), isNull);
-    expect(
-      find.text('Не удалось перевести. Проверьте подключение к интернету'),
-      findsOneWidget,
+    expect(find.text('Не удалось перевести: нет сети'), findsOneWidget);
+
+    h.translateHandler = (uri) => http.Response.bytes(
+      utf8.encode(
+        jsonEncode({
+          'responseStatus': 200,
+          'responseData': {'translatedText': 'Снова в 2026'},
+        }),
+      ),
+      200,
     );
-    expect(find.text('Перевести на русский'), findsOneWidget);
+    await tap(tester, find.text('Повторить'));
+    expect(find.text('Снова в 2026'), findsOneWidget);
     await h.dispose(tester);
   });
 
-  testWidgets('on device: no consent, language pack progress', (tester) async {
+  testWidgets('phone: language pack, progress, done on device', (tester) async {
     final engine = _DeviceEngine();
     h.translationEngine = engine;
     await openComments(tester);
-    await tester.ensureVisible(find.text('Перевести на русский'));
-    await tester.tap(find.text('Перевести на русский'));
-    await tester.pump();
-    expect(find.text('Перевод через MyMemory'), findsNothing);
-    expect(find.text('Загружаем языковой пакет…'), findsOneWidget);
-    engine.download.complete();
-    await UiHarness.settle(tester);
     expect(
       find.text(
-        'На устройстве: Rewatching in 2026 and it still hits different',
+        '${CommentsTab.attribution} · перевод выполняется на устройстве',
       ),
       findsOneWidget,
     );
-    expect(find.text('Перевод на русский'), findsOneWidget);
+    await tap(tester, translateButtons.last);
+    expect(find.text('Понятно'), findsNothing, reason: 'no banner on device');
+    expect(
+      find.textContaining('Для перевода с японского нужен языковой пакет'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Скачать пакет перевода'));
+    await tester.pump();
+    expect(find.text('Скачиваем пакет «яп. → рус.»'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    engine.download.complete(true);
+    await UiHarness.settle(tester);
+    expect(find.text('На устройстве: $ja'), findsOneWidget);
+    expect(find.text('Перевод с японского · на устройстве'), findsOneWidget);
     await h.dispose(tester);
   });
 }
