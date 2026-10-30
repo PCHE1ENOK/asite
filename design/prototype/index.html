@@ -241,6 +241,7 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .pl-top, .pl-bot { position: absolute; left: 0; right: 0; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); transition: opacity .22s var(--ease), transform .22s var(--ease); }
 .pl-top { top: 0; padding-top: 16px; display: flex; gap: 12px; align-items: center; }
 .pl-bot { bottom: 0; padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); display: grid; gap: 8px; }
+.hide-ui .pl-top, .hide-ui .pl-bot, .hide-ui .pl-center { pointer-events: none; }
 .hide-ui .pl-top, .hide-ui .scrim-top { opacity: 0; transform: translateY(-8px); }
 .hide-ui .pl-bot, .hide-ui .scrim-bot { opacity: 0; transform: translateY(8px); }
 .pl-title { min-width: 0; }
@@ -289,7 +290,10 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .mus .demo { display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--pl-fg2); border-top: 1px solid #FFFFFF1A; padding-top: 8px; }
 .mus .demo select { font-size: 11px; height: 22px; background: #FFFFFF14; color: #FFFFFF; border: 1px solid #FFFFFF26; border-radius: 4px; }
 .mus .bad { color: #F27B7B; }
-.player.yt { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: #000; }
+.player.yt { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); background: #000; }
+.player.yt > .yt-top { grid-column: 1 / -1; }
+.player.yt.has-eps { grid-template-columns: minmax(0, 1fr) min(380px, 45%); }
+.player.yt .eppanel { position: static; grid-column: 2; grid-row: 2 / 4; width: auto; min-height: 0; }
 .yt-top, .yt-bar { display: flex; align-items: center; gap: 8px; padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); background: #0B0C10; color: #FFFFFF; flex-wrap: wrap; }
 .yt-top { border-bottom: 1px solid #FFFFFF14; }
 .yt-bar { border-top: 1px solid #FFFFFF14; min-height: 56px; }
@@ -374,6 +378,9 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 
 .toast { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--s3); color: var(--fg); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-3); padding: 10px 10px 10px 16px; display: flex; gap: 12px; align-items: center; z-index: 50; max-width: calc(100vw - 32px); font-size: 14px; }
 .toast.top { bottom: auto; top: calc(48px + env(safe-area-inset-top, 0px)); }
+.toast { pointer-events: none; }
+.toast button { pointer-events: auto; }
+.app.m .toast.top { top: auto; bottom: 110px; max-width: min(360px, calc(100vw - 32px)); }
 .toast svg { color: var(--st-completed); }
 
 .adult { position: absolute; left: 8px; top: 34px; height: 20px; padding: 0 6px; border-radius: var(--r-xs); background: #B9302F; color: #FFFFFF; font: 600 11px/20px var(--f-text); letter-spacing: .02em; }
@@ -560,6 +567,7 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .app.m .pl-top { padding-top: 12px; }
 .app.m .pl-bot { padding-bottom: 12px; }
 .app.m .skip, .app.m .next { bottom: 96px; }
+@media (max-aspect-ratio: 1/1) { .app.m .skip, .app.m .next { bottom: 150px; } }
 .app.m .next { width: 280px; }
 .app.m .next .thumb { display: none; }
 .app.m .toast { bottom: 96px; }
@@ -730,6 +738,7 @@ const I = {
   full:'M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z',
   music:'M12 3v10.6A4 4 0 1 0 14 17V7h4V3z',
   ext:'M14 3v2h3.6l-9.8 9.8 1.4 1.4L19 6.4V10h2V3zm5 16H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2z',
+  vol_off:'M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.5 2.5V12zm2.5 0c0 .9-.2 1.8-.5 2.6l1.5 1.5A9 9 0 0 0 14 3.2v2.1A7 7 0 0 1 19 12zM4.3 3 3 4.3 7.7 9H3v6h4l5 5v-6.7l4.3 4.3A7 7 0 0 1 14 18.7v2.1a9 9 0 0 0 3.7-1.8L19.7 21 21 19.7l-9-9zM12 4 9.9 6.1 12 8.2z',
   full_exit:'M5 16h3v3h2v-5H5zm3-8H5v2h5V5H8zm6 11h2v-3h3v-2h-5zm2-11V5h-2v5h5V8z',
   heart:'M12 21.4 10.6 20C5.4 15.4 2 12.3 2 8.5A5.4 5.4 0 0 1 7.5 3 6 6 0 0 1 12 5a6 6 0 0 1 4.5-2A5.4 5.4 0 0 1 22 8.5c0 3.8-3.4 6.9-8.6 11.5z',
   plus:'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z', skip:'M4 18l8.5-6L4 6zm9-12v12l8.5-6z',
@@ -1082,12 +1091,12 @@ function viewTitle() {
 }
 
 /* ---------- Плеер ---------- */
-const P = { dur:1440, t:70, buf:300, playing:true, opA:50, opB:140, ui:true, fs:false, season:0, epOpen:false, mus:null, musT:null, hideT:null, timer:null, dubOpen:false, next:null, marked:false };
+const P = { dur:1440, t:70, buf:300, playing:true, opA:50, opB:140, ui:true, fs:false, rate:1, q:'Авто', muted:false, setOpen:false, season:0, epOpen:false, mus:null, musT:null, hideT:null, timer:null, dubOpen:false, next:null, marked:false };
 function fmtT(s) { s = Math.max(0, Math.round(s)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
 function viewPlayer() {
   const a = DATA.find(x => x.id === S.titleId) || DATA[0];
   if ($('#demoPlayer').value.startsWith('yt')) return viewPlayerYT(a);
-  const n = (a.st === 'CURRENT' ? a.pr : 0) + 1 - (P.marked ? 1 : 0);
+  const n = curEp(a);
   const epName = a.id === 1 ? DAN_EPS[n-1] : `Серия ${n}`;
   const pst = $('#demoPlayer').value;
   if (pst !== 'play') P.playing = false;
@@ -1104,7 +1113,8 @@ function viewPlayer() {
         <button class="pl-btn" type="button" id="musicBtn" aria-haspopup="dialog" aria-expanded="${!!P.mus}" aria-label="Что играет" title="Что играет">${ic('music')}</button>
         <div class="pop music" id="musicPop" role="dialog" aria-label="Что играет" aria-live="polite" ${P.mus ? '' : 'hidden'}>${musicBody()}</div>
         <button class="pl-pill" type="button" id="dubBtn" aria-haspopup="menu" aria-expanded="${P.dubOpen}">${ic('cc')}${DUBS[S.dub].n}${ic('chev')}</button>
-        <button class="pl-btn" type="button" aria-label="Настройки">${ic('settings')}</button>
+        <button class="pl-btn" type="button" id="plSetBtn" aria-haspopup="menu" aria-expanded="${!!P.setOpen}" aria-label="Настройки плеера">${ic('settings')}</button>
+        <div class="pop" id="plSetPop" role="menu" ${P.setOpen ? '' : 'hidden'}><div class="h">Скорость</div>${[0.75, 1, 1.25, 1.5, 2].map(v => `<button type="button" role="menuitemradio" aria-checked="${P.rate === v}" data-rate="${v}"><span>${v === 1 ? 'Обычная' : v + '×'}</span>${P.rate === v ? ic('check') : ''}</button>`).join('')}<div class="h">Качество</div>${['Авто', '1080p', '720p', '480p'].map(v => `<button type="button" role="menuitemradio" aria-checked="${P.q === v}" data-q="${v}"><span>${v}</span>${P.q === v ? ic('check') : ''}</button>`).join('')}</div>
         <div class="pop" id="dubPop" role="menu" ${P.dubOpen ? '' : 'hidden'}>${['Озвучка','Субтитры','Оригинал'].map(kind => `<div class="h">${kind === 'Оригинал' ? 'Оригинальная дорожка' : kind}</div>` + DUBS.map((d,i) => d.kind !== kind ? '' : `<button type="button" role="menuitemradio" aria-checked="${S.dub === i}" ${d.ok ? `data-pdub="${i}"` : 'aria-disabled="true" class="off"'}><span>${d.n}</span><small>${d.k}</small>${S.dub === i ? ic('check') : ''}</button>`).join('')).join('')}</div>
       </div>
     </div>
@@ -1118,7 +1128,7 @@ function viewPlayer() {
         <div class="track"><div class="buf" id="buf"></div><div class="op" style="left:${P.opA/P.dur*100}%;width:${(P.opB-P.opA)/P.dur*100}%" title="Опенинг"></div><div class="done" id="done"></div><div class="knob" id="knob"></div></div>
       </div>
       <div class="ctrls">
-        <button class="pl-btn" type="button" aria-label="Предыдущая серия">${ic('prev')}</button>
+        <button class="pl-btn" type="button" id="prevBtn" aria-label="Предыдущая серия" ${n <= 1 ? 'disabled' : ''}>${ic('prev')}</button>
         <button class="pl-btn" type="button" id="rw" aria-label="Назад 10 секунд">${ic('rw')}</button>
         <button class="pl-btn big" type="button" id="pp" aria-label="Пауза">${ic(P.playing ? 'pause' : 'play')}</button>
         <button class="pl-btn" type="button" id="fw" aria-label="Вперёд 10 секунд">${ic('fw')}</button>
@@ -1126,7 +1136,7 @@ function viewPlayer() {
         <span class="tc" id="tc"></span>
         <span class="grow"></span>
         <button class="pl-pill" type="button" id="toEnd" title="Демо: перемотать к титрам">Демо: к титрам</button>
-        <button class="pl-btn" type="button" aria-label="Громкость">${ic('vol')}</button>
+        <button class="pl-btn" type="button" id="volBtn" aria-pressed="${!!P.muted}" aria-label="${P.muted ? 'Включить звук' : 'Выключить звук'}" title="${P.muted ? 'Включить звук (M)' : 'Выключить звук (M)'}">${ic(P.muted ? 'vol_off' : 'vol')}</button>
         <button class="pl-btn" type="button" id="fsBtn" aria-pressed="${P.fs}" aria-label="${P.fs ? 'Выйти из полноэкранного режима' : 'Полный экран'}" title="${P.fs ? 'Выйти из полноэкранного режима (Esc)' : 'Полный экран (F)'}">${ic(P.fs ? 'full_exit' : 'full')}</button>
       </div>
     </div>
@@ -1137,7 +1147,7 @@ function viewPlayer() {
 const YT_OK = st => st === 'ytmissing' ? [1, 2, 3] : null; // null — видео есть у всех серий
 function viewPlayerYT(a) {
   const st = $('#demoPlayer').value;
-  const n = (a.st === 'CURRENT' ? a.pr : 0) + 1 - (P.marked ? 1 : 0);
+  const n = curEp(a);
   const epName = epTitle(a, 0, n), ok = YT_OK(st), has = !ok || ok.includes(n);
   let stage;
   if (st === 'ytnoembed') stage = `<div class="pl-state card">${ic('ext')}<div class="big">Встроенный плеер недоступен</div><div class="sub">На этом устройстве нет компонента для встроенного видео. Серию можно посмотреть на YouTube в браузере — вернитесь сюда, чтобы отметить её просмотренной.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="markEp">${ic('check')}Отметить серию ${n} просмотренной</button></div></div>`;
@@ -1146,7 +1156,7 @@ function viewPlayerYT(a) {
   else stage = `<div class="yt-embed" role="img" aria-label="Встроенный плеер YouTube: ${esc(a.t)}, серия ${n}"><div class="yt-ph"><span class="yt-play">${ic('play')}</span><span>Встроенный плеер YouTube</span><small>Свои кнопки, субтитры и качество — внутри плеера. Мы ничего поверх не рисуем.</small></div></div>`;
   const bottom = st === 'ytend' ? `<div class="yt-bar end"><span class="msg">Серия ${n} закончилась и отмечена просмотренной</span><span class="grow"></span><span class="cap" style="color:#FFFFFFB8">Далее: серия ${n + 1} · ${esc(epTitle(a, 0, n + 1))}</span><button class="btn btn-filled" type="button" data-act="ytNext">${ic('play')}Смотреть · 8</button><button class="btn btn-text" type="button" data-act="ytStay">Остаться</button></div>`
     : `<div class="yt-bar"><span class="src">${ic('play')}Официальное видео правообладателя на YouTube</span><span class="grow"></span>${has && st === 'yt' ? `<span class="cap" style="color:#FFFFFFB8">Прогресс считается сам · отметка на 85%</span>` : ''}<button class="btn btn-text" type="button" data-act="markEp">${ic('check')}Просмотрено</button><button class="btn btn-outline" type="button" data-act="ytNext">${ic('next')}Серия ${n + 1}</button></div>`;
-  return `<div class="player yt" id="player">
+  return `<div class="player yt${P.epOpen ? ' has-eps' : ''}" id="player">
     <div class="yt-top"><a class="pl-btn" href="#title" aria-label="Назад к тайтлу">${ic('back')}</a>
       <div class="pl-title"><div>${esc(a.t)}</div><div>Серия ${n} · ${esc(epName)}</div></div><span class="grow"></span>
       <button class="pl-btn" type="button" id="epBtn" aria-haspopup="dialog" aria-expanded="${P.epOpen}" aria-label="Серии" title="Серии">${ic('lists')}</button>
@@ -1169,7 +1179,7 @@ function playerState(a, n, epName) {
 }
 function epPanel(a, ytOk) {
   const ss = seasonsOf(a), si = Math.min(P.season, ss.length - 1), se = ss[si];
-  const cur = (a.st === 'CURRENT' ? a.pr : 0) + 1;
+  const cur = curEp(a);
   return `<div class="ephead"><b>Серии</b><button class="pl-btn" type="button" data-act="epClose" aria-label="Закрыть">${ic('DROPPED')}</button></div>
     ${ss.length > 1 ? `<div class="seg dark" role="group" aria-label="Сезон">${ss.map((x, i) => `<button type="button" data-season="${i}" aria-pressed="${i === si}">${x.n} · ${x.y}</button>`).join('')}</div>` : ''}
     <div class="eplist">${Array.from({length: se.ep}, (_, i) => i + 1).map(k => { const done = si === 0 && a.pr && k <= a.pr, now = si === 0 && k === cur, future = si === 1 && k > 4;
@@ -1177,7 +1187,7 @@ function epPanel(a, ytOk) {
 }
 function playerTick() {
   if ($('#demoPlayer').value !== 'play') return;
-  if (P.playing) { P.t = Math.min(P.dur, P.t + 1); P.buf = Math.min(P.dur, Math.max(P.buf, P.t + 240)); }
+  if (P.playing) { P.t = Math.min(P.dur, P.t + P.rate); P.buf = Math.min(P.dur, Math.max(P.buf, P.t + 240)); }
   playerPaint();
 }
 function playerPaint() {
@@ -1192,22 +1202,24 @@ function playerPaint() {
   // за 20 с до конца — карточка следующей серии
   if (P.t >= P.dur - 20 && !P.next) showNext();
 }
+// Текущая серия в плеере: явный выбор (следующая/предыдущая/из списка) или первая непросмотренная
+function curEp(a) { return P.ep || Math.min(a.ep, (a.st === 'CURRENT' || a.st === 'COMPLETED' ? (a.pr || 0) : 0) + 1); }
 function markWatched() {
   P.marked = true;
   const a = DATA.find(x => x.id === S.titleId);
   if (!a) return;
   const prev = { st:a.st, pr:a.pr };
-  const n = (a.st === 'CURRENT' ? a.pr : 0) + 1;
+  const n = curEp(a); P.ep = n;
   const wasNone = !a.st;
-  a.st = 'CURRENT'; a.pr = n;
+  a.st = 'CURRENT'; a.pr = Math.max(a.pr || 0, n);
   if (a.pr >= a.ep) a.st = 'COMPLETED';
   toast(`Серия ${n} отмечена просмотренной${wasNone ? ' · статус «Смотрю»' : ''}${a.st === 'COMPLETED' ? ' · тайтл просмотрен' : ''}`, 'Отменить', () => { a.st = prev.st; a.pr = prev.pr; P.marked = false; }, true);
 }
 function showNext() {
   const a = DATA.find(x => x.id === S.titleId) || DATA[0];
-  const n = a.pr + 1;
+  const n = curEp(a) + 1;
   const box = $('#next');
-  if (n > a.ep) { box.innerHTML = `<div class="body"><div class="overline" style="color:#FFFFFFB8">Сезон просмотрен</div><div style="font:600 16px/20px var(--f-display)">${esc(a.t)}</div><div class="row"><button class="btn btn-filled" type="button">Оценить</button><a class="btn btn-text" href="#title" style="text-decoration:none">К тайтлу</a></div></div>`; box.hidden = false; P.next = {}; return; }
+  if (n > a.ep) { box.innerHTML = `<div class="body"><div class="overline" style="color:#FFFFFFB8">Сезон просмотрен</div><div style="font:600 16px/20px var(--f-display)">${esc(a.t)}</div><div class="row"><button class="btn btn-filled" type="button" data-act="rateLater">Оценить</button><a class="btn btn-text" href="#title" style="text-decoration:none">К тайтлу</a></div></div>`; box.hidden = false; P.next = {}; return; }
   P.next = { left:10, n };
   const C = 2 * Math.PI * 20;
   box.innerHTML = `<div class="thumb"><div class="ring"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" fill="#00000080" stroke="#FFFFFF33" stroke-width="2"/><circle id="ringArc" cx="22" cy="22" r="20" fill="none" stroke="#8399FF" stroke-width="2" stroke-dasharray="${C}" stroke-dashoffset="0" stroke-linecap="round"/></svg><span id="ringN">10</span></div></div>
@@ -1223,7 +1235,7 @@ function showNext() {
   }, 1000);
 }
 function clearNext() { if (P.next && P.next.iv) clearInterval(P.next.iv); P.next = null; const b = $('#next'); if (b) b.hidden = true; }
-function goNext() { clearNext(); P.t = 0; P.buf = 240; P.marked = false; P.playing = true; render(); }
+function goNext() { const a = DATA.find(x => x.id === S.titleId) || DATA[0]; if (curEp(a) >= a.ep) { clearNext(); return; } P.ep = curEp(a) + 1; clearNext(); P.t = 0; P.buf = 240; P.marked = false; P.playing = true; render(); }
 function musicBody() {
   const st = P.mus, demo = `<div class="demo"><label for="musDemo">Демо-результат:</label><select id="musDemo"><option value="found"${S.musicDemo === 'found' ? ' selected' : ''}>найдено</option><option value="notfound"${S.musicDemo === 'notfound' ? ' selected' : ''}>не найдено</option><option value="error"${S.musicDemo === 'error' ? ' selected' : ''}>ошибка сети</option></select></div>`;
   const at = fmtT(P.musAt || P.t);
@@ -1258,7 +1270,7 @@ function toggleFs(v) {
 function showUi() {
   const pl = $('#player'); if (!pl) return;
   pl.classList.remove('hide-ui'); clearTimeout(P.hideT);
-  P.hideT = setTimeout(() => { if (P.playing && !P.dubOpen && !P.mus && !P.epOpen && !P.next && $('#demoPlayer').value === 'play') pl.classList.add('hide-ui'); }, 3000);
+  P.hideT = setTimeout(() => { if (P.playing && !P.dubOpen && !P.mus && !P.setOpen && !P.epOpen && !P.next && $('#demoPlayer').value === 'play') pl.classList.add('hide-ui'); }, 3000);
 }
 
 /* ---------- тост ---------- */
@@ -1344,13 +1356,14 @@ function render() {
   $('#main').innerHTML = ROUTES[r]();
   if (r !== 'player') $('#main').scrollTop = 0;
   if (r === 'search') { paintSearch(); const i = $('#sq'); if (i) i.focus(); }
-  if (r !== 'player') { clearTimeout(P.musT); P.mus = null; }
+  if (r !== 'player') { clearTimeout(P.musT); P.mus = null; P.ep = null; P.t = Math.min(P.t, 70); }
   if (r === 'player') { P.timer = setInterval(playerTick, 1000); playerPaint(); showUi(); }
 }
 window.addEventListener('hashchange', () => { P.dubOpen = false; render(); });
 
 document.addEventListener('click', e => {
-  const t = e.target.closest('button, a'); if (!t) return;
+  const t = e.target.closest('button, a');
+  if (!t) { const pl = e.target.closest('#player'); if (pl && !pl.classList.contains('yt') && !e.target.closest('.pop, .eppanel, .next, .pl-state, .timeline')) { if (pl.classList.contains('hide-ui')) showUi(); else if (P.playing) { clearTimeout(P.hideT); pl.classList.add('hide-ui'); } } return; }
   const d = t.dataset;
   if (d.open) S.titleId = +d.open;
   if (d.genre) { S.genres.has(d.genre) ? S.genres.delete(d.genre) : S.genres.add(d.genre); render(); }
@@ -1405,18 +1418,25 @@ document.addEventListener('click', e => {
   else if (t.id === 'rw' || d.pl === 'rw') { P.t = Math.max(0, P.t - 10); playerPaint(); }
   else if (t.id === 'fw' || d.pl === 'fw') { P.t = Math.min(P.dur, P.t + 10); playerPaint(); }
   else if (t.id === 'skip') { P.t = P.opB; playerPaint(); }
-  else if (t.id === 'toEnd') { clearNext(); P.t = P.dur - 26; P.buf = P.dur; playerPaint(); }
+  else if (t.id === 'toEnd') { clearNext(); P.t = P.dur - 22; P.buf = P.dur; playerPaint(); }
   else if (t.id === 'fsBtn') toggleFs();
   else if (t.id === 'nextBtn' || t.id === 'goNext') goNext();
   else if (t.id === 'cancelNext') { clearNext(); P.next = { cancelled:true }; }
+  else if (t.id === 'prevBtn') { const a = DATA.find(x => x.id === S.titleId) || DATA[0]; const c = curEp(a); if (c > 1) { P.ep = c - 1; P.t = 0; P.marked = false; clearNext(); render(); toast(`Серия ${P.ep}`, null, null, true); } }
+  else if (t.id === 'volBtn') { P.muted = !P.muted; t.innerHTML = ic(P.muted ? 'vol_off' : 'vol'); t.setAttribute('aria-pressed', P.muted); t.setAttribute('aria-label', P.muted ? 'Включить звук' : 'Выключить звук'); toast(P.muted ? 'Звук выключен' : 'Звук включён', null, null, true); }
+  else if (t.id === 'plSetBtn') { P.setOpen = !P.setOpen; P.dubOpen = false; $('#dubPop').hidden = true; $('#plSetPop').hidden = !P.setOpen; t.setAttribute('aria-expanded', P.setOpen); showUi(); }
+  else if (d.rate) { P.rate = +d.rate; P.setOpen = false; render(); toast(`Скорость: ${P.rate === 1 ? 'обычная' : P.rate + '×'}`, null, null, true); }
+  else if (d.q) { P.q = d.q; P.setOpen = false; render(); toast(`Качество: ${P.q}`, null, null, true); }
+  else if ((t.id === 'epBtn' || d.act === 'epClose') && $('#player.yt')) { P.epOpen = !P.epOpen; render(); }
   else if (t.id === 'epBtn' || d.act === 'epClose') { P.epOpen = !P.epOpen; $('#eppanel').hidden = !P.epOpen; if (P.epOpen) { const nw = $('#eppanel .now'); if (nw) nw.scrollIntoView({ block:'center' }); } $('#epBtn').setAttribute('aria-expanded', P.epOpen); showUi(); }
   else if (d.season) { P.season = +d.season; $('#eppanel').innerHTML = epPanel(DATA.find(x => x.id === S.titleId) || DATA[0], YT_OK($('#demoPlayer').value)); }
-  else if (d.ep) { const a = DATA.find(x => x.id === S.titleId) || DATA[0]; if (P.season === 0) { a.pr = +d.ep - 1; if (!a.st) a.st = 'CURRENT'; } P.t = 0; P.marked = false; P.epOpen = false; render(); toast(`Серия ${d.ep}`, null, null, true); }
+  else if (d.ep) { const a = DATA.find(x => x.id === S.titleId) || DATA[0]; if (P.season === 0) P.ep = +d.ep; P.t = 0; P.marked = false; P.epOpen = false; render(); toast(`Серия ${d.ep}`, null, null, true); }
   else if (d.act === 'pickDub') { P.dubOpen = true; $('#dubPop').hidden = false; showUi(); }
   else if (d.act === 'plRetry') { $('#demoPlayer').value = 'loading'; render(); setTimeout(() => { $('#demoPlayer').value = 'play'; P.playing = true; render(); }, 1200); }
   else if (d.act === 'markEp') { markWatched(); render(); }
+  else if (d.act === 'rateLater') toast('Диалог оценки отложен до следующего прохода', null, null, true);
   else if (d.act === 'ytEps') { P.epOpen = true; render(); }
-  else if (d.act === 'ytNext') { const a = DATA.find(x => x.id === S.titleId) || DATA[0]; if (!P.marked) { a.st = a.st || 'CURRENT'; a.pr = (a.pr || 0) + 1; } P.marked = false; $('#demoPlayer').value = 'yt'; render(); toast('Следующая серия', null, null, true); }
+  else if (d.act === 'ytNext') { const a = DATA.find(x => x.id === S.titleId) || DATA[0]; P.ep = Math.min(a.ep, curEp(a) + 1); P.marked = false; $('#demoPlayer').value = 'yt'; render(); toast('Следующая серия', null, null, true); }
   else if (d.act === 'ytStay') { $('#demoPlayer').value = 'yt'; render(); }
   else if (t.id === 'musicBtn') { if (P.mus) closeMusic(); else { P.dubOpen = false; $('#dubPop').hidden = true; runMusic(); } }
   else if (d.mus === 'enable') { S.music = true; runMusic(); }
@@ -1424,10 +1444,18 @@ document.addEventListener('click', e => {
   else if (d.mus === 'close') closeMusic();
   else if (d.mus === 'copy') { try { navigator.clipboard.writeText('Creepy Nuts — Otonoke').catch(() => {}); } catch(e) {} toast('Скопировано: Creepy Nuts — Otonoke', null, null, true); }
   else if (t.id === 'setMusic') { S.music = !S.music; t.setAttribute('aria-checked', S.music); }
-  else if (t.id === 'dubBtn') { closeMusic(); P.dubOpen = !P.dubOpen; $('#dubPop').hidden = !P.dubOpen; t.setAttribute('aria-expanded', P.dubOpen); showUi(); }
+  else if (t.id === 'dubBtn') { closeMusic(); P.setOpen = false; if ($('#plSetPop')) $('#plSetPop').hidden = true; P.dubOpen = !P.dubOpen; $('#dubPop').hidden = !P.dubOpen; t.setAttribute('aria-expanded', P.dubOpen); showUi(); }
   else if (d.pdub) { S.dub = +d.pdub; P.dubOpen = false; if ($('#demoPlayer').value === 'error') $('#demoPlayer').value = 'play'; render(); toast(`Озвучка: ${DUBS[S.dub].n}. Позиция сохранена`, null, null, true); }
   if (!t.closest('.actions')) { const m = $('#statusMenu'); if (m) m.hidden = true; }
 });
+document.addEventListener('click', e => {
+  if (!$('#player')) return;
+  const inside = e.target.closest('.pop, #dubBtn, #plSetBtn, #musicBtn, [data-act=pickDub]');
+  if (!inside) {
+    if (P.dubOpen) { P.dubOpen = false; $('#dubPop').hidden = true; if ($('#dubBtn')) $('#dubBtn').setAttribute('aria-expanded', false); }
+    if (P.setOpen) { P.setOpen = false; $('#plSetPop').hidden = true; }
+  }
+}, true);
 document.addEventListener('click', e => { if (!e.target.closest('#pmenu') && !e.target.closest('[data-act="pmenu"]')) { const m = $('#pmenu'); if (m) m.remove(); } if (!e.target.closest('.actions')) { const m = $('#statusMenu'); if (m) m.hidden = true; } }, true);
 document.addEventListener('change', e => {
   if (e.target.id === 'sort') { S.sort = e.target.value; render(); }
@@ -1441,6 +1469,11 @@ document.addEventListener('change', e => {
   if (e.target.id === 'setLang') S.lang = e.target.value;
   if (e.target.id === 'setLang') toast(e.target.value === 'en' ? 'Language: English. Перевод интерфейса — после первого прохода' : 'Язык: русский');
 });
+document.addEventListener('pointerdown', e => {
+  const pl = e.target.closest('#player');
+  if (pl && pl.classList.contains('hide-ui')) { e.preventDefault(); P.swallow = true; setTimeout(() => { P.swallow = false; }, 600); showUi(); return; }
+}, true);
+document.addEventListener('click', e => { if (P.swallow) { P.swallow = false; e.stopPropagation(); e.preventDefault(); } }, true);
 document.addEventListener('pointerdown', e => {
   const tl = e.target.closest('#tl'); if (!tl) return;
   const seek = ev => { const r = tl.getBoundingClientRect(); P.t = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * P.dur; if (P.t < P.dur - 20 && P.next && P.next.iv) clearNext(); playerPaint(); };
@@ -1467,13 +1500,15 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'pfName') { $('[data-act="pfCreate"]').click(); }
   if (!$('#player')) return;
   showUi();
-  if (e.code === 'Space' && e.target.tagName !== 'BUTTON') { e.preventDefault(); P.playing = !P.playing; render(); }
+  if (e.code === 'Space' && !/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) { e.preventDefault(); P.playing = !P.playing; render(); }
   if (e.key === 'ArrowLeft') { P.t = Math.max(0, P.t - 10); playerPaint(); }
   if (e.key === 'ArrowRight') { P.t = Math.min(P.dur, P.t + 10); playerPaint(); }
   if (e.code === 'KeyS' && !$('#skip').hidden) { P.t = P.opB; playerPaint(); }
   if (e.code === 'KeyN' && e.shiftKey) goNext();
+  if (e.code === 'KeyM' && $('#volBtn')) $('#volBtn').click();
   if (e.code === 'KeyF' && !e.ctrlKey && !e.metaKey && e.target.tagName !== 'INPUT') toggleFs();
   if (e.key === 'Escape' && P.fs && !(P.next && P.next.iv) && !P.dubOpen && !P.mus) { toggleFs(false); return; }
+  if (e.key === 'Escape' && P.setOpen) { P.setOpen = false; $('#plSetPop').hidden = true; return; }
   if (e.key === 'Escape' && P.mus) { closeMusic(); return; }
   if (e.key === 'Escape' && P.epOpen) { P.epOpen = false; $('#eppanel').hidden = true; return; }
   if (e.key === 'Escape') { if (P.next && P.next.iv) { clearNext(); P.next = { cancelled:true }; } else if (P.dubOpen) { P.dubOpen = false; $('#dubPop').hidden = true; } }
