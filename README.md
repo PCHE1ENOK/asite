@@ -87,29 +87,43 @@ flutter test
 dart run tool/smoke_anilist.dart   # реальные запросы к AniList
 ```
 
-Client ID OAuth-приложения GitHub «Anilist Viewer» (Device Flow включён)
-передаётся настройкой сборки, в коде значения по умолчанию нет. Client
-secret не нужен. Настройки лежат в `config/app.json`; VS Code подключает
-файл через `.vscode/launch.json`.
+Настройки сборки передаются через `--dart-define-from-file`, в коде значений
+по умолчанию нет. Файлов два:
+
+| Файл | Что внутри | В git |
+|---|---|---|
+| `config/app.json` | несекретное: `GITHUB_CLIENT_ID` (OAuth App «Anilist Viewer», Device Flow, client secret не нужен) | да |
+| `config/local.json` | секреты: `YOUTUBE_API_KEY`, `ACOUSTID_API_KEY` | **нет** (`.gitignore`) |
+
+Один раз создайте локальный файл из примера и впишите ключи:
+
+```
+cp config/local.json.example config/local.json
+```
+
+Запуск и сборка (VS Code подключает оба файла через `.vscode/launch.json`):
 
 ```
 # Windows
-flutter run -d windows --dart-define-from-file=config/app.json
-flutter build windows --release --dart-define=GITHUB_CLIENT_ID=Ov23lixvFjCs94iKTfNX
+flutter run -d windows --dart-define-from-file=config/app.json --dart-define-from-file=config/local.json
+flutter build windows --release --dart-define-from-file=config/app.json --dart-define-from-file=config/local.json
 
 # iOS (на macOS с Xcode)
-flutter run -d ios --dart-define-from-file=config/app.json
-flutter build ipa --release --dart-define=GITHUB_CLIENT_ID=Ov23lixvFjCs94iKTfNX
+flutter run -d ios --dart-define-from-file=config/app.json --dart-define-from-file=config/local.json
+flutter build ipa --release --dart-define-from-file=config/app.json --dart-define-from-file=config/local.json
 
 # Android
-flutter run -d android --dart-define-from-file=config/app.json
+flutter run -d android --dart-define-from-file=config/app.json --dart-define-from-file=config/local.json
 ```
 
 Без `GITHUB_CLIENT_ID` приложение работает, но кнопка «Войти через GitHub»
 неактивна. Без `YOUTUBE_API_KEY` источник видео пустой: кнопка «Смотреть»
 открывает экран «Источники видео не подключены», серии отмечаются вручную.
 `ACOUSTID_API_KEY` понадобится для распознавания музыки (этап 4.5).
-Ключи — в `config/app.json`, в код они не попадают.
+
+Плеер YouTube: Android и iOS — WebView (`webview_flutter`), Windows — WebView2
+(`webview_windows`, нужен Microsoft Edge WebView2 Runtime, на Windows 11 он
+есть). Без WebView2 ролик открывается на youtube.com в браузере.
 
 Скриншоты экранов (golden-рендер в тестах с настоящими шрифтами и
 сгенерированными обложками, результат и подписи в `golden/`):

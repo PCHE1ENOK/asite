@@ -1,6 +1,7 @@
 import 'package:anime_viewer/data/models/library_entry.dart';
 import 'package:anime_viewer/data/sources/video_source.dart';
 import 'package:anime_viewer/ui/player/no_sources_screen.dart';
+import 'package:anime_viewer/ui/player/windows_youtube_player.dart';
 import 'package:anime_viewer/ui/player/youtube_player_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -71,13 +72,16 @@ void main() {
     expect(find.text('Начать просмотр на YouTube'), findsOneWidget);
 
     await tester.tap(find.text('Начать просмотр на YouTube'));
-    await tester.pumpAndSettle();
+    await UiHarness.settle(tester);
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(YouTubePlayerScreen), findsOneWidget);
     expect(
       find.textContaining('Официальное видео · Muse Asia'),
       findsOneWidget,
     );
-    // На Windows без WebView — переход в официальный плеер на youtube.com.
+    // WebView2 в тестах недоступен — переход в официальный плеер на
+    // youtube.com.
+    expect(find.byType(WindowsYouTubePlayer), findsOneWidget);
     expect(find.text('Смотреть на YouTube'), findsOneWidget);
 
     await h.dispose(tester);

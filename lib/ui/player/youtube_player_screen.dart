@@ -10,12 +10,15 @@ import '../app_scope.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../title/episode_actions.dart';
+import 'windows_youtube_player.dart';
+import 'youtube_embed.dart';
 
 /// Официальное видео правообладателя во встроенном плеере YouTube.
 ///
 /// Видео проигрывает только плеер YouTube (iframe в WebView); приложение
-/// не получает и не воспроизводит поток. Где WebView недоступен
-/// (Windows без WebView2-плагина), ролик открывается на youtube.com.
+/// не получает и не воспроизводит поток. Android, iOS, macOS —
+/// `webview_flutter`, Windows — WebView2; где встроить нельзя (или нет
+/// WebView2 Runtime), ролик открывается на youtube.com.
 class YouTubePlayerScreen extends StatelessWidget {
   const YouTubePlayerScreen({
     super.key,
@@ -25,13 +28,6 @@ class YouTubePlayerScreen extends StatelessWidget {
 
   final EmbeddedVideo video;
   final AnimeDetails details;
-
-  /// Платформы, где `webview_flutter` встраивает плеер.
-  static bool get canEmbed =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.macOS);
 
   @override
   Widget build(BuildContext context) {
@@ -72,9 +68,14 @@ class YouTubePlayerScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: canEmbed
-                  ? _EmbeddedPlayer(url: video.embedUrl)
-                  : _OpenOnYouTube(video: video),
+              child: switch (embedKindFor(defaultTargetPlatform)) {
+                EmbedKind.webview => _EmbeddedPlayer(videoId: video.videoId),
+                EmbedKind.webview2 => WindowsYouTubePlayer(
+                  videoId: video.videoId,
+                  fallback: _OpenOnYouTube(video: video),
+                ),
+                EmbedKind.browser => _OpenOnYouTube(video: video),
+              },
             ),
             if (episode != null)
               Padding(
@@ -116,9 +117,9 @@ class YouTubePlayerScreen extends StatelessWidget {
 }
 
 class _EmbeddedPlayer extends StatefulWidget {
-  const _EmbeddedPlayer({required this.url});
+  const _EmbeddedPlayer({required this.videoId});
 
-  final Uri url;
+  final String videoId;
 
   @override
   State<_EmbeddedPlayer> createState() => _EmbeddedPlayerState();
@@ -128,7 +129,9 @@ class _EmbeddedPlayerState extends State<_EmbeddedPlayer> {
   late final _controller = WebViewController()
     ..setJavaScriptMode(JavaScriptMode.unrestricted)
     ..setBackgroundColor(Colors.black)
-    ..loadRequest(widget.url);
+    // Страница с iframe открывается с адреса приложения, чтобы плеер
+    // получил origin/Referer.
+    ..loadHtmlString(youtubePlayerHtml(widget.videoId), baseUrl: playerOrigin);
 
   @override
   Widget build(BuildContext context) => Center(
