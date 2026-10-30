@@ -36,12 +36,10 @@ void main() {
   late AppDatabase db;
   late List<Uri> requests;
   late http.Response Function(Uri) handler;
-  var now = DateTime.utc(2026, 10, 30, 12);
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
     requests = [];
-    now = DateTime.utc(2026, 10, 30, 12);
     handler = (uri) => http.Response.bytes(
       utf8.encode(
         jsonEncode(
@@ -65,8 +63,6 @@ void main() {
 
   YouTubeCommentsClient client({String key = 'k'}) => YouTubeCommentsClient(
     apiKey: key,
-    db: db,
-    clock: () => now,
     httpClient: MockClient((r) async {
       requests.add(r.url);
       return handler(r.url);
@@ -138,15 +134,25 @@ void main() {
     expect(r.page.hasMore, isFalse);
   });
 
-  test('cached for one hour', () async {
+  test('cached for the session only, nothing stored in the database', () async {
     final c = client();
     await c.fetch('vid');
-    now = now.add(const Duration(minutes: 59));
     await c.fetch('vid');
     expect(requests, hasLength(1));
-    now = now.add(const Duration(minutes: 2));
-    await c.fetch('vid');
+    expect(await db.select(db.cacheEntries).get(), isEmpty);
+    // Новая сессия (новый клиент) — снова запрос.
+    await client().fetch('vid');
     expect(requests, hasLength(2));
+  });
+
+  test('comment link points to the comment on YouTube', () {
+    final r = YouTubeCommentsClient.parse({
+      'items': [thread('Ugx1', 'a')],
+    });
+    expect(
+      r.page.comments.single.urlFor('vid').toString(),
+      'https://www.youtube.com/watch?v=vid&lc=Ugx1',
+    );
   });
 
   test('text stays plain: markup is kept as characters', () {

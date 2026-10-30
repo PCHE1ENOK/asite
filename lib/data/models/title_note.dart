@@ -107,7 +107,7 @@ class TitleNote {
   final bool deleted;
 
   static const maxDropReason = 500;
-  static const maxSummary = 200;
+  static const maxSummary = 140;
 
   /// Подсказки для причины «брошено».
   static const dropReasonHints = [

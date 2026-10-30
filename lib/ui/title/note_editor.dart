@@ -10,13 +10,7 @@ import '../app_scope.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/filter_controls.dart';
-
-const verdictLabels = {
-  NoteVerdict.none: 'Без вердикта',
-  NoteVerdict.rewatch: 'Стоит пересмотреть',
-  NoteVerdict.recommend: 'Советую',
-  NoteVerdict.notRecommend: 'Не советую',
-};
+import '../widgets/verdict_visuals.dart';
 
 /// Вкладка «Заметка»: личная заметка о тайтле в текущем профиле.
 class NoteEditor extends StatefulWidget {
@@ -187,7 +181,7 @@ class _NoteEditorState extends State<NoteEditor> {
             children: [
               for (final v in NoteVerdict.values)
                 PillButton(
-                  label: verdictLabels[v]!,
+                  label: verdictVisual(v, t).label,
                   selected: v == _verdict,
                   onPressed: () => setState(() {
                     _verdict = v;

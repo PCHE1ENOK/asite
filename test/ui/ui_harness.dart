@@ -59,7 +59,6 @@ class UiHarness {
       sources: VideoSources([videoSource]),
       comments: YouTubeCommentsClient(
         apiKey: 'test-key',
-        db: db,
         httpClient: MockClient((r) async {
           commentRequests.add(r.url);
           return commentsHandler(r.url);

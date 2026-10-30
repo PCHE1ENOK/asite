@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:anime_viewer/data/models/library_entry.dart';
 import 'package:anime_viewer/data/sources/video_source.dart';
 import 'package:anime_viewer/ui/player/windows_youtube_player.dart';
@@ -6,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -168,6 +171,34 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(YouTubePlayerScreen), findsOneWidget);
     expect(find.textContaining('Серия 1 · Официальное видео'), findsOneWidget);
+    await done(tester);
+  });
+
+  testWidgets('comments panel opens under the video, not over it', (
+    tester,
+  ) async {
+    h.commentsHandler = (_) => http.Response.bytes(
+      utf8.encode(
+        '{"items":[{"snippet":{"topLevelComment":{"id":"c1","snippet":'
+        '{"authorDisplayName":"Mika","textOriginal":"Отличная серия",'
+        '"likeCount":3,"publishedAt":"2026-10-01T12:00:00Z"}}}}]}',
+      ),
+      200,
+    );
+    await openPlayer(tester);
+    await tester.tap(find.text('Комментарии'));
+    await UiHarness.settle(tester);
+
+    expect(find.text('Отличная серия'), findsOneWidget);
+    expect(find.text('Комментарии — с YouTube'), findsOneWidget);
+    final player = tester.getRect(find.byType(WindowsYouTubePlayer));
+    final comment = tester.getRect(find.text('Отличная серия'));
+    expect(comment.top, greaterThanOrEqualTo(player.bottom));
+
+    // Повторное нажатие закрывает панель.
+    await tester.tap(find.text('Комментарии').first);
+    await UiHarness.settle(tester);
+    expect(find.text('Отличная серия'), findsNothing);
     await done(tester);
   });
 }

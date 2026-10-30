@@ -201,4 +201,24 @@ abstract final class Fmt {
     if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
     return many;
   }
+
+  /// «только что», «5 минут назад», «3 часа назад», «2 дня назад»,
+  /// дальше — «3 октября 2025».
+  static String relative(DateTime t, {DateTime? now}) {
+    final d = (now ?? DateTime.now()).difference(t);
+    if (d.inMinutes < 1) return 'только что';
+    if (d.inHours < 1) {
+      final m = d.inMinutes;
+      return '$m ${plural(m, 'минуту', 'минуты', 'минут')} назад';
+    }
+    if (d.inDays < 1) {
+      final h = d.inHours;
+      return '$h ${plural(h, 'час', 'часа', 'часов')} назад';
+    }
+    if (d.inDays < 30) {
+      final days = d.inDays;
+      return '$days ${plural(days, 'день', 'дня', 'дней')} назад';
+    }
+    return '${dayMonth(t)} ${t.toLocal().year}';
+  }
 }

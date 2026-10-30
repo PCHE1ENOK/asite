@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../data/models/anime.dart';
 import '../../data/models/library_entry.dart';
 import '../../data/models/title_note.dart';
+import '../widgets/verdict_visuals.dart';
 import '../app_scope.dart';
 import '../format.dart';
 import '../library_index.dart';
@@ -20,6 +21,29 @@ import '../widgets/state_views.dart';
 import '../widgets/status_visuals.dart';
 import '../widgets/status_widgets.dart';
 import '../widgets/sync_bar.dart';
+
+/// Фильтр «Заметки» над сеткой (design/screens.md §12).
+enum NoteFilter {
+  all('Все'),
+  withNote('С заметкой'),
+  recommend('Советую'),
+  rewatch('Стоит пересмотреть'),
+  notRecommend('Не советую'),
+  none('Без вердикта');
+
+  const NoteFilter(this.label);
+
+  final String label;
+
+  bool matches(TitleNote? n) => switch (this) {
+    NoteFilter.all => true,
+    NoteFilter.withNote => n != null,
+    NoteFilter.recommend => n?.verdict == NoteVerdict.recommend,
+    NoteFilter.rewatch => n?.verdict == NoteVerdict.rewatch,
+    NoteFilter.notRecommend => n?.verdict == NoteVerdict.notRecommend,
+    NoteFilter.none => n != null && n.verdict == NoteVerdict.none,
+  };
+}
 
 enum ListsSort {
   updated('Недавно обновлённые'),
@@ -54,6 +78,7 @@ class _ListsScreenState extends State<ListsScreen>
   final Map<int, Anime> _summaries = {};
   Set<int> _requested = {};
   ListsSort _sort = ListsSort.updated;
+  NoteFilter _noteFilter = NoteFilter.all;
 
   /// Краткие итоги заметок для вида «список».
   Map<int, TitleNote> _notes = const {};
@@ -127,7 +152,14 @@ class _ListsScreenState extends State<ListsScreen>
           builder: (context, _) {
             final counts = _library.counts;
             final status = statusBarOrder[_tabs.index];
-            final entries = _entriesFor(status);
+            final inTab = _entriesFor(status);
+            final entries = [
+              for (final e in inTab)
+                if (_noteFilter.matches(_notes[e.mediaId])) e,
+            ];
+            final withSummary = entries.any(
+              (e) => _notes[e.mediaId]?.summary.isNotEmpty ?? false,
+            );
             return CustomScrollView(
               slivers: [
                 SliverPadding(
@@ -215,6 +247,29 @@ class _ListsScreenState extends State<ListsScreen>
                             ),
                           ],
                         ),
+                        if (_notes.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                'Заметки:',
+                                style: AppText.label.copyWith(
+                                  color: context.tokens.fg2,
+                                ),
+                              ),
+                              for (final f in NoteFilter.values)
+                                PillButton(
+                                  label: f.label,
+                                  selected: f == _noteFilter,
+                                  onPressed: () =>
+                                      setState(() => _noteFilter = f),
+                                ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 16),
                       ],
                     ),
@@ -222,6 +277,17 @@ class _ListsScreenState extends State<ListsScreen>
                 ),
                 if (!_library.isLoaded)
                   const SliverToBoxAdapter(child: SizedBox.shrink())
+                else if (entries.isEmpty && inTab.isNotEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: EmptyState(
+                      icon: Symbols.filter_alt_off_rounded,
+                      text: 'Нет тайтлов с таким вердиктом',
+                      actionLabel: 'Показать все',
+                      onAction: () =>
+                          setState(() => _noteFilter = NoteFilter.all),
+                    ),
+                  )
                 else if (entries.isEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
@@ -238,7 +304,10 @@ class _ListsScreenState extends State<ListsScreen>
                     padding: EdgeInsets.symmetric(horizontal: gutter),
                     sliver: SliverLayoutBuilder(
                       builder: (context, c) => SliverGrid.builder(
-                        gridDelegate: posterGridDelegate(c.crossAxisExtent),
+                        gridDelegate: posterGridDelegate(
+                          c.crossAxisExtent,
+                          extraCaption: withSummary ? PosterCard.noteHeight : 0,
+                        ),
                         itemCount: entries.length,
                         itemBuilder: (context, i) {
                           final a = _summaries[entries[i].mediaId];
@@ -246,6 +315,7 @@ class _ListsScreenState extends State<ListsScreen>
                               ? const PosterCardSkeleton()
                               : PosterCard(
                                   anime: a,
+                                  note: _notes[entries[i].mediaId],
                                   onTap: () => widget.onOpenTitle(a),
                                 );
                         },
@@ -367,6 +437,16 @@ class _ListRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
+            if (note case final n?) ...[
+              Icon(
+                verdictVisual(n.verdict, t).icon,
+                size: 18,
+                fill: 1,
+                color: verdictVisual(n.verdict, t).color,
+                semanticLabel: verdictVisual(n.verdict, t).label,
+              ),
+              const SizedBox(width: 12),
+            ],
             ScoreBadge(score: a?.averageScore),
             const SizedBox(width: 12),
             ListStatusDot(status: entry.status, size: 22),

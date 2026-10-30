@@ -76,7 +76,7 @@ class AppServices {
           regionCode: PlatformDispatcher.instance.locale.countryCode,
         ),
       ]),
-      comments: YouTubeCommentsClient(apiKey: AppConfig.youtubeApiKey, db: db),
+      comments: YouTubeCommentsClient(apiKey: AppConfig.youtubeApiKey),
       // Этап 4.5: заглушка заменится распознавателем на Chromaprint +
       // AcoustID, звук — из AudioSnippetSource слоя источников.
       music: MusicRecognitionGate(

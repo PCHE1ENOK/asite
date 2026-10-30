@@ -79,6 +79,9 @@ void main() {
 
     expect(find.text('<b>не HTML</b> https://example.com'), findsOneWidget);
     expect(find.textContaining('Автор a', findRichText: true), findsOneWidget);
+    expect(find.text('Комментарии — с YouTube'), findsOneWidget);
+    // «Открыть на YouTube» у каждого комментария.
+    expect(find.text('Открыть на YouTube'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Показать ещё'));
     await tester.tap(find.text('Показать ещё'));
@@ -102,17 +105,31 @@ void main() {
       403,
     );
     await openComments(tester);
-    expect(find.text('Комментарии отключены для этого видео'), findsOneWidget);
+    expect(
+      find.text(
+        'Комментарии отключены для этого видео. Так решил правообладатель на YouTube',
+      ),
+      findsOneWidget,
+    );
 
     h.commentsHandler = (_) => http.Response('{"items":[]}', 200);
     await tester.tap(find.text('По времени'));
     await UiHarness.settle(tester);
-    expect(find.text('Комментариев пока нет'), findsOneWidget);
+    expect(
+      find.textContaining('Комментариев пока нет. Будьте первым'),
+      findsOneWidget,
+    );
 
     h.commentsHandler = (_) => http.Response('boom', 500);
     await tester.tap(find.text('По популярности'));
     await UiHarness.settle(tester);
-    expect(find.text('Не удалось загрузить комментарии'), findsOneWidget);
+    expect(
+      find.text(
+        'Не удалось загрузить комментарии. Проверьте подключение к интернету',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Повторить'), findsOneWidget);
     await h.dispose(tester);
   });
 }

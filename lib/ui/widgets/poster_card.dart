@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../../data/models/anime.dart';
 import '../../data/models/library_entry.dart';
+import '../../data/models/title_note.dart';
 import '../app_scope.dart';
 import '../format.dart';
 import '../theme/app_theme.dart';
@@ -11,16 +13,28 @@ import 'badges.dart';
 import 'cover_image.dart';
 import 'skeleton.dart';
 import 'status_widgets.dart';
+import 'verdict_visuals.dart';
 
 /// Постер тайтла 2:3 с рейтингом, бейджем 18+ и подписью.
 class PosterCard extends StatefulWidget {
-  const PosterCard({super.key, required this.anime, required this.onTap});
+  const PosterCard({
+    super.key,
+    required this.anime,
+    required this.onTap,
+    this.note,
+  });
 
   final Anime anime;
   final VoidCallback onTap;
 
+  /// Заметка профиля («Мои списки»): значок вердикта и итог под названием.
+  final TitleNote? note;
+
   /// Высота подписи под обложкой: 2 строки названия + строка caption.
   static const captionHeight = 8 + 18 * 2 + 2 + 16.0;
+
+  /// Дополнительная высота под итог заметки (до 2 строк).
+  static const noteHeight = 4 + 16 * 2.0;
 
   @override
   State<PosterCard> createState() => _PosterCardState();
@@ -91,6 +105,12 @@ class _PosterCardState extends State<PosterCard> {
                   ),
                 ),
               ),
+            if (widget.note case final n?)
+              Positioned(
+                right: 8,
+                bottom: watching ? 10 : 8,
+                child: VerdictBadge(verdict: n.verdict),
+              ),
             Positioned(
               left: 8,
               top: 8,
@@ -149,7 +169,9 @@ class _PosterCardState extends State<PosterCard> {
                 ),
               ),
               SizedBox(
-                height: PosterCard.captionHeight,
+                height:
+                    PosterCard.captionHeight +
+                    (widget.note == null ? 0 : PosterCard.noteHeight),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -169,6 +191,30 @@ class _PosterCardState extends State<PosterCard> {
                       overflow: TextOverflow.ellipsis,
                       style: AppText.caption.copyWith(color: t.fg2),
                     ),
+                    if (widget.note?.summary.isNotEmpty ?? false) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2, right: 4),
+                            child: Icon(
+                              Symbols.edit_rounded,
+                              size: 12,
+                              color: t.fg3,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              widget.note!.summary,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppText.caption.copyWith(color: t.fg2),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -231,20 +277,25 @@ int posterColumns(double width) {
 }
 
 /// Делегат сетки постеров: ширина карточки 148–220, обложка 2:3.
-SliverGridDelegate posterGridDelegate(double width) =>
-    _PosterGridDelegate(AppLayout.posterGap(width));
+/// [extraCaption] — место под итог заметки.
+SliverGridDelegate posterGridDelegate(
+  double width, {
+  double extraCaption = 0,
+}) => _PosterGridDelegate(AppLayout.posterGap(width), extraCaption);
 
 class _PosterGridDelegate extends SliverGridDelegate {
-  const _PosterGridDelegate(this.gap);
+  const _PosterGridDelegate(this.gap, this.extraCaption);
 
   final double gap;
+  final double extraCaption;
 
   @override
   SliverGridLayout getLayout(SliverConstraints constraints) {
     final w = constraints.crossAxisExtent;
     final columns = posterColumns(w);
     final itemWidth = (w - gap * (columns - 1)) / columns;
-    final itemHeight = itemWidth * 3 / 2 + PosterCard.captionHeight;
+    final itemHeight =
+        itemWidth * 3 / 2 + PosterCard.captionHeight + extraCaption;
     return SliverGridRegularTileLayout(
       crossAxisCount: columns,
       mainAxisStride: itemHeight + gap * 1.2,
@@ -256,5 +307,6 @@ class _PosterGridDelegate extends SliverGridDelegate {
   }
 
   @override
-  bool shouldRelayout(_PosterGridDelegate old) => old.gap != gap;
+  bool shouldRelayout(_PosterGridDelegate old) =>
+      old.gap != gap || old.extraCaption != extraCaption;
 }

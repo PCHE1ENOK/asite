@@ -3,8 +3,6 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../cache/app_database.dart';
-
 /// Порядок комментариев: по популярности или по времени.
 enum CommentOrder {
   relevance('relevance'),
@@ -35,6 +33,10 @@ class YouTubeComment {
   final int likes;
   final int replies;
   final DateTime publishedAt;
+
+  /// Комментарий на странице ролика.
+  Uri urlFor(String videoId) =>
+      Uri.https('www.youtube.com', '/watch', {'v': videoId, 'lc': id});
 }
 
 /// Страница комментариев и токен следующей.
@@ -70,25 +72,20 @@ class CommentsFailed extends CommentsResult {
 }
 
 /// Комментарии к официальным роликам: YouTube Data API v3
-/// `commentThreads.list` (1 единица квоты за запрос). Ответы кэшируются
-/// на [ttl], чтобы не тратить квоту.
+/// `commentThreads.list` (1 единица квоты за запрос). Страницы хранятся
+/// только в памяти до закрытия приложения (кэш на сессию): в базу
+/// данные YouTube не пишутся.
 class YouTubeCommentsClient {
   YouTubeCommentsClient({
     required this.apiKey,
-    required this._db,
     http.Client? httpClient,
-    this.ttl = const Duration(hours: 1),
     this.pageSize = 20,
-    DateTime Function()? clock,
-  }) : _http = httpClient ?? http.Client(),
-       _now = clock ?? DateTime.now;
+  }) : _http = httpClient ?? http.Client();
 
   final String apiKey;
-  final AppDatabase _db;
   final http.Client _http;
-  final Duration ttl;
   final int pageSize;
-  final DateTime Function() _now;
+  final _session = <String, Map<String, dynamic>>{};
 
   bool get isConfigured => apiKey.isNotEmpty;
 
@@ -99,10 +96,8 @@ class YouTubeCommentsClient {
   }) async {
     if (!isConfigured) return const CommentsFailed('Не задан ключ YouTube');
     final key = 'ytc:$videoId:${order.apiValue}:${pageToken ?? ''}';
-    final cached = await _db.entry(key);
-    if (cached != null && _now().difference(cached.updatedAt) < ttl) {
-      return parse(jsonDecode(cached.payload) as Map<String, dynamic>);
-    }
+    final cached = _session[key];
+    if (cached != null) return parse(cached);
 
     final uri = Uri.https('www.googleapis.com', '/youtube/v3/commentThreads', {
       'part': 'snippet',
@@ -131,7 +126,7 @@ class YouTubeCommentsClient {
           ? const CommentsDisabled()
           : CommentsFailed('YouTube API ${response.statusCode}');
     }
-    await _db.putEntry(key, jsonEncode(json), _now());
+    _session[key] = json;
     return parse(json);
   }
 

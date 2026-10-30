@@ -10,17 +10,18 @@ import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/filter_controls.dart';
 import '../widgets/skeleton.dart';
-import '../widgets/state_views.dart';
 
-/// Вкладка «Комментарии» к официальным роликам YouTube тайтла.
-///
-/// Текст комментариев показывается как простой текст: без HTML и без
-/// активных ссылок.
+/// Комментарии к официальным роликам YouTube (design/screens.md §13):
+/// только чтение. Текст — простой текст: без HTML и активных ссылок.
+/// В карточке тайтла — вкладка, в плеере — панель под видео.
 class CommentsTab extends StatefulWidget {
   const CommentsTab({super.key, required this.videos});
 
-  /// Ролики тайтла (не пустой список).
+  /// Ролики тайтла (не пустой список); в плеере — один текущий.
   final List<EmbeddedVideo> videos;
+
+  /// Подпись источника, обязательна под комментариями.
+  static const attribution = 'Комментарии — с YouTube';
 
   @override
   State<CommentsTab> createState() => _CommentsTabState();
@@ -64,56 +65,87 @@ class _CommentsTabState extends State<CommentsTab> {
     });
   }
 
+  void _setOrder(CommentOrder order) {
+    if (order == _order) return;
+    setState(() => _order = order);
+    _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final status = _status;
+
+    Widget message(String text, {Widget? action}) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(text, style: AppText.body.copyWith(color: t.fg2)),
+          if (action != null) ...[const SizedBox(height: 12), action],
+        ],
+      ),
+    );
+
+    final openVideo = TextButton.icon(
+      onPressed: () => openExternally(context, _video.watchUrl),
+      icon: const Icon(Symbols.open_in_new_rounded, size: 18),
+      label: const Text('Открыть на YouTube'),
+    );
+
     final Widget body;
     if (_comments.isEmpty && _loading) {
       body = Column(
-        children: [
-          for (var i = 0; i < 4; i++)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 12),
-              child: Skeleton(height: 64),
-            ),
-        ],
+        children: [for (var i = 0; i < 4; i++) const _CommentSkeleton()],
       );
     } else if (status is CommentsDisabled) {
-      body = const EmptyState(
-        icon: Symbols.comments_disabled_rounded,
-        text: 'Комментарии отключены для этого видео',
+      body = message(
+        'Комментарии отключены для этого видео. Так решил правообладатель '
+        'на YouTube',
       );
     } else if (status is CommentsFailed && _comments.isEmpty) {
-      body = ErrorState(
-        message: 'Не удалось загрузить комментарии',
-        hint: status.reason,
-        onRetry: _reload,
+      body = message(
+        'Не удалось загрузить комментарии. Проверьте подключение к интернету',
+        action: OutlinedButton(
+          onPressed: _reload,
+          child: const Text('Повторить'),
+        ),
       );
     } else if (_comments.isEmpty) {
-      body = const EmptyState(
-        icon: Symbols.chat_bubble_rounded,
-        text: 'Комментариев пока нет',
+      body = message(
+        'Комментариев пока нет. Будьте первым — комментарии пишутся '
+        'на YouTube',
+        action: openVideo,
       );
     } else {
       body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final c in _comments) _CommentTile(comment: c),
+          for (final c in _comments)
+            _CommentTile(
+              key: ValueKey(c.id),
+              comment: c,
+              videoId: _video.videoId,
+            ),
           if (status is CommentsFailed)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Не удалось загрузить',
+                'Не удалось загрузить комментарии. Проверьте подключение к интернету',
                 style: AppText.label.copyWith(color: t.bad),
               ),
             ),
           if (_next != null || status is CommentsFailed)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: OutlinedButton(
-                onPressed: _loading ? null : _load,
-                child: Text(_loading ? 'Загрузка…' : 'Показать ещё'),
-              ),
+            OutlinedButton.icon(
+              onPressed: _loading ? null : _load,
+              icon: _loading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const SizedBox.shrink(),
+              label: Text(_loading ? 'Загружаем…' : 'Показать ещё'),
             ),
         ],
       );
@@ -129,6 +161,12 @@ class _CommentsTabState extends State<CommentsTab> {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              Text(
+                _comments.isEmpty
+                    ? 'Комментарии'
+                    : 'Комментарии · ${Fmt.thousands(_comments.length)}',
+                style: AppText.title,
+              ),
               if (widget.videos.length > 1)
                 PillMenu<EmbeddedVideo>(
                   label: _videoLabel(_video),
@@ -150,59 +188,59 @@ class _CommentsTabState extends State<CommentsTab> {
                 selected: _order == CommentOrder.time,
                 onPressed: () => _setOrder(CommentOrder.time),
               ),
-              TextButton.icon(
-                onPressed: () => openExternally(context, _video.watchUrl),
-                icon: const Icon(Symbols.open_in_new_rounded, size: 18),
-                label: const Text('Открыть на YouTube'),
-              ),
             ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Комментарии с YouTube · ${_video.channel}',
-            style: AppText.caption.copyWith(color: t.fg3),
           ),
           const SizedBox(height: 16),
           body,
+          const SizedBox(height: 16),
+          Text(
+            CommentsTab.attribution,
+            style: AppText.caption.copyWith(color: t.fg3),
+          ),
         ],
       ),
     );
-  }
-
-  void _setOrder(CommentOrder order) {
-    if (order == _order) return;
-    setState(() => _order = order);
-    _reload();
   }
 
   static String _videoLabel(EmbeddedVideo v) =>
       v.episode == null ? v.title : 'Серия ${v.episode}';
 }
 
-class _CommentTile extends StatelessWidget {
-  const _CommentTile({required this.comment});
+class _CommentTile extends StatefulWidget {
+  const _CommentTile({super.key, required this.comment, required this.videoId});
 
   final YouTubeComment comment;
+  final String videoId;
+
+  @override
+  State<_CommentTile> createState() => _CommentTileState();
+}
+
+class _CommentTileState extends State<_CommentTile> {
+  bool _expanded = false;
+
+  static const maxLines = 4;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final c = comment;
+    final c = widget.comment;
     final avatar = c.authorAvatar;
+    final style = AppText.body.copyWith(color: t.fg);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 16,
-            backgroundColor: t.surface3,
+            radius: 18,
+            backgroundColor: t.accentSoft,
             foregroundImage: avatar == null
                 ? null
                 : AppScope.of(context).imageResolver(avatar),
             child: Text(
               c.author.characters.firstOrNull?.toUpperCase() ?? '?',
-              style: AppText.labelStrong,
+              style: AppText.labelStrong.copyWith(color: t.accent),
             ),
           ),
           const SizedBox(width: 12),
@@ -213,10 +251,12 @@ class _CommentTile extends StatelessWidget {
                 Text.rich(
                   TextSpan(
                     children: [
-                      TextSpan(text: c.author, style: AppText.labelStrong),
                       TextSpan(
-                        text:
-                            '  ${Fmt.dayMonth(c.publishedAt)} ${c.publishedAt.toLocal().year}',
+                        text: c.author,
+                        style: AppText.labelStrong.copyWith(color: t.fg),
+                      ),
+                      TextSpan(
+                        text: '  ${Fmt.relative(c.publishedAt)}',
                         style: AppText.caption.copyWith(color: t.fg3),
                       ),
                     ],
@@ -224,7 +264,33 @@ class _CommentTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 // Простой текст: разметка не выполняется, ссылки не активны.
-                SelectableText(c.text, style: AppText.body),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final painter = TextPainter(
+                      text: TextSpan(text: c.text, style: style),
+                      maxLines: maxLines,
+                      textDirection: Directionality.of(context),
+                    )..layout(maxWidth: constraints.maxWidth);
+                    final long = painter.didExceedMaxLines;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          c.text,
+                          style: style,
+                          maxLines: _expanded ? null : maxLines,
+                          overflow: _expanded ? null : TextOverflow.ellipsis,
+                        ),
+                        if (long)
+                          TextButton(
+                            onPressed: () =>
+                                setState(() => _expanded = !_expanded),
+                            child: Text(_expanded ? 'Свернуть' : 'Ещё'),
+                          ),
+                      ],
+                    );
+                  },
+                ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -234,13 +300,13 @@ class _CommentTile extends StatelessWidget {
                       Fmt.thousands(c.likes),
                       style: AppText.caption.copyWith(color: t.fg2),
                     ),
-                    if (c.replies > 0) ...[
-                      const SizedBox(width: 12),
-                      Text(
-                        '${c.replies} ${Fmt.plural(c.replies, 'ответ', 'ответа', 'ответов')}',
-                        style: AppText.caption.copyWith(color: t.fg3),
-                      ),
-                    ],
+                    const SizedBox(width: 12),
+                    TextButton.icon(
+                      onPressed: () =>
+                          openExternally(context, c.urlFor(widget.videoId)),
+                      icon: const Icon(Symbols.open_in_new_rounded, size: 16),
+                      label: const Text('Открыть на YouTube'),
+                    ),
                   ],
                 ),
               ],
@@ -250,4 +316,38 @@ class _CommentTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CommentSkeleton extends StatelessWidget {
+  const _CommentSkeleton();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.only(bottom: 16),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Skeleton(width: 36, height: 36, radius: 18),
+        SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FractionallySizedBox(
+                widthFactor: 0.3,
+                child: Skeleton(height: 12),
+              ),
+              SizedBox(height: 8),
+              Skeleton(height: 12),
+              SizedBox(height: 6),
+              FractionallySizedBox(
+                widthFactor: 0.7,
+                child: Skeleton(height: 12),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }

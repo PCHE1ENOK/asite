@@ -9,6 +9,7 @@ import '../../data/models/anime.dart';
 import '../../data/sources/video_source.dart';
 import '../app_scope.dart';
 import '../theme/app_theme.dart';
+import '../title/comments_tab.dart';
 import '../theme/app_tokens.dart';
 import '../title/episode_actions.dart';
 import 'windows_youtube_player.dart';
@@ -55,6 +56,46 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
   /// Полный экран — наш: панели прячутся, видео остаётся единственным
   /// содержимым (iframe ничем не перекрывается).
   bool _fullscreen = false;
+
+  /// Открыта ли панель комментариев под видео.
+  bool _comments = false;
+
+  /// Доля высоты панели комментариев: 42% на ПК, 50% на телефоне.
+  int _commentsShare(BuildContext context) => !_comments || _fullscreen
+      ? 0
+      : MediaQuery.sizeOf(context).width < AppLayout.medium
+      ? 50
+      : 42;
+
+  Widget _markButton(BuildContext context, AppTokens t, int episode) =>
+      ListenableBuilder(
+        listenable: AppScope.of(context).library,
+        builder: (context, _) {
+          final progress =
+              AppScope.of(context).library[details.id]?.progress ?? 0;
+          final watched = episode <= progress;
+          return FilledButton.tonalIcon(
+            style: FilledButton.styleFrom(
+              backgroundColor: t.surface3,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: watched
+                ? null
+                : () => toggleEpisodeWatched(
+                    context,
+                    details,
+                    episode,
+                    watched: false,
+                  ),
+            icon: const Icon(Symbols.check_rounded),
+            label: Text(
+              watched
+                  ? 'Серия $episode просмотрена'
+                  : 'Отметить серию $episode просмотренной',
+            ),
+          );
+        },
+      );
 
   EmbeddedVideo get video => widget.video;
   AnimeDetails get details => widget.details;
@@ -150,6 +191,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
         child: Column(
           children: [
             Expanded(
+              flex: 100 - _commentsShare(context),
               child: switch (embedKindFor(defaultTargetPlatform)) {
                 EmbedKind.webview => _EmbeddedPlayer(videoId: video.videoId),
                 EmbedKind.webview2 => WindowsYouTubePlayer(
@@ -159,36 +201,43 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                 EmbedKind.browser => _OpenOnYouTube(video: video),
               },
             ),
-            if (episode != null && !_fullscreen)
+            if (!_fullscreen)
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: ListenableBuilder(
-                  listenable: AppScope.of(context).library,
-                  builder: (context, _) {
-                    final progress =
-                        AppScope.of(context).library[details.id]?.progress ?? 0;
-                    final watched = episode <= progress;
-                    return FilledButton.tonalIcon(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    if (episode != null) _markButton(context, t, episode),
+                    FilledButton.tonalIcon(
                       style: FilledButton.styleFrom(
-                        backgroundColor: t.surface3,
+                        backgroundColor: _comments ? t.accentSoft : t.surface3,
                         foregroundColor: Colors.white,
                       ),
-                      onPressed: watched
-                          ? null
-                          : () => toggleEpisodeWatched(
-                              context,
-                              details,
-                              episode,
-                              watched: false,
-                            ),
-                      icon: const Icon(Symbols.check_rounded),
-                      label: Text(
-                        watched
-                            ? 'Серия $episode просмотрена'
-                            : 'Отметить серию $episode просмотренной',
+                      onPressed: () => setState(() => _comments = !_comments),
+                      icon: const Icon(Symbols.forum_rounded),
+                      label: const Text('Комментарии'),
+                    ),
+                  ],
+                ),
+              ),
+            // Панель комментариев — новая строка под видео, не поверх
+            // iframe (design/screens.md §11, §13). В плеере всегда тёмная.
+            if (_comments && !_fullscreen)
+              Expanded(
+                flex: _commentsShare(context),
+                child: Theme(
+                  data: AppTheme.build(Brightness.dark),
+                  child: Builder(
+                    builder: (context) => ColoredBox(
+                      color: context.tokens.surface1,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: CommentsTab(videos: [video]),
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
           ],

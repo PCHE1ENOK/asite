@@ -50,8 +50,8 @@ enum TitleTab {
   episodes('Серии'),
   description('Описание'),
   stats('Статистика'),
-  similar('Похожие'),
   comments('Комментарии'),
+  similar('Похожие'),
   note('Заметка');
 
   const TitleTab(this.label);
