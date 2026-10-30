@@ -8,8 +8,11 @@ import '../../data/anilist/anilist_client.dart';
 import '../../data/anime_repository.dart';
 import '../../data/models/anime.dart';
 import '../../data/models/library_entry.dart';
+import '../../data/sources/video_source.dart';
 import '../app_scope.dart';
 import '../format.dart';
+import '../player/no_sources_screen.dart';
+import '../player/youtube_player_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/badges.dart';
@@ -18,6 +21,7 @@ import '../widgets/poster_card.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/state_views.dart';
 import '../widgets/status_widgets.dart';
+import 'episode_actions.dart';
 import 'episode_list.dart';
 import 'title_charts.dart';
 
@@ -78,9 +82,58 @@ class _TitleScreenState extends State<TitleScreen>
       final d = await AppScope.of(context).services.anime
           .getDetails(widget.id, forceRefresh: force);
       if (mounted) setState(() => _details = d);
+      if (mounted) await _loadVideos(d.data);
     } on AniListException catch (e) {
       if (mounted) setState(() => _error = e);
     }
+  }
+
+  /// Официальные видео из подключённых источников (этап 6).
+  List<EmbeddedVideo> _videos = const [];
+
+  Future<void> _loadVideos(AnimeDetails d) async {
+    final videos = await AppScope.of(context).services.sources.find(d);
+    if (mounted) setState(() => _videos = videos);
+  }
+
+  EmbeddedVideo? _videoFor(int episode) =>
+      _videos.where((v) => v.episode == episode).firstOrNull;
+
+  /// Серия, которую предлагает кнопка «Смотреть»: следующая после
+  /// просмотренных, если она вышла, иначе первая.
+  int _nextEpisode(AnimeDetails d) {
+    final progress = AppScope.of(context).library[d.id]?.progress ?? 0;
+    final episodes = buildEpisodes(d);
+    final next = progress + 1;
+    return next <= episodes.length && episodes[next - 1].aired ? next : 1;
+  }
+
+  String _playLabel(AnimeDetails? d) {
+    if (d == null) return 'Начать просмотр';
+    final progress = AppScope.of(context).library[d.id]?.progress ?? 0;
+    final next = _nextEpisode(d);
+    final onYouTube =
+        _videoFor(next) != null ||
+        (d.anime.format == 'MOVIE' && _videos.isNotEmpty);
+    final base = progress > 0 && next > 1
+        ? 'Смотреть серию $next'
+        : 'Начать просмотр';
+    return onYouTube ? '$base на YouTube' : base;
+  }
+
+  /// Официальное видео серии или экран «Источники видео не подключены».
+  void _play(AnimeDetails d, [int? episode]) {
+    final n = episode ?? _nextEpisode(d);
+    final video =
+        _videoFor(n) ??
+        (d.anime.format == 'MOVIE' ? _videos.firstOrNull : null);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => video != null
+            ? YouTubePlayerScreen(video: video, details: d)
+            : NoSourcesScreen(details: d, episode: n),
+      ),
+    );
   }
 
   @override
@@ -106,7 +159,8 @@ class _TitleScreenState extends State<TitleScreen>
                   child: _Header(
                     anime: anime,
                     details: details,
-                    entry: AppScope.of(context).library[anime.id],
+                    playLabel: _playLabel(details),
+                    onPlay: details == null ? null : () => _play(details),
                     width: width,
                     gutter: gutter,
                   ),
@@ -229,7 +283,36 @@ class _TitleScreenState extends State<TitleScreen>
     }
     final duration = d.anime.duration;
     final progress = AppScope.of(context).library[d.id]?.progress ?? 0;
+    final t = context.tokens;
     return [
+      if (_videos.isEmpty)
+        SliverPadding(
+          padding: pad.copyWith(bottom: 12),
+          sliver: SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: t.surface1,
+                border: Border.all(color: t.border),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Row(
+                children: [
+                  Icon(Symbols.videocam_off_rounded, color: t.fg3, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Источники видео не подключены. Серии можно отмечать '
+                      'просмотренными вручную, кнопка «Смотреть» откроет '
+                      'плеер с объяснением',
+                      style: AppText.label.copyWith(color: t.fg2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       SliverPadding(
         padding: pad,
         sliver: SliverList.builder(
@@ -243,6 +326,9 @@ class _TitleScreenState extends State<TitleScreen>
               watched: watched,
               isNext: e.aired && e.number == progress + 1,
               onToggle: e.aired ? () => _toggleEpisode(d, e, watched) : null,
+              onWatch: _videoFor(e.number) == null
+                  ? null
+                  : () => _play(d, e.number),
             );
           },
         ),
@@ -250,58 +336,24 @@ class _TitleScreenState extends State<TitleScreen>
     ];
   }
 
-  Future<void> _toggleEpisode(
-    AnimeDetails d,
-    EpisodeInfo e,
-    bool watched,
-  ) async {
-    final library = AppScope.of(context).services.library;
-    final messenger = ScaffoldMessenger.of(context);
-    final r = watched
-        ? await library.unmarkWatched(d.id, e.number)
-        : await library.markWatched(
-            d.id,
-            e.number,
-            totalEpisodes: d.anime.episodes,
-          );
-    final statusNote = r.before?.status == r.after.status
-        ? ''
-        : r.after.status == ListStatus.completed
-        ? ' · тайтл просмотрен'
-        : r.before == null
-        ? ' · статус «Смотрю»'
-        : ' · статус «${Fmt.status(r.after.status)}»';
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          duration: const Duration(seconds: 4),
-          content: Text(
-            watched
-                ? 'Отметка с серии ${e.number} снята$statusNote'
-                : 'Серия ${e.number} отмечена просмотренной$statusNote',
-          ),
-          action: SnackBarAction(
-            label: 'Отменить',
-            onPressed: () => library.restore(d.id, r.before),
-          ),
-        ),
-      );
-  }
+  Future<void> _toggleEpisode(AnimeDetails d, EpisodeInfo e, bool watched) =>
+      toggleEpisodeWatched(context, d, e.number, watched: watched);
 }
 
 class _Header extends StatelessWidget {
   const _Header({
     required this.anime,
     required this.details,
-    required this.entry,
+    required this.playLabel,
+    required this.onPlay,
     required this.width,
     required this.gutter,
   });
 
   final Anime anime;
   final AnimeDetails? details;
-  final LibraryEntry? entry;
+  final String playLabel;
+  final VoidCallback? onPlay;
   final double width;
   final double gutter;
 
@@ -395,13 +447,9 @@ class _Header extends StatelessWidget {
           runSpacing: 8,
           children: [
             FilledButton.icon(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Источники видео ещё не подключены'),
-                ),
-              ),
+              onPressed: onPlay,
               icon: const Icon(Symbols.play_arrow_rounded, fill: 1),
-              label: Text(_playLabel()),
+              label: Text(playLabel),
             ),
             StatusButton(mediaId: a.id),
             if (d?.siteUrl case final url?)
@@ -455,21 +503,6 @@ class _Header extends StatelessWidget {
   }
 }
 
-extension on _Header {
-  /// «Смотреть серию 6», если тайтл начат и следующая серия вышла.
-  String _playLabel() {
-    final e = entry;
-    final d = details;
-    if (e == null || e.progress == 0 || d == null) return 'Начать просмотр';
-    final episodes = buildEpisodes(d);
-    final next = e.progress + 1;
-    if (next <= episodes.length && episodes[next - 1].aired) {
-      return 'Смотреть серию $next';
-    }
-    return 'Начать просмотр';
-  }
-}
-
 class _ScoreBlock extends StatelessWidget {
   const _ScoreBlock({required this.anime, required this.details});
 
@@ -515,9 +548,13 @@ class _EpisodeRow extends StatelessWidget {
     required this.watched,
     required this.isNext,
     required this.onToggle,
+    this.onWatch,
   });
 
   final EpisodeInfo episode;
+
+  /// Есть официальное видео серии — кнопка «Смотреть на YouTube».
+  final VoidCallback? onWatch;
   final int? duration;
   final bool watched;
 
@@ -566,6 +603,12 @@ class _EpisodeRow extends StatelessWidget {
             Text(
               trailing,
               style: AppText.caption.copyWith(color: e.aired ? t.fg2 : t.fg3),
+            ),
+          if (onWatch != null)
+            IconButton(
+              tooltip: 'Смотреть на YouTube',
+              onPressed: onWatch,
+              icon: Icon(Symbols.smart_display_rounded, color: t.accent),
             ),
           SizedBox(
             width: 48,

@@ -13,6 +13,8 @@ import 'data/library/library_repository.dart';
 import 'data/music/music_recognition.dart';
 import 'data/profiles/profile_repository.dart';
 import 'data/settings/app_preferences.dart';
+import 'data/sources/video_source.dart';
+import 'data/sources/youtube_source.dart';
 import 'data/sync/sync_service.dart';
 
 /// Списки и синхронизация одного профиля.
@@ -38,6 +40,7 @@ class AppServices {
     required this.preferences,
     required this.profiles,
     required this.music,
+    required this.sources,
     required this.tokensFor,
     required ProfileSession Function(Profile) sessionFactory,
     required Profile initialProfile,
@@ -57,6 +60,15 @@ class AppServices {
       preferences: preferences,
       profiles: profiles,
       tokensFor: tokensFor,
+      // Этап 6: официальные бесплатные видео правообладателей на YouTube,
+      // только через встроенный плеер YouTube.
+      sources: VideoSources([
+        YouTubeSource(
+          apiKey: AppConfig.youtubeApiKey,
+          db: db,
+          regionCode: PlatformDispatcher.instance.locale.countryCode,
+        ),
+      ]),
       // Этап 4.5: заглушка заменится распознавателем на Chromaprint +
       // AcoustID, звук — из AudioSnippetSource слоя источников.
       music: MusicRecognitionGate(
@@ -92,6 +104,9 @@ class AppServices {
 
   /// Распознавание музыки в плеере.
   final MusicRecognizer music;
+
+  /// Легальные источники видео.
+  final VideoSources sources;
 
   /// Хранилище токена GitHub профиля.
   final TokenStore Function(int profileId) tokensFor;

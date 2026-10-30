@@ -15,4 +15,8 @@ abstract final class AppConfig {
   static const acoustIdApiKey = String.fromEnvironment('ACOUSTID_API_KEY');
 
   static bool get hasAcoustIdApiKey => acoustIdApiKey.isNotEmpty;
+
+  /// Ключ YouTube Data API v3 для поиска официальных видео правообладателей
+  /// (этап 6). Без ключа источник YouTube пустой и в сеть не ходит.
+  static const youtubeApiKey = String.fromEnvironment('YOUTUBE_API_KEY');
 }

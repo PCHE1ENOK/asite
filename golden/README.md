@@ -22,7 +22,7 @@ flutter test test/screenshots --update-goldens --dart-define=SCREENSHOTS=true
 | Файл | Что на снимке |
 |---|---|
 | `01-catalog-dark.png` | Каталог, 1440×900, тёмная тема: фильтры, сортировка, постеры с рейтингом, точками статуса и прогрессом |
-| `02-title-episodes-dark.png` | Карточка тайтла, вкладка «Серии» |
+| `02-title-episodes-dark.png` | Карточка тайтла, вкладка «Серии» с полосой «Источники видео не подключены» |
 | `03-title-stats-dark.png` | Карточка, «Статистика»: распределение оценок и статусов AniList |
 | `04-title-description-dark.png` | Карточка, «Описание»: текст, жанры, информация, теги |
 | `05-title-similar-dark.png` | Карточка, «Похожие»: рекомендации и связанные |
@@ -41,3 +41,4 @@ flutter test test/screenshots --update-goldens --dart-define=SCREENSHOTS=true
 | `18-phone-settings-dark.png` | Телефон: настройки с группой «Профили» |
 | `19-phone-profile-sheet-dark.png` | Телефон: быстрый выбор профиля по долгому нажатию на «Профиль» |
 | `20-phone-profile-switch-dark.png` | Заставка «Переключаем на профиль…» (0,6 с) |
+| `21-player-no-sources-dark.png` | Плеер без источников: «Источники видео не подключены», отметка серии, «Вернуться к тайтлу» |

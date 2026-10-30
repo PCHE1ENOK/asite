@@ -171,6 +171,11 @@ void main() {
 
     await openTitle(tester);
     await shot(tester, '02-title-episodes-dark');
+    await tester.tap(find.text('Начать просмотр'));
+    await tester.pumpAndSettle();
+    await shot(tester, '21-player-no-sources-dark');
+    await tester.tap(find.text('Вернуться к тайтлу'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Статистика'));
     await tester.pumpAndSettle();
     await shot(tester, '03-title-stats-dark');

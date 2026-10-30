@@ -11,6 +11,8 @@ import 'package:anime_viewer/data/library/library_repository.dart';
 import 'package:anime_viewer/data/music/music_recognition.dart';
 import 'package:anime_viewer/data/profiles/profile_repository.dart';
 import 'package:anime_viewer/data/settings/app_preferences.dart';
+import 'package:anime_viewer/data/models/anime.dart';
+import 'package:anime_viewer/data/sources/video_source.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:anime_viewer/main.dart';
 import 'package:anime_viewer/ui/app_scope.dart';
@@ -51,6 +53,7 @@ class UiHarness {
       preferences: preferences,
       profiles: profiles,
       tokensFor: tokenStore,
+      sources: VideoSources([videoSource]),
       music: MusicRecognitionGate(
         isEnabled: preferences.musicRecognition,
         hasApiKey: false,
@@ -83,6 +86,9 @@ class UiHarness {
   late final AppDatabase db;
   late final FakeAniList fake;
   final tokens = <int, MemoryTokenStore>{};
+
+  /// Источник видео для тестов: по умолчанию не настроен.
+  final videoSource = FakeVideoSource();
 
   MemoryTokenStore tokenStore(int profileId) =>
       tokens.putIfAbsent(profileId, MemoryTokenStore.new);
@@ -206,4 +212,21 @@ class UiHarness {
     await run(tester, db.close);
     await tester.pump(const Duration(seconds: 1));
   }
+}
+
+/// Источник видео с заранее заданными роликами.
+class FakeVideoSource implements VideoSource {
+  List<EmbeddedVideo> videos = const [];
+
+  @override
+  bool isConfigured = false;
+
+  @override
+  String get id => 'fake';
+
+  @override
+  String get name => 'Fake';
+
+  @override
+  Future<List<EmbeddedVideo>> find(AnimeDetails title) async => videos;
 }
