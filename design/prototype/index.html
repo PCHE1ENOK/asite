@@ -433,8 +433,8 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .sample { font-size: 12px; color: var(--fg3); margin-top: 40px; }
 
 /* ---------- телефон ---------- */
-@media (max-width: 640px) {
-  /* телефон: панель демо-настроек прототипа сворачивается в одну кнопку */
+@media (max-width: 640px), (max-height: 500px) {
+  /* телефон (портрет и альбомная): панель демо-настроек прототипа сворачивается в одну кнопку */
   .app { grid-template-rows: auto minmax(0, 1fr); }
   .winbtns, .titlebar .brand { display: none; }
   .titlebar { flex-wrap: wrap; row-gap: 8px; min-height: 36px; padding-block: 6px; padding-right: max(12px, env(safe-area-inset-right, 0px)); padding-left: max(12px, env(safe-area-inset-left, 0px)); }
@@ -446,6 +446,11 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
   .titlebar .pf label { font-size: 11px; }
   .titlebar select { width: 100%; max-width: none; min-width: 0; height: 32px; }
   .titlebar #themeBtn { height: 32px; grid-column: 1 / -1; }
+}
+@media (max-height: 500px) and (min-width: 641px) {
+  /* телефон в альбомной: переключатели в одну строку */
+  .titlebar .proto { grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: end; }
+  .titlebar #themeBtn { grid-column: auto; }
 }
 .app.m .device { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; }
 .app.m .device > .main { grid-column: 1; grid-row: 2; }
@@ -1211,12 +1216,13 @@ function toast(msg, action, fn, top) {
 /* ---------- роутинг ---------- */
 /* ---------- платформа ---------- */
 const plat = () => $('#demoPlatform').value;
-const isMob = () => plat() !== 'windows' || innerWidth <= 640;
+const isMob = () => plat() !== 'windows' || innerWidth <= 640 || innerHeight <= 500;
 function applyPlatform() {
   const app = $('.app'), pf = plat();
   app.dataset.platform = pf;
   app.classList.toggle('m', isMob());
-  app.classList.toggle('framed', pf !== 'windows' && innerWidth > 640);
+  // рамка телефона — только когда экран просторнее самого телефона (ПК, планшет); на настоящем телефоне — без рамки, на весь экран
+  app.classList.toggle('framed', pf !== 'windows' && innerWidth > 640 && innerHeight >= 600);
   app.classList.toggle('land', isMob() && route() === 'player');
   if (route() !== 'player') P.fs = false;
   app.classList.toggle('fs', P.fs);
