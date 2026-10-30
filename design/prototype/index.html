@@ -289,6 +289,36 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .mus .demo { display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--pl-fg2); border-top: 1px solid #FFFFFF1A; padding-top: 8px; }
 .mus .demo select { font-size: 11px; height: 22px; background: #FFFFFF14; color: #FFFFFF; border: 1px solid #FFFFFF26; border-radius: 4px; }
 .mus .bad { color: #F27B7B; }
+.player.yt { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: #000; }
+.yt-top, .yt-bar { display: flex; align-items: center; gap: 8px; padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); background: #0B0C10; color: #FFFFFF; flex-wrap: wrap; }
+.yt-top { border-bottom: 1px solid #FFFFFF14; }
+.yt-bar { border-top: 1px solid #FFFFFF14; min-height: 56px; }
+.yt-top .grow, .yt-bar .grow { flex: 1; }
+.yt-bar .src { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #FFFFFFB8; }
+.yt-bar .src svg { width: 16px; height: 16px; }
+.yt-bar .btn-text { color: #FFFFFF; }
+.yt-bar .btn-text:hover, .yt-bar .btn-outline:hover { background: #FFFFFF14; }
+.yt-bar .btn-outline { color: #FFFFFF; border-color: #FFFFFF4D; }
+.yt-bar .btn-filled { background: #8399FF; color: #0E1016; }
+.yt-bar.end { background: #161923; }
+.yt-bar.end .msg { color: #4CC38A; font-weight: 600; font-size: 14px; }
+.yt-stage { position: relative; display: grid; place-items: center; min-height: 0; padding: 12px; container-type: size; }
+.yt-embed { width: min(100cqw, 100cqh * 16 / 9); aspect-ratio: 16 / 9; max-width: 100%; background: #16171C; border: 1px dashed #FFFFFF33; border-radius: var(--r-sm); display: grid; place-items: center; }
+.yt-ph { display: grid; justify-items: center; gap: 8px; text-align: center; color: #FFFFFFB8; padding: 16px; }
+.yt-ph small { color: #FFFFFF80; max-width: 40ch; }
+.yt-play { width: 64px; height: 44px; border-radius: 12px; background: #FFFFFF26; display: grid; place-items: center; color: #FFFFFF; }
+.yt-play svg { width: 28px; height: 28px; }
+.ytyes { color: #4CC38A; } .ytno { color: #F2B544; }
+.app.m .yt-bar .src, .app.m .yt-bar .cap { display: none; }
+.app.framed.land:not(.fs) .yt-top { padding-top: 30px; }
+.app.framed.land:not(.fs) .yt-bar { padding-bottom: 20px; }
+.app.m .yt-stage { padding: 6px; }
+.yt-stage .pl-state { position: static; transform: none; max-height: 100%; overflow: auto; }
+.app.m .yt-stage .pl-state.card { padding: 12px 16px; gap: 6px; }
+.app.m .yt-stage .pl-state .big { font-size: 16px; line-height: 20px; }
+.app.m .yt-stage .pl-state .sub { font-size: 13px; line-height: 18px; }
+.app.m .yt-stage .pl-state.card > svg { width: 24px; height: 24px; }
+.app.m .yt-stage .pl-state .btn { height: 36px; }
 .pl-state { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 10px; text-align: center; width: min(480px, calc(100% - 48px)); z-index: 2; }
 .pl-state .big { font: 600 20px/26px var(--f-display); color: #FFFFFF; text-wrap: balance; }
 .pl-state .sub { color: var(--pl-fg2); font-size: 14px; line-height: 20px; }
@@ -652,6 +682,11 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
         <option value="buffering">буферизация</option>
         <option value="error">видео недоступно</option>
         <option value="empty">источники не подключены</option>
+        <option value="yt">YouTube: официальное видео</option>
+        <option value="ytend">YouTube: ролик закончился</option>
+        <option value="ytmissing">YouTube: нет видео для серии</option>
+        <option value="ytblocked">YouTube: недоступно в регионе</option>
+        <option value="ytnoembed">YouTube: без встроенного плеера</option>
       </select></span>
       <span class="pf"><label for="demoPlatform">Платформа:</label>
       <select id="demoPlatform" aria-label="Платформа">
@@ -1051,6 +1086,7 @@ const P = { dur:1440, t:70, buf:300, playing:true, opA:50, opB:140, ui:true, fs:
 function fmtT(s) { s = Math.max(0, Math.round(s)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
 function viewPlayer() {
   const a = DATA.find(x => x.id === S.titleId) || DATA[0];
+  if ($('#demoPlayer').value.startsWith('yt')) return viewPlayerYT(a);
   const n = (a.st === 'CURRENT' ? a.pr : 0) + 1 - (P.marked ? 1 : 0);
   const epName = a.id === 1 ? DAN_EPS[n-1] : `Серия ${n}`;
   const pst = $('#demoPlayer').value;
@@ -1096,6 +1132,30 @@ function viewPlayer() {
     </div>
   </div>`;
 }
+/* ---------- режим «официальное видео YouTube» ----------
+   Встроенный плеер YouTube нельзя перекрывать своими контролами: наши панели стоят над и под видео, а не поверх. */
+const YT_OK = st => st === 'ytmissing' ? [1, 2, 3] : null; // null — видео есть у всех серий
+function viewPlayerYT(a) {
+  const st = $('#demoPlayer').value;
+  const n = (a.st === 'CURRENT' ? a.pr : 0) + 1 - (P.marked ? 1 : 0);
+  const epName = epTitle(a, 0, n), ok = YT_OK(st), has = !ok || ok.includes(n);
+  let stage;
+  if (st === 'ytnoembed') stage = `<div class="pl-state card">${ic('ext')}<div class="big">Встроенный плеер недоступен</div><div class="sub">На этом устройстве нет компонента для встроенного видео. Серию можно посмотреть на YouTube в браузере — вернитесь сюда, чтобы отметить её просмотренной.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="markEp">${ic('check')}Отметить серию ${n} просмотренной</button></div></div>`;
+  else if (st === 'ytblocked') stage = `<div class="pl-state card">${ic('cloud_off')}<div class="big">Видео недоступно в вашем регионе</div><div class="sub">Правообладатель ограничил показ серии ${n} для вашей страны. Попробуйте открыть её на YouTube или выберите другую серию.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="ytEps">Другие серии</button></div><div class="ecode">Ответ встроенного плеера: ошибка 150 (встраивание запрещено)</div></div>`;
+  else if (!has) stage = `<div class="pl-state card">${ic('cc')}<div class="big">Официального видео для серии ${n} нет</div><div class="sub">Правообладатель выложил на YouTube только серии ${ok.join(', ')}. Остальные можно отмечать просмотренными вручную.</div><div class="acts"><button class="btn btn-filled" type="button" data-act="ytEps">Открыть доступные серии</button><button class="btn btn-outline" type="button" data-act="markEp">${ic('check')}Отметить серию ${n} просмотренной</button></div></div>`;
+  else stage = `<div class="yt-embed" role="img" aria-label="Встроенный плеер YouTube: ${esc(a.t)}, серия ${n}"><div class="yt-ph"><span class="yt-play">${ic('play')}</span><span>Встроенный плеер YouTube</span><small>Свои кнопки, субтитры и качество — внутри плеера. Мы ничего поверх не рисуем.</small></div></div>`;
+  const bottom = st === 'ytend' ? `<div class="yt-bar end"><span class="msg">Серия ${n} закончилась и отмечена просмотренной</span><span class="grow"></span><span class="cap" style="color:#FFFFFFB8">Далее: серия ${n + 1} · ${esc(epTitle(a, 0, n + 1))}</span><button class="btn btn-filled" type="button" data-act="ytNext">${ic('play')}Смотреть · 8</button><button class="btn btn-text" type="button" data-act="ytStay">Остаться</button></div>`
+    : `<div class="yt-bar"><span class="src">${ic('play')}Официальное видео правообладателя на YouTube</span><span class="grow"></span>${has && st === 'yt' ? `<span class="cap" style="color:#FFFFFFB8">Прогресс считается сам · отметка на 85%</span>` : ''}<button class="btn btn-text" type="button" data-act="markEp">${ic('check')}Просмотрено</button><button class="btn btn-outline" type="button" data-act="ytNext">${ic('next')}Серия ${n + 1}</button></div>`;
+  return `<div class="player yt" id="player">
+    <div class="yt-top"><a class="pl-btn" href="#title" aria-label="Назад к тайтлу">${ic('back')}</a>
+      <div class="pl-title"><div>${esc(a.t)}</div><div>Серия ${n} · ${esc(epName)}</div></div><span class="grow"></span>
+      <button class="pl-btn" type="button" id="epBtn" aria-haspopup="dialog" aria-expanded="${P.epOpen}" aria-label="Серии" title="Серии">${ic('lists')}</button>
+      <button class="pl-btn" type="button" id="fsBtn" aria-pressed="${P.fs}" aria-label="${P.fs ? 'Выйти из полноэкранного режима' : 'Полный экран'}">${ic(P.fs ? 'full_exit' : 'full')}</button></div>
+    <div class="yt-stage">${stage}</div>
+    ${bottom}
+    <aside class="eppanel" id="eppanel" ${P.epOpen ? '' : 'hidden'} aria-label="Серии">${epPanel(a, ok)}</aside>
+  </div>`;
+}
 function playerState(a, n, epName) {
   const pst = $('#demoPlayer').value, d = DUBS[S.dub];
   const spinner = `<span class="spin" aria-hidden="true"></span>`;
@@ -1107,13 +1167,13 @@ function playerState(a, n, epName) {
     <div class="acts"><button class="btn btn-filled" type="button" data-act="markEp">${ic('check')}Отметить серию ${n} просмотренной</button><a class="btn btn-outline" href="#title" style="text-decoration:none">Вернуться к тайтлу</a></div></div>`;
   return '';
 }
-function epPanel(a) {
+function epPanel(a, ytOk) {
   const ss = seasonsOf(a), si = Math.min(P.season, ss.length - 1), se = ss[si];
   const cur = (a.st === 'CURRENT' ? a.pr : 0) + 1;
   return `<div class="ephead"><b>Серии</b><button class="pl-btn" type="button" data-act="epClose" aria-label="Закрыть">${ic('DROPPED')}</button></div>
     ${ss.length > 1 ? `<div class="seg dark" role="group" aria-label="Сезон">${ss.map((x, i) => `<button type="button" data-season="${i}" aria-pressed="${i === si}">${x.n} · ${x.y}</button>`).join('')}</div>` : ''}
     <div class="eplist">${Array.from({length: se.ep}, (_, i) => i + 1).map(k => { const done = si === 0 && a.pr && k <= a.pr, now = si === 0 && k === cur, future = si === 1 && k > 4;
-      return `<button type="button" class="eprow${now ? ' now' : ''}${future ? ' future' : ''}" ${future ? 'aria-disabled="true"' : `data-ep="${k}"`}><span class="n">${k}</span><span class="t"><span>${esc(epTitle(a, si, k))}</span><small>${future ? 'выйдет ' + (k * 7 - 20) + ' ноября' : now ? 'Смотрите сейчас · 1:10 из 24:00' : '24 мин'}</small>${now ? '<span class="bar"><i style="width:5%"></i></span>' : ''}</span>${done ? `<span class="ok">${ic('check')}</span>` : ''}</button>`; }).join('')}</div>`;
+      return `<button type="button" class="eprow${now ? ' now' : ''}${future ? ' future' : ''}" ${future ? 'aria-disabled="true"' : `data-ep="${k}"`}><span class="n">${k}</span><span class="t"><span>${esc(epTitle(a, si, k))}</span><small>${future ? 'выйдет ' + (k * 7 - 20) + ' ноября' : now ? 'Смотрите сейчас · 1:10 из 24:00' : '24 мин'}${$('#demoPlayer').value.startsWith('yt') && !future ? (ytOk && !ytOk.includes(k) ? ' · <span class="ytno">нет видео</span>' : ' · <span class="ytyes">YouTube</span>') : ''}</small>${now ? '<span class="bar"><i style="width:5%"></i></span>' : ''}</span>${done ? `<span class="ok">${ic('check')}</span>` : ''}</button>`; }).join('')}</div>`;
 }
 function playerTick() {
   if ($('#demoPlayer').value !== 'play') return;
@@ -1121,7 +1181,7 @@ function playerTick() {
   playerPaint();
 }
 function playerPaint() {
-  if (!$('#player')) return;
+  if (!$('#player') || !$('#done')) return;
   const pct = P.t / P.dur * 100;
   $('#done').style.width = pct + '%'; $('#knob').style.left = pct + '%'; $('#buf').style.width = P.buf / P.dur * 100 + '%';
   $('#tc').textContent = `${fmtT(P.t)} / −${fmtT(P.dur - P.t)}`;
@@ -1350,11 +1410,14 @@ document.addEventListener('click', e => {
   else if (t.id === 'nextBtn' || t.id === 'goNext') goNext();
   else if (t.id === 'cancelNext') { clearNext(); P.next = { cancelled:true }; }
   else if (t.id === 'epBtn' || d.act === 'epClose') { P.epOpen = !P.epOpen; $('#eppanel').hidden = !P.epOpen; if (P.epOpen) { const nw = $('#eppanel .now'); if (nw) nw.scrollIntoView({ block:'center' }); } $('#epBtn').setAttribute('aria-expanded', P.epOpen); showUi(); }
-  else if (d.season) { P.season = +d.season; $('#eppanel').innerHTML = epPanel(DATA.find(x => x.id === S.titleId) || DATA[0]); }
+  else if (d.season) { P.season = +d.season; $('#eppanel').innerHTML = epPanel(DATA.find(x => x.id === S.titleId) || DATA[0], YT_OK($('#demoPlayer').value)); }
   else if (d.ep) { const a = DATA.find(x => x.id === S.titleId) || DATA[0]; if (P.season === 0) { a.pr = +d.ep - 1; if (!a.st) a.st = 'CURRENT'; } P.t = 0; P.marked = false; P.epOpen = false; render(); toast(`Серия ${d.ep}`, null, null, true); }
   else if (d.act === 'pickDub') { P.dubOpen = true; $('#dubPop').hidden = false; showUi(); }
   else if (d.act === 'plRetry') { $('#demoPlayer').value = 'loading'; render(); setTimeout(() => { $('#demoPlayer').value = 'play'; P.playing = true; render(); }, 1200); }
   else if (d.act === 'markEp') { markWatched(); render(); }
+  else if (d.act === 'ytEps') { P.epOpen = true; render(); }
+  else if (d.act === 'ytNext') { const a = DATA.find(x => x.id === S.titleId) || DATA[0]; if (!P.marked) { a.st = a.st || 'CURRENT'; a.pr = (a.pr || 0) + 1; } P.marked = false; $('#demoPlayer').value = 'yt'; render(); toast('Следующая серия', null, null, true); }
+  else if (d.act === 'ytStay') { $('#demoPlayer').value = 'yt'; render(); }
   else if (t.id === 'musicBtn') { if (P.mus) closeMusic(); else { P.dubOpen = false; $('#dubPop').hidden = true; runMusic(); } }
   else if (d.mus === 'enable') { S.music = true; runMusic(); }
   else if (d.mus === 'run') runMusic();
