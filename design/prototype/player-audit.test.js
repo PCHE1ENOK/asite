@@ -3,11 +3,11 @@ const {chromium}=require('playwright');const fs=require('fs'),os=require('os'),p
 const SP=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'ai-audit-')),'p.html');
 fs.writeFileSync(SP,'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>'+fs.readFileSync(path.join(__dirname,'index.html'),'utf8')+'</body></html>');
 const UA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 YaBrowser/24.6 Mobile/15E148 Safari/604.1';
-const VIEWS=[['desktop 1440×900',{viewport:{width:1440,height:900}}],['phone 390×844',{viewport:{width:390,height:844},isMobile:true,hasTouch:true,userAgent:UA}],['phone 844×390',{viewport:{width:844,height:390},isMobile:true,hasTouch:true,userAgent:UA}]];
+const VIEWS=[['мышь 1280×800',{viewport:{width:1280,height:800}}],['мышь 390×844',{viewport:{width:390,height:844},userAgent:UA}],['мышь 844×390',{viewport:{width:844,height:390},userAgent:UA}],['касание 390×844',{viewport:{width:390,height:844},isMobile:true,hasTouch:true,userAgent:UA}],['касание 844×390',{viewport:{width:844,height:390},isMobile:true,hasTouch:true,userAgent:UA}]];
 (async()=>{const b=await chromium.launch();const results={};
 for(const [vname,opts] of VIEWS){
  const ctx=await b.newContext(opts);const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
- const mob=!!opts.isMobile;
+ const mob=!!opts.isMobile; const small=opts.viewport.width<=900;
  const ev=(f,a)=>p.evaluate(f,a);
  const setSel=async(id,v)=>{await p.evaluate(([id,v])=>{const s=document.getElementById(id);s.value=v;s.dispatchEvent(new Event('change',{bubbles:true}))},[id,v]);await p.waitForTimeout(250)};
  const press=async sel=>{const l=p.locator(sel).first();await ev(()=>{if(document.querySelector('#player'))showUi()});try{if(mob)await l.tap({timeout:2500});else await l.click({timeout:2500});}catch(e){const info=await ev(sel=>{const e=document.querySelector(sel);if(!e)return 'нет элемента '+sel;const r=e.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return sel+' перекрыт '+(h?(h.tagName+'.'+h.className).slice(0,50):'ничем')+' pe='+getComputedStyle(e).pointerEvents+' hidden='+e.closest('[hidden]')+' '+Math.round(r.top)+'/'+innerHeight},sel);throw new Error(info)}await p.waitForTimeout(250)};
@@ -15,7 +15,7 @@ for(const [vname,opts] of VIEWS){
  const res=[];const T=async(name,fn)=>{try{const ok=await fn();res.push([name,ok?'OK':'FAIL'])}catch(e){res.push([name,'FAIL: '+e.message.split('\n')[0].slice(0,90)])}};
  await p.goto('file://'+SP+'#player');await p.waitForTimeout(600);
  const st=()=>ev(()=>({t:P.t,playing:P.playing,fs:document.querySelector('.app').classList.contains('fs'),title:(document.querySelector('.pl-title div:last-child')||{}).textContent,muted:P.muted,rate:P.rate,q:P.q,dub:S.dub,hash:location.hash}));
- const ppSel=mob?'[data-pl=pp]':'#pp', rwSel=mob?'[data-pl=rw]':'#rw', fwSel=mob?'[data-pl=fw]':'#fw';
+ const isM=await ev(()=>document.querySelector('.app').classList.contains('m'));const ppSel=isM?'[data-pl=pp]':'#pp', rwSel=isM?'[data-pl=rw]':'#rw', fwSel=isM?'[data-pl=fw]':'#fw';
  await T('Пауза',async()=>{await press(ppSel);return (await st()).playing===false});
  await T('Воспроизвести',async()=>{await press(ppSel);return (await st()).playing===true});
  await T('Перемотка −10 с',async()=>{await ev(()=>{P.t=300});await press(rwSel);return Math.abs((await st()).t-290)<2.5});
@@ -31,12 +31,19 @@ for(const [vname,opts] of VIEWS){
  await T('Озвучка: открыть список',async()=>{await press('#dubBtn');return await ev(()=>!document.querySelector('#dubPop').hidden)});
  await T('Озвучка: выбрать «Студия Б»',async()=>{await press('[data-pdub="1"]');return (await st()).dub===1});
  await T('Озвучка: недоступная не выбирается',async()=>{await press('#dubBtn');await p.locator('#dubPop button.off').click({force:true});await p.waitForTimeout(200);const d=(await st()).dub;await ev(()=>{P.dubOpen=false;document.querySelector('#dubPop').hidden=true});return d===1});
- await T('Тап вне меню закрывает его',async()=>{await press('#plSetBtn');const o=await ev(()=>!document.querySelector('#plSetPop').hidden);const bx=await p.locator('.frame-art').boundingBox();if(mob)await p.touchscreen.tap(bx.x+bx.width*0.3,bx.y+bx.height*0.45);else await p.mouse.click(bx.x+bx.width*0.3,bx.y+bx.height*0.45);await p.waitForTimeout(200);return o&&await ev(()=>document.querySelector('#plSetPop').hidden)});
+ await T('Тап вне меню закрывает его',async()=>{await press('#plSetBtn');const o=await ev(()=>!document.querySelector('#plSetPop').hidden);const bx=await p.locator('.frame-art').boundingBox();if(mob)await p.touchscreen.tap(bx.x+bx.width*0.06,bx.y+bx.height*0.55);else await p.mouse.click(bx.x+bx.width*0.06,bx.y+bx.height*0.55);await p.waitForTimeout(200);return o&&await ev(()=>document.querySelector('#plSetPop').hidden)});
  await T('Тост не перекрывает кнопки',async()=>{await ev(()=>toast('Проверка тоста',null,null,true));await p.waitForTimeout(100);await press('#dubBtn');const o=await ev(()=>!document.querySelector('#dubPop').hidden);await press('#dubBtn');return o});
  await T('Серии: открыть панель',async()=>{await press('#epBtn');return await ev(()=>!document.querySelector('#eppanel').hidden)});
  await T('Серии: сезон 2',async()=>{await press('[data-season="1"]');return await ev(()=>document.querySelector('[data-season="1"]').getAttribute('aria-pressed')==='true')});
  await T('Серии: выбрать серию 3',async()=>{await press('[data-season="0"]');await press('#eppanel [data-ep="3"]');return /Серия 3/.test((await st()).title)});
- await T('Серии: закрыть',async()=>{await press('#epBtn');await press('[data-act=epClose]');return await ev(()=>document.querySelector('#eppanel').hidden)});
+ await T('Панель серий открыта: полный экран нажимается',async()=>{await press('#epBtn');await press('#fsBtn');const a=(await st()).fs;await press('#fsBtn');return a===true&&(await st()).fs===false});
+ await T('Панель серий открыта: громкость нажимается',async()=>{await press('#volBtn');const a=(await st()).muted;await press('#volBtn');return a===true});
+ await T('Панель серий открыта: «Что играет» открывается',async()=>{await press('#musicBtn');const a=await ev(()=>P.mus);await press('#musicBtn');return a==='off'});
+ await T('Панель серий открыта: серии закрываются своей кнопкой',async()=>{await press('#epBtn');return await ev(()=>document.querySelector('#eppanel').hidden)});
+ await T('Пропустить опенинг: серия не меняется',async()=>{const a=(await st()).title;await ev(()=>{P.t=60;playerPaint()});await press('#skip');const s2=await st();return s2.t>=140&&s2.title===a});
+ await T('Предыдущая серия на 1-й серии неактивна',async()=>{await press('#epBtn');await press('#eppanel [data-ep="1"]');return await ev(()=>document.querySelector('#prevBtn').disabled&&document.querySelector('#prevBtn').title==='Это первая серия')});
+ await T('Предыдущая серия со 2-й серии',async()=>{await press('#nextBtn');await press('#prevBtn');return /Серия 1 /.test((await st()).title+' ')});
+ await T('Серии: закрыть',async()=>{if(await ev(()=>document.querySelector('#eppanel').hidden))await press('#epBtn');await press('[data-act=epClose]');return await ev(()=>document.querySelector('#eppanel').hidden)});
  await T('Что играет: открыть',async()=>{await press('#musicBtn');return await ev(()=>P.mus==='off')});
  await T('Что играет: включить и распознать',async()=>{await press('[data-mus=enable]');return await ev(()=>P.mus==='listening')});
  await T('Что играет: закрыть (повторное нажатие)',async()=>{await press('#musicBtn');return await ev(()=>P.mus===null)});
@@ -65,7 +72,7 @@ for(const [vname,opts] of VIEWS){
  await T('YouTube: конец ролика → Остаться',async()=>{await setSel('demoPlayer','ytend');await press('[data-act=ytStay]');return await ev(()=>document.querySelector('#demoPlayer').value==='yt')});
  await T('YouTube: полный экран',async()=>{await press('#fsBtn');const a=(await st()).fs;await p.keyboard.press('Escape');return a&&!(await st()).fs});
  await T('YouTube: нет видео → доступные серии',async()=>{await setSel('demoPlayer','ytmissing');await press('[data-act=ytEps]');return await ev(()=>!document.querySelector('#eppanel').hidden)});
- await T('Тема',async()=>{await setSel('demoPlayer','play');const a=await ev(()=>document.documentElement.dataset.theme||'');if(mob)await p.locator('#protoToggle').tap();await p.locator('#themeBtn').click();const b2=await ev(()=>document.documentElement.dataset.theme||'');return a!==b2});
+ await T('Тема',async()=>{await setSel('demoPlayer','play');const a=await ev(()=>document.documentElement.dataset.theme||'');if(await p.locator('#protoToggle').isVisible())await p.locator('#protoToggle').click();await p.locator('#themeBtn').click();const b2=await ev(()=>document.documentElement.dataset.theme||'');return a!==b2});
  results[vname]={res,errs};await ctx.close();}
 await b.close();
 for(const [v,{res,errs}] of Object.entries(results)){const bad=res.filter(r=>r[1]!=='OK');console.log(`== ${v}: ${res.length} проверок, не прошло ${bad.length}`);bad.forEach(r=>console.log('   ',r[0],'→',r[1]));if(errs.length)console.log('   JS:',errs.slice(0,3));}

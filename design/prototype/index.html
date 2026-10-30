@@ -249,6 +249,8 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .pl-title div:last-child { font-size: 13px; color: var(--pl-fg2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pl-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--pl-fg); }
 .pl-btn:hover { background: #FFFFFF1F; }
+.pl-btn:disabled { opacity: .35; cursor: default; }
+.pl-btn:disabled:hover { background: none; }
 .pl-btn.big svg { width: 32px; height: 32px; }
 .pl-pill { height: 36px; padding: 0 12px; border-radius: var(--r-pill); display: inline-flex; align-items: center; gap: 6px; background: #FFFFFF1F; color: var(--pl-fg); font-size: 13px; font-weight: 500; white-space: nowrap; }
 .pl-pill:hover { background: #FFFFFF33; }
@@ -323,6 +325,15 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .app.m .yt-stage .pl-state .sub { font-size: 13px; line-height: 18px; }
 .app.m .yt-stage .pl-state.card > svg { width: 24px; height: 24px; }
 .app.m .yt-stage .pl-state .btn { height: 36px; }
+.player { container-type: size; --plt: 72px; --plb: 100px; }
+/* панели и меню плеера живут между верхней и нижней панелью и ничего не перекрывают */
+.player:not(.yt) .eppanel { top: var(--plt); bottom: var(--plb); right: max(12px, env(safe-area-inset-right, 0px)); height: auto; border-radius: var(--r-md); border: 1px solid #FFFFFF1A; }
+.eplist { flex: 1 1 auto; }
+.player .pop { max-height: calc(100cqh - var(--plt) - var(--plb) - 20px); overflow-y: auto; overscroll-behavior: contain; }
+.player.menu-open .skip, .player.menu-open .next, .player.eps-open .skip, .player.eps-open .next { visibility: hidden; }
+.app.m .player.menu-open .pl-center, .app.m .player.eps-open .pl-center { visibility: hidden; }
+.app.m .player:not(.yt) .eppanel { left: max(12px, env(safe-area-inset-left, 0px)); width: auto; }
+@media (min-aspect-ratio: 1/1) { .app.m .player:not(.yt) .eppanel { left: auto; width: min(380px, 60%); } }
 .pl-state { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 10px; text-align: center; width: min(480px, calc(100% - 48px)); z-index: 2; }
 .pl-state .big { font: 600 20px/26px var(--f-display); color: #FFFFFF; text-wrap: balance; }
 .pl-state .sub { color: var(--pl-fg2); font-size: 14px; line-height: 20px; }
@@ -1128,7 +1139,7 @@ function viewPlayer() {
         <div class="track"><div class="buf" id="buf"></div><div class="op" style="left:${P.opA/P.dur*100}%;width:${(P.opB-P.opA)/P.dur*100}%" title="Опенинг"></div><div class="done" id="done"></div><div class="knob" id="knob"></div></div>
       </div>
       <div class="ctrls">
-        <button class="pl-btn" type="button" id="prevBtn" aria-label="Предыдущая серия" ${n <= 1 ? 'disabled' : ''}>${ic('prev')}</button>
+        <button class="pl-btn" type="button" id="prevBtn" aria-label="Предыдущая серия" title="${n <= 1 ? 'Это первая серия' : 'Предыдущая серия'}" ${n <= 1 ? 'disabled' : ''}>${ic('prev')}</button>
         <button class="pl-btn" type="button" id="rw" aria-label="Назад 10 секунд">${ic('rw')}</button>
         <button class="pl-btn big" type="button" id="pp" aria-label="Пауза">${ic(P.playing ? 'pause' : 'play')}</button>
         <button class="pl-btn" type="button" id="fw" aria-label="Вперёд 10 секунд">${ic('fw')}</button>
@@ -1267,7 +1278,18 @@ function toggleFs(v) {
   const b = $('#fsBtn'); if (b) { b.innerHTML = ic(P.fs ? 'full_exit' : 'full'); b.setAttribute('aria-pressed', P.fs); b.setAttribute('aria-label', P.fs ? 'Выйти из полноэкранного режима' : 'Полный экран'); b.title = P.fs ? 'Выйти из полноэкранного режима (Esc)' : 'Полный экран (F)'; }
   showUi();
 }
+function syncPlayerUi() {
+  const pl = $('#player'); if (!pl) return;
+  pl.classList.toggle('menu-open', !!(P.dubOpen || P.setOpen || P.mus));
+  pl.classList.toggle('eps-open', !!P.epOpen);
+  const t = pl.querySelector('.pl-top, .yt-top'), b = pl.querySelector('.pl-bot');
+  if (t) pl.style.setProperty('--plt', t.offsetHeight + 'px');
+  if (b) pl.style.setProperty('--plb', b.offsetHeight + 'px');
+}
+window.addEventListener('resize', syncPlayerUi);
+['click', 'keydown', 'change'].forEach(t => document.addEventListener(t, () => setTimeout(syncPlayerUi)));
 function showUi() {
+  syncPlayerUi();
   const pl = $('#player'); if (!pl) return;
   pl.classList.remove('hide-ui'); clearTimeout(P.hideT);
   P.hideT = setTimeout(() => { if (P.playing && !P.dubOpen && !P.mus && !P.setOpen && !P.epOpen && !P.next && $('#demoPlayer').value === 'play') pl.classList.add('hide-ui'); }, 3000);
@@ -1357,6 +1379,7 @@ function render() {
   if (r !== 'player') $('#main').scrollTop = 0;
   if (r === 'search') { paintSearch(); const i = $('#sq'); if (i) i.focus(); }
   if (r !== 'player') { clearTimeout(P.musT); P.mus = null; P.ep = null; P.t = Math.min(P.t, 70); }
+  if (r === 'player') syncPlayerUi();
   if (r === 'player') { P.timer = setInterval(playerTick, 1000); playerPaint(); showUi(); }
 }
 window.addEventListener('hashchange', () => { P.dubOpen = false; render(); });
@@ -1454,6 +1477,7 @@ document.addEventListener('click', e => {
   if (!inside) {
     if (P.dubOpen) { P.dubOpen = false; $('#dubPop').hidden = true; if ($('#dubBtn')) $('#dubBtn').setAttribute('aria-expanded', false); }
     if (P.setOpen) { P.setOpen = false; $('#plSetPop').hidden = true; }
+    syncPlayerUi();
   }
 }, true);
 document.addEventListener('click', e => { if (!e.target.closest('#pmenu') && !e.target.closest('[data-act="pmenu"]')) { const m = $('#pmenu'); if (m) m.remove(); } if (!e.target.closest('.actions')) { const m = $('#statusMenu'); if (m) m.hidden = true; } }, true);
