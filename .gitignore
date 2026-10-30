@@ -47,3 +47,6 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 test/screenshots/failures/
+
+# Секретные ключи (YOUTUBE_API_KEY, ACOUSTID_API_KEY) — только локально.
+config/local.json
