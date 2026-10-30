@@ -22,6 +22,7 @@ import '../widgets/skeleton.dart';
 import '../widgets/state_views.dart';
 import '../widgets/status_widgets.dart';
 import 'episode_actions.dart';
+import 'comments_tab.dart';
 import 'episode_list.dart';
 import 'note_editor.dart';
 import 'title_charts.dart';
@@ -50,6 +51,7 @@ enum TitleTab {
   description('Описание'),
   stats('Статистика'),
   similar('Похожие'),
+  comments('Комментарии'),
   note('Заметка');
 
   const TitleTab(this.label);
@@ -58,8 +60,34 @@ enum TitleTab {
 }
 
 class _TitleScreenState extends State<TitleScreen>
-    with SingleTickerProviderStateMixin {
-  late final _tabs = TabController(length: TitleTab.values.length, vsync: this);
+    with TickerProviderStateMixin {
+  late TabController _tabs = TabController(
+    length: _visibleTabs.length,
+    vsync: this,
+  );
+
+  /// «Комментарии» есть только у тайтлов с официальным роликом YouTube.
+  List<TitleTab> get _visibleTabs => [
+    for (final t in TitleTab.values)
+      if (t != TitleTab.comments || _videos.isNotEmpty) t,
+  ];
+
+  /// Пересоздаёт контроллер вкладок, если набор вкладок изменился,
+  /// оставляя открытой ту же вкладку.
+  void _syncTabs(List<TitleTab> before) {
+    final after = _visibleTabs;
+    if (after.length == _tabs.length) return;
+    final current = before[_tabs.index];
+    // Старый контроллер ещё привязан к TabBar в этом кадре.
+    final old = _tabs;
+    WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+    _tabs = TabController(
+      length: after.length,
+      vsync: this,
+      initialIndex: after.indexOf(current).clamp(0, after.length - 1),
+    );
+  }
+
   Cached<AnimeDetails>? _details;
   AniListException? _error;
   bool _initialized = false;
@@ -95,7 +123,12 @@ class _TitleScreenState extends State<TitleScreen>
 
   Future<void> _loadVideos(AnimeDetails d) async {
     final videos = await AppScope.of(context).services.sources.find(d);
-    if (mounted) setState(() => _videos = videos);
+    if (!mounted) return;
+    setState(() {
+      final before = _visibleTabs;
+      _videos = videos;
+      _syncTabs(before);
+    });
   }
 
   EmbeddedVideo? _videoFor(int episode) =>
@@ -185,9 +218,7 @@ class _TitleScreenState extends State<TitleScreen>
                     child: TabBar(
                       controller: _tabs,
                       isScrollable: true,
-                      tabs: [
-                        for (final t in TitleTab.values) Tab(text: t.label),
-                      ],
+                      tabs: [for (final t in _visibleTabs) Tab(text: t.label)],
                     ),
                   ),
                 ),
@@ -244,7 +275,7 @@ class _TitleScreenState extends State<TitleScreen>
         ),
       ];
     }
-    return switch (TitleTab.values[_tabs.index]) {
+    return switch (_visibleTabs[_tabs.index]) {
       TitleTab.episodes => _episodes(context, d, pad),
       TitleTab.description => [
         SliverPadding(
@@ -265,6 +296,14 @@ class _TitleScreenState extends State<TitleScreen>
           padding: pad,
           sliver: SliverToBoxAdapter(
             child: _Similar(details: d, onOpenTitle: widget.onOpenTitle),
+          ),
+        ),
+      ],
+      TitleTab.comments => [
+        SliverPadding(
+          padding: pad,
+          sliver: SliverToBoxAdapter(
+            child: CommentsTab(key: ValueKey(d.id), videos: _videos),
           ),
         ),
       ],

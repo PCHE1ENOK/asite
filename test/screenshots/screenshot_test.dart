@@ -5,16 +5,19 @@
 @Tags(['screenshots'])
 library;
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:anime_viewer/data/models/library_entry.dart';
 import 'package:anime_viewer/data/models/title_note.dart';
 import 'package:anime_viewer/data/settings/app_preferences.dart';
+import 'package:anime_viewer/data/sources/video_source.dart';
 
 import 'package:anime_viewer/ui/profiles/profile_widgets.dart';
 
@@ -282,6 +285,78 @@ void main() {
     await shot(tester, '20-phone-profile-switch-dark', precache: false);
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
+    await h.dispose(tester);
+  }, skip: !enabled);
+
+  testWidgets('comments', (tester) async {
+    await tester.runAsync(loadFonts);
+    await prerender(tester, urls);
+    final h = UiHarness(images: resolve);
+    h.videoSource
+      ..isConfigured = true
+      ..videos = const [
+        EmbeddedVideo(
+          sourceId: 'fake',
+          videoId: 'abc123XYZ_-',
+          title: 'Attack on Titan Episode 1',
+          channel: 'Muse Asia',
+          episode: 1,
+        ),
+        EmbeddedVideo(
+          sourceId: 'fake',
+          videoId: 'def456XYZ_-',
+          title: 'Attack on Titan Episode 2',
+          channel: 'Muse Asia',
+          episode: 2,
+        ),
+      ];
+    Map<String, dynamic> c(String who, String text, int likes, int replies) => {
+      'snippet': {
+        'totalReplyCount': replies,
+        'topLevelComment': {
+          'id': who,
+          'snippet': {
+            'authorDisplayName': who,
+            'textOriginal': text,
+            'likeCount': likes,
+            'publishedAt': '2026-10-0${replies + 1}T12:00:00Z',
+          },
+        },
+      },
+    };
+    h.commentsHandler = (_) => http.Response.bytes(
+      utf8.encode(
+        jsonEncode({
+          'nextPageToken': 'P2',
+          'items': [
+            c(
+              'Mika',
+              'Первая серия до сих пор держит в напряжении. Музыка в финале — мурашки.',
+              12400,
+              3,
+            ),
+            c('Ren', 'Rewatching in 2026 and it still hits different', 3100, 1),
+            c(
+              'Аня',
+              'Пересматриваю перед финальным сезоном, замечаю детали, которые пропустила.',
+              890,
+              0,
+            ),
+          ],
+        }),
+      ),
+      200,
+    );
+    await tester.runAsync(
+      () => h.services.preferences.setTheme(ThemePreference.dark),
+    );
+    await h.pump(tester, size: const Size(1440, 900));
+    await tester.tap(find.text('Attack on Titan').first);
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Комментарии'));
+    await UiHarness.settle(tester);
+    await shot(tester, '23-title-comments-dark');
     await h.dispose(tester);
   }, skip: !enabled);
 }

@@ -43,3 +43,4 @@ flutter test test/screenshots --update-goldens --dart-define=SCREENSHOTS=true
 | `20-phone-profile-switch-dark.png` | Заставка «Переключаем на профиль…» (0,6 с) |
 | `21-player-no-sources-dark.png` | Плеер без источников: «Источники видео не подключены», отметка серии, «Вернуться к тайтлу» |
 | `22-title-note-dark.png` | Вкладка «Заметка»: итог, вердикт, что понравилось, моменты |
+| `23-title-comments-dark.png` | Вкладка «Комментарии» (официальный ролик YouTube, тестовые комментарии) |

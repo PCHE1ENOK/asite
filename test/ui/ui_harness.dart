@@ -14,6 +14,7 @@ import 'package:anime_viewer/data/profiles/profile_repository.dart';
 import 'package:anime_viewer/data/settings/app_preferences.dart';
 import 'package:anime_viewer/data/models/anime.dart';
 import 'package:anime_viewer/data/sources/video_source.dart';
+import 'package:anime_viewer/data/sources/youtube_comments.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:anime_viewer/main.dart';
 import 'package:anime_viewer/ui/app_scope.dart';
@@ -22,6 +23,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import '../fixtures.dart';
 
@@ -55,6 +57,14 @@ class UiHarness {
       profiles: profiles,
       tokensFor: tokenStore,
       sources: VideoSources([videoSource]),
+      comments: YouTubeCommentsClient(
+        apiKey: 'test-key',
+        db: db,
+        httpClient: MockClient((r) async {
+          commentRequests.add(r.url);
+          return commentsHandler(r.url);
+        }),
+      ),
       music: MusicRecognitionGate(
         isEnabled: preferences.musicRecognition,
         hasApiKey: false,
@@ -90,6 +100,11 @@ class UiHarness {
   late final AppDatabase db;
   late final FakeAniList fake;
   final tokens = <int, MemoryTokenStore>{};
+
+  /// Ответы `commentThreads.list` для тестов.
+  http.Response Function(Uri) commentsHandler = (_) =>
+      http.Response('{"items":[]}', 200);
+  final commentRequests = <Uri>[];
 
   /// Источник видео для тестов: по умолчанию не настроен.
   final videoSource = FakeVideoSource();

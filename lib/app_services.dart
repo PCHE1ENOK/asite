@@ -15,6 +15,7 @@ import 'data/notes/notes_repository.dart';
 import 'data/profiles/profile_repository.dart';
 import 'data/settings/app_preferences.dart';
 import 'data/sources/video_source.dart';
+import 'data/sources/youtube_comments.dart';
 import 'data/sources/youtube_source.dart';
 import 'data/sync/sync_service.dart';
 
@@ -46,6 +47,7 @@ class AppServices {
     required this.profiles,
     required this.music,
     required this.sources,
+    required this.comments,
     required this.tokensFor,
     required ProfileSession Function(Profile) sessionFactory,
     required Profile initialProfile,
@@ -74,6 +76,7 @@ class AppServices {
           regionCode: PlatformDispatcher.instance.locale.countryCode,
         ),
       ]),
+      comments: YouTubeCommentsClient(apiKey: AppConfig.youtubeApiKey, db: db),
       // Этап 4.5: заглушка заменится распознавателем на Chromaprint +
       // AcoustID, звук — из AudioSnippetSource слоя источников.
       music: MusicRecognitionGate(
@@ -115,6 +118,9 @@ class AppServices {
 
   /// Легальные источники видео.
   final VideoSources sources;
+
+  /// Комментарии к официальным роликам YouTube.
+  final YouTubeCommentsClient comments;
 
   /// Хранилище токена GitHub профиля.
   final TokenStore Function(int profileId) tokensFor;
