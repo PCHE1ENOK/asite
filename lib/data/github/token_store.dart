@@ -9,15 +9,30 @@ abstract interface class TokenStore {
 
 /// Токен в защищённом хранилище платформы (Keychain, Keystore,
 /// Windows Credential Manager).
+/// У каждого профиля свой токен.
 class SecureTokenStore implements TokenStore {
-  SecureTokenStore([FlutterSecureStorage? storage])
+  SecureTokenStore({required this.profileId, FlutterSecureStorage? storage})
     : _storage = storage ?? const FlutterSecureStorage();
 
-  static const _key = 'github_token';
+  final int profileId;
   final FlutterSecureStorage _storage;
 
+  /// Ключ до появления профилей; его токен принадлежит профилю 1.
+  static const _legacyKey = 'github_token';
+
+  String get _key => 'github_token_p$profileId';
+
   @override
-  Future<String?> read() => _storage.read(key: _key);
+  Future<String?> read() async {
+    final token = await _storage.read(key: _key);
+    if (token != null || profileId != 1) return token;
+    final legacy = await _storage.read(key: _legacyKey);
+    if (legacy != null) {
+      await _storage.write(key: _key, value: legacy);
+      await _storage.delete(key: _legacyKey);
+    }
+    return legacy;
+  }
 
   @override
   Future<void> write(String token) => _storage.write(key: _key, value: token);

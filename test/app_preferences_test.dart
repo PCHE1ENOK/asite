@@ -31,15 +31,15 @@ void main() {
     final db = AppDatabase(NativeDatabase.memory());
     final prefs = AppPreferences(db);
     for (var i = 0; i < 10; i++) {
-      await prefs.addRecentSearch('q$i');
+      await prefs.addRecentSearch(1, 'q$i');
     }
-    await prefs.addRecentSearch('  Q5 ');
-    final list = await prefs.recentSearches();
+    await prefs.addRecentSearch(1, '  Q5 ');
+    final list = await prefs.recentSearches(1);
     expect(list, hasLength(8));
     expect(list.first, 'Q5');
     expect(list.where((s) => s.toLowerCase() == 'q5'), hasLength(1));
-    await prefs.clearRecentSearches();
-    expect(await prefs.recentSearches(), isEmpty);
+    await prefs.clearRecentSearches(1);
+    expect(await prefs.recentSearches(1), isEmpty);
     await db.close();
   });
 }

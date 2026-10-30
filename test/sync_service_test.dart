@@ -1,9 +1,11 @@
 import 'package:anime_viewer/data/cache/app_database.dart';
 import 'package:anime_viewer/data/github/gist_client.dart';
 import 'package:anime_viewer/data/github/github_auth.dart';
+import 'package:anime_viewer/data/github/github_exception.dart';
 import 'package:anime_viewer/data/github/token_store.dart';
 import 'package:anime_viewer/data/library/library_repository.dart';
 import 'package:anime_viewer/data/models/library_entry.dart';
+import 'package:anime_viewer/data/profiles/profile_repository.dart';
 import 'package:anime_viewer/data/sync/library_codec.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:drift/native.dart';
@@ -23,6 +25,7 @@ void main() {
     library: library,
     db: db,
     tokens: tokens,
+    profiles: ProfileRepository(db),
     auth: () => GitHubAuth(
       clientId: 'client',
       httpClient: github.client,
@@ -222,5 +225,61 @@ void main() {
     expect(sync.state.value.status, SyncStatus.signedOut);
     expect(await library.entry(1), isNotNull);
     expect(github.gists, hasLength(1));
+  });
+
+  test('one GitHub account cannot be bound to two profiles', () async {
+    await sync.start();
+    await library.setStatus(1, ListStatus.current);
+    await signIn();
+    await sync.dispose();
+
+    // Второй профиль входит тем же аккаунтом.
+    final kaito = await ProfileRepository(db).create('Каито');
+    final otherLib = LibraryRepository(
+      db,
+      profileId: kaito.id,
+      clock: () => now,
+    );
+    await otherLib.setStatus(2, ListStatus.planning);
+    final otherTokens = MemoryTokenStore();
+    sync = SyncService(
+      library: otherLib,
+      db: db,
+      tokens: otherTokens,
+      profiles: ProfileRepository(db),
+      auth: () => GitHubAuth(
+        clientId: 'client',
+        httpClient: github.client,
+        delay: (_) async {},
+        clock: () => now,
+      ),
+      gistClient: (token) => GistClient(token, httpClient: github.client),
+      clock: () => now,
+    );
+    await sync.start();
+
+    await expectLater(
+      signIn(),
+      throwsA(
+        isA<GitHubException>()
+            .having((e) => e.kind, 'kind', GitHubErrorKind.accountInUse)
+            .having((e) => e.message, 'message', contains('«Основной»')),
+      ),
+    );
+    expect(otherTokens.token, isNull);
+    expect(sync.state.value.status, SyncStatus.signedOut);
+    // Gist первого профиля не смешан со списками второго.
+    expect(gistEntries().map((e) => e.mediaId), [1]);
+    expect((await otherLib.entry(2))!.status, ListStatus.planning);
+    expect(await library.entry(2), isNull);
+  });
+
+  test('sign-in binds the login to the profile; sign-out unbinds', () async {
+    await sync.start();
+    await signIn();
+    final profiles = ProfileRepository(db);
+    expect((await profiles.byId(1))!.githubLogin, 'octocat');
+    await sync.signOut();
+    expect((await profiles.byId(1))!.githubLogin, isNull);
   });
 }

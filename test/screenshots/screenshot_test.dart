@@ -15,6 +15,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:anime_viewer/data/models/library_entry.dart';
 import 'package:anime_viewer/data/settings/app_preferences.dart';
 
+import 'package:anime_viewer/ui/profiles/profile_widgets.dart';
+
 import '../ui/ui_harness.dart';
 
 const enabled = bool.fromEnvironment('SCREENSHOTS');
@@ -131,6 +133,7 @@ void main() {
       await lib.setStatus(1007, ListStatus.paused);
       await lib.setStatus(1009, ListStatus.dropped);
       await lib.setStatus(1013, ListStatus.planning);
+      await h.services.profiles.create('Каито', color: 3);
     });
     await tester.runAsync(
       () => h.services.preferences.setTheme(
@@ -185,6 +188,12 @@ void main() {
     await tester.tap(find.text('Настройки').first);
     await UiHarness.settle(tester);
     await shot(tester, '08-settings-dark');
+
+    await tester.tap(find.byType(ProfileMenuButton));
+    await tester.pumpAndSettle();
+    await shot(tester, '17-profile-menu-dark');
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Списки').first);
     await UiHarness.settle(tester);

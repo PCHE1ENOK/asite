@@ -653,12 +653,384 @@ class CacheEntriesCompanion extends UpdateCompanion<CacheEntryRow> {
   }
 }
 
+class $ProfilesTable extends Profiles
+    with TableInfo<$ProfilesTable, ProfileRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProfilesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _githubLoginMeta = const VerificationMeta(
+    'githubLogin',
+  );
+  @override
+  late final GeneratedColumn<String> githubLogin = GeneratedColumn<String>(
+    'github_login',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    color,
+    githubLogin,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'profiles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProfileRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
+    if (data.containsKey('github_login')) {
+      context.handle(
+        _githubLoginMeta,
+        githubLogin.isAcceptableOrUnknown(
+          data['github_login']!,
+          _githubLoginMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProfileRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProfileRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      )!,
+      githubLogin: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}github_login'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ProfilesTable createAlias(String alias) {
+    return $ProfilesTable(attachedDatabase, alias);
+  }
+}
+
+class ProfileRow extends DataClass implements Insertable<ProfileRow> {
+  final int id;
+  final String name;
+
+  /// Номер цвета аватара (0–4).
+  final int color;
+
+  /// Логин GitHub; один аккаунт — один профиль.
+  final String? githubLogin;
+  final DateTime createdAt;
+  const ProfileRow({
+    required this.id,
+    required this.name,
+    required this.color,
+    this.githubLogin,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['color'] = Variable<int>(color);
+    if (!nullToAbsent || githubLogin != null) {
+      map['github_login'] = Variable<String>(githubLogin);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ProfilesCompanion toCompanion(bool nullToAbsent) {
+    return ProfilesCompanion(
+      id: Value(id),
+      name: Value(name),
+      color: Value(color),
+      githubLogin: githubLogin == null && nullToAbsent
+          ? const Value.absent()
+          : Value(githubLogin),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ProfileRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProfileRow(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      color: serializer.fromJson<int>(json['color']),
+      githubLogin: serializer.fromJson<String?>(json['githubLogin']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'color': serializer.toJson<int>(color),
+      'githubLogin': serializer.toJson<String?>(githubLogin),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ProfileRow copyWith({
+    int? id,
+    String? name,
+    int? color,
+    Value<String?> githubLogin = const Value.absent(),
+    DateTime? createdAt,
+  }) => ProfileRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    color: color ?? this.color,
+    githubLogin: githubLogin.present ? githubLogin.value : this.githubLogin,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ProfileRow copyWithCompanion(ProfilesCompanion data) {
+    return ProfileRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      color: data.color.present ? data.color.value : this.color,
+      githubLogin: data.githubLogin.present
+          ? data.githubLogin.value
+          : this.githubLogin,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProfileRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('githubLogin: $githubLogin, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, color, githubLogin, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProfileRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.color == this.color &&
+          other.githubLogin == this.githubLogin &&
+          other.createdAt == this.createdAt);
+}
+
+class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<int> color;
+  final Value<String?> githubLogin;
+  final Value<DateTime> createdAt;
+  const ProfilesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.color = const Value.absent(),
+    this.githubLogin = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  ProfilesCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.color = const Value.absent(),
+    this.githubLogin = const Value.absent(),
+    required DateTime createdAt,
+  }) : name = Value(name),
+       createdAt = Value(createdAt);
+  static Insertable<ProfileRow> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<int>? color,
+    Expression<String>? githubLogin,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (color != null) 'color': color,
+      if (githubLogin != null) 'github_login': githubLogin,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  ProfilesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<int>? color,
+    Value<String?>? githubLogin,
+    Value<DateTime>? createdAt,
+  }) {
+    return ProfilesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      color: color ?? this.color,
+      githubLogin: githubLogin ?? this.githubLogin,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
+    if (githubLogin.present) {
+      map['github_login'] = Variable<String>(githubLogin.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProfilesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('githubLogin: $githubLogin, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $LibraryEntriesTable extends LibraryEntries
     with TableInfo<$LibraryEntriesTable, LibraryEntryRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $LibraryEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id)',
+    ),
+  );
   static const VerificationMeta _mediaIdMeta = const VerificationMeta(
     'mediaId',
   );
@@ -668,7 +1040,7 @@ class $LibraryEntriesTable extends LibraryEntries
     aliasedName,
     false,
     type: DriftSqlType.int,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
@@ -741,6 +1113,7 @@ class $LibraryEntriesTable extends LibraryEntries
   );
   @override
   List<GeneratedColumn> get $columns => [
+    profileId,
     mediaId,
     status,
     progress,
@@ -761,11 +1134,21 @@ class $LibraryEntriesTable extends LibraryEntries
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
     if (data.containsKey('media_id')) {
       context.handle(
         _mediaIdMeta,
         mediaId.isAcceptableOrUnknown(data['media_id']!, _mediaIdMeta),
       );
+    } else if (isInserting) {
+      context.missing(_mediaIdMeta);
     }
     if (data.containsKey('status')) {
       context.handle(
@@ -811,11 +1194,15 @@ class $LibraryEntriesTable extends LibraryEntries
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {mediaId};
+  Set<GeneratedColumn> get $primaryKey => {profileId, mediaId};
   @override
   LibraryEntryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return LibraryEntryRow(
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
       mediaId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}media_id'],
@@ -854,6 +1241,7 @@ class $LibraryEntriesTable extends LibraryEntries
 }
 
 class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
+  final int profileId;
   final int mediaId;
 
   /// Значение `ListStatus.apiValue`.
@@ -866,6 +1254,7 @@ class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
   /// Изменение ещё не отправлено в Gist.
   final bool dirty;
   const LibraryEntryRow({
+    required this.profileId,
     required this.mediaId,
     required this.status,
     required this.progress,
@@ -877,6 +1266,7 @@ class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['profile_id'] = Variable<int>(profileId);
     map['media_id'] = Variable<int>(mediaId);
     map['status'] = Variable<String>(status);
     map['progress'] = Variable<int>(progress);
@@ -891,6 +1281,7 @@ class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
 
   LibraryEntriesCompanion toCompanion(bool nullToAbsent) {
     return LibraryEntriesCompanion(
+      profileId: Value(profileId),
       mediaId: Value(mediaId),
       status: Value(status),
       progress: Value(progress),
@@ -909,6 +1300,7 @@ class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return LibraryEntryRow(
+      profileId: serializer.fromJson<int>(json['profileId']),
       mediaId: serializer.fromJson<int>(json['mediaId']),
       status: serializer.fromJson<String>(json['status']),
       progress: serializer.fromJson<int>(json['progress']),
@@ -922,6 +1314,7 @@ class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'profileId': serializer.toJson<int>(profileId),
       'mediaId': serializer.toJson<int>(mediaId),
       'status': serializer.toJson<String>(status),
       'progress': serializer.toJson<int>(progress),
@@ -933,6 +1326,7 @@ class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
   }
 
   LibraryEntryRow copyWith({
+    int? profileId,
     int? mediaId,
     String? status,
     int? progress,
@@ -941,6 +1335,7 @@ class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
     bool? deleted,
     bool? dirty,
   }) => LibraryEntryRow(
+    profileId: profileId ?? this.profileId,
     mediaId: mediaId ?? this.mediaId,
     status: status ?? this.status,
     progress: progress ?? this.progress,
@@ -951,6 +1346,7 @@ class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
   );
   LibraryEntryRow copyWithCompanion(LibraryEntriesCompanion data) {
     return LibraryEntryRow(
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
       mediaId: data.mediaId.present ? data.mediaId.value : this.mediaId,
       status: data.status.present ? data.status.value : this.status,
       progress: data.progress.present ? data.progress.value : this.progress,
@@ -964,6 +1360,7 @@ class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
   @override
   String toString() {
     return (StringBuffer('LibraryEntryRow(')
+          ..write('profileId: $profileId, ')
           ..write('mediaId: $mediaId, ')
           ..write('status: $status, ')
           ..write('progress: $progress, ')
@@ -976,12 +1373,21 @@ class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(mediaId, status, progress, score, updatedAt, deleted, dirty);
+  int get hashCode => Object.hash(
+    profileId,
+    mediaId,
+    status,
+    progress,
+    score,
+    updatedAt,
+    deleted,
+    dirty,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is LibraryEntryRow &&
+          other.profileId == this.profileId &&
           other.mediaId == this.mediaId &&
           other.status == this.status &&
           other.progress == this.progress &&
@@ -992,6 +1398,7 @@ class LibraryEntryRow extends DataClass implements Insertable<LibraryEntryRow> {
 }
 
 class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntryRow> {
+  final Value<int> profileId;
   final Value<int> mediaId;
   final Value<String> status;
   final Value<int> progress;
@@ -999,7 +1406,9 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntryRow> {
   final Value<DateTime> updatedAt;
   final Value<bool> deleted;
   final Value<bool> dirty;
+  final Value<int> rowid;
   const LibraryEntriesCompanion({
+    this.profileId = const Value.absent(),
     this.mediaId = const Value.absent(),
     this.status = const Value.absent(),
     this.progress = const Value.absent(),
@@ -1007,18 +1416,24 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntryRow> {
     this.updatedAt = const Value.absent(),
     this.deleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   LibraryEntriesCompanion.insert({
-    this.mediaId = const Value.absent(),
+    required int profileId,
+    required int mediaId,
     required String status,
     this.progress = const Value.absent(),
     this.score = const Value.absent(),
     required DateTime updatedAt,
     this.deleted = const Value.absent(),
     this.dirty = const Value.absent(),
-  }) : status = Value(status),
+    this.rowid = const Value.absent(),
+  }) : profileId = Value(profileId),
+       mediaId = Value(mediaId),
+       status = Value(status),
        updatedAt = Value(updatedAt);
   static Insertable<LibraryEntryRow> custom({
+    Expression<int>? profileId,
     Expression<int>? mediaId,
     Expression<String>? status,
     Expression<int>? progress,
@@ -1026,8 +1441,10 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntryRow> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? deleted,
     Expression<bool>? dirty,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (profileId != null) 'profile_id': profileId,
       if (mediaId != null) 'media_id': mediaId,
       if (status != null) 'status': status,
       if (progress != null) 'progress': progress,
@@ -1035,10 +1452,12 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntryRow> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deleted != null) 'deleted': deleted,
       if (dirty != null) 'dirty': dirty,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   LibraryEntriesCompanion copyWith({
+    Value<int>? profileId,
     Value<int>? mediaId,
     Value<String>? status,
     Value<int>? progress,
@@ -1046,8 +1465,10 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntryRow> {
     Value<DateTime>? updatedAt,
     Value<bool>? deleted,
     Value<bool>? dirty,
+    Value<int>? rowid,
   }) {
     return LibraryEntriesCompanion(
+      profileId: profileId ?? this.profileId,
       mediaId: mediaId ?? this.mediaId,
       status: status ?? this.status,
       progress: progress ?? this.progress,
@@ -1055,12 +1476,16 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntryRow> {
       updatedAt: updatedAt ?? this.updatedAt,
       deleted: deleted ?? this.deleted,
       dirty: dirty ?? this.dirty,
+      rowid: rowid ?? this.rowid,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
     if (mediaId.present) {
       map['media_id'] = Variable<int>(mediaId.value);
     }
@@ -1082,19 +1507,24 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntryRow> {
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('LibraryEntriesCompanion(')
+          ..write('profileId: $profileId, ')
           ..write('mediaId: $mediaId, ')
           ..write('status: $status, ')
           ..write('progress: $progress, ')
           ..write('score: $score, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted, ')
-          ..write('dirty: $dirty')
+          ..write('dirty: $dirty, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1313,6 +1743,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $CachedAnimeTable cachedAnime = $CachedAnimeTable(this);
   late final $CacheEntriesTable cacheEntries = $CacheEntriesTable(this);
+  late final $ProfilesTable profiles = $ProfilesTable(this);
   late final $LibraryEntriesTable libraryEntries = $LibraryEntriesTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
   @override
@@ -1322,6 +1753,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     cachedAnime,
     cacheEntries,
+    profiles,
     libraryEntries,
     settings,
   ];
@@ -1712,18 +2144,318 @@ typedef $$CacheEntriesTableProcessedTableManager =
       CacheEntryRow,
       PrefetchHooks Function()
     >;
+typedef $$ProfilesTableCreateCompanionBuilder = ProfilesCompanion Function({
+  Value<int> id,
+  required String name,
+  Value<int> color,
+  Value<String?> githubLogin,
+  required DateTime createdAt,
+});
+typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
+  Value<int> id,
+  Value<String> name,
+  Value<int> color,
+  Value<String?> githubLogin,
+  Value<DateTime> createdAt,
+});
+
+final class $$ProfilesTableReferences
+    extends BaseReferences<_$AppDatabase, $ProfilesTable, ProfileRow> {
+  $$ProfilesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$LibraryEntriesTable, List<LibraryEntryRow>>
+  _libraryEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.libraryEntries,
+    aliasName: 'profiles__id__library_entries__profile_id',
+  );
+
+  $$LibraryEntriesTableProcessedTableManager get libraryEntriesRefs {
+    final manager = $$LibraryEntriesTableTableManager(
+      $_db,
+      $_db.libraryEntries,
+    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_libraryEntriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$ProfilesTableFilterComposer
+    extends Composer<_$AppDatabase, $ProfilesTable> {
+  $$ProfilesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get githubLogin => $composableBuilder(
+    column: $table.githubLogin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> libraryEntriesRefs(
+    Expression<bool> Function($$LibraryEntriesTableFilterComposer f) f,
+  ) {
+    final $$LibraryEntriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.libraryEntries,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LibraryEntriesTableFilterComposer(
+            $db: $db,
+            $table: $db.libraryEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ProfilesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProfilesTable> {
+  $$ProfilesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get githubLogin => $composableBuilder(
+    column: $table.githubLogin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProfilesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProfilesTable> {
+  $$ProfilesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<String> get githubLogin => $composableBuilder(
+    column: $table.githubLogin,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> libraryEntriesRefs<T extends Object>(
+    Expression<T> Function($$LibraryEntriesTableAnnotationComposer a) f,
+  ) {
+    final $$LibraryEntriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.libraryEntries,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LibraryEntriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.libraryEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ProfilesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProfilesTable,
+          ProfileRow,
+          $$ProfilesTableFilterComposer,
+          $$ProfilesTableOrderingComposer,
+          $$ProfilesTableAnnotationComposer,
+          $$ProfilesTableCreateCompanionBuilder,
+          $$ProfilesTableUpdateCompanionBuilder,
+          (ProfileRow, $$ProfilesTableReferences),
+          ProfileRow,
+          PrefetchHooks Function({bool libraryEntriesRefs})
+        > {
+  $$ProfilesTableTableManager(_$AppDatabase db, $ProfilesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProfilesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProfilesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProfilesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> color = const Value.absent(),
+                Value<String?> githubLogin = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => ProfilesCompanion(
+                id: id,
+                name: name,
+                color: color,
+                githubLogin: githubLogin,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                Value<int> color = const Value.absent(),
+                Value<String?> githubLogin = const Value.absent(),
+                required DateTime createdAt,
+              }) => ProfilesCompanion.insert(
+                id: id,
+                name: name,
+                color: color,
+                githubLogin: githubLogin,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ProfilesTable, ProfileRow>(table),
+                  $$ProfilesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({libraryEntriesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (libraryEntriesRefs) db.libraryEntries,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (libraryEntriesRefs)
+                    await $_getPrefetchedDataByColumns<
+                      ProfileRow,
+                      $ProfilesTable,
+                      LibraryEntryRow,
+                      $LibraryEntriesTable
+                    >(
+                      currentTable: table,
+                      referencedTable: $$ProfilesTableReferences
+                          ._libraryEntriesRefsTable(db),
+                      managerFromTypedResult: (p0) => $$ProfilesTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).libraryEntriesRefs,
+                      currentColumn: 'id',
+                      referencedColumn: 'profile_id',
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ProfilesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProfilesTable,
+      ProfileRow,
+      $$ProfilesTableFilterComposer,
+      $$ProfilesTableOrderingComposer,
+      $$ProfilesTableAnnotationComposer,
+      $$ProfilesTableCreateCompanionBuilder,
+      $$ProfilesTableUpdateCompanionBuilder,
+      (ProfileRow, $$ProfilesTableReferences),
+      ProfileRow,
+      PrefetchHooks Function({bool libraryEntriesRefs})
+    >;
 typedef $$LibraryEntriesTableCreateCompanionBuilder =
     LibraryEntriesCompanion Function({
-      Value<int> mediaId,
+      required int profileId,
+      required int mediaId,
       required String status,
       Value<int> progress,
       Value<int?> score,
       required DateTime updatedAt,
       Value<bool> deleted,
       Value<bool> dirty,
+      Value<int> rowid,
     });
 typedef $$LibraryEntriesTableUpdateCompanionBuilder =
     LibraryEntriesCompanion Function({
+      Value<int> profileId,
       Value<int> mediaId,
       Value<String> status,
       Value<int> progress,
@@ -1731,7 +2463,35 @@ typedef $$LibraryEntriesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> deleted,
       Value<bool> dirty,
+      Value<int> rowid,
     });
+
+final class $$LibraryEntriesTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $LibraryEntriesTable, LibraryEntryRow> {
+  $$LibraryEntriesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias('library_entries__profile_id__profiles__id');
+
+  $$ProfilesTableProcessedTableManager get profileId {
+    final $_column = $_itemColumn<int>('profile_id')!;
+
+    final manager = $$ProfilesTableTableManager(
+      $_db,
+      $_db.profiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
 
 class $$LibraryEntriesTableFilterComposer
     extends Composer<_$AppDatabase, $LibraryEntriesTable> {
@@ -1776,6 +2536,29 @@ class $$LibraryEntriesTableFilterComposer
     column: $table.dirty,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$ProfilesTableFilterComposer get profileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableFilterComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$LibraryEntriesTableOrderingComposer
@@ -1821,6 +2604,29 @@ class $$LibraryEntriesTableOrderingComposer
     column: $table.dirty,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$ProfilesTableOrderingComposer get profileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$LibraryEntriesTableAnnotationComposer
@@ -1852,6 +2658,29 @@ class $$LibraryEntriesTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  $$ProfilesTableAnnotationComposer get profileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$LibraryEntriesTableTableManager
@@ -1865,16 +2694,9 @@ class $$LibraryEntriesTableTableManager
           $$LibraryEntriesTableAnnotationComposer,
           $$LibraryEntriesTableCreateCompanionBuilder,
           $$LibraryEntriesTableUpdateCompanionBuilder,
-          (
-            LibraryEntryRow,
-            BaseReferences<
-              _$AppDatabase,
-              $LibraryEntriesTable,
-              LibraryEntryRow
-            >,
-          ),
+          (LibraryEntryRow, $$LibraryEntriesTableReferences),
           LibraryEntryRow,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool profileId})
         > {
   $$LibraryEntriesTableTableManager(
     _$AppDatabase db,
@@ -1891,6 +2713,7 @@ class $$LibraryEntriesTableTableManager
               $$LibraryEntriesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
+                Value<int> profileId = const Value.absent(),
                 Value<int> mediaId = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<int> progress = const Value.absent(),
@@ -1898,7 +2721,9 @@ class $$LibraryEntriesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => LibraryEntriesCompanion(
+                profileId: profileId,
                 mediaId: mediaId,
                 status: status,
                 progress: progress,
@@ -1906,17 +2731,21 @@ class $$LibraryEntriesTableTableManager
                 updatedAt: updatedAt,
                 deleted: deleted,
                 dirty: dirty,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> mediaId = const Value.absent(),
+                required int profileId,
+                required int mediaId,
                 required String status,
                 Value<int> progress = const Value.absent(),
                 Value<int?> score = const Value.absent(),
                 required DateTime updatedAt,
                 Value<bool> deleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => LibraryEntriesCompanion.insert(
+                profileId: profileId,
                 mediaId: mediaId,
                 status: status,
                 progress: progress,
@@ -1924,20 +2753,55 @@ class $$LibraryEntriesTableTableManager
                 updatedAt: updatedAt,
                 deleted: deleted,
                 dirty: dirty,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
                   e.readTable<$LibraryEntriesTable, LibraryEntryRow>(table),
-                  BaseReferences<
-                    _$AppDatabase,
-                    $LibraryEntriesTable,
-                    LibraryEntryRow
-                  >(db, table, e),
+                  $$LibraryEntriesTableReferences(db, table, e),
                 ),
               )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({profileId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (profileId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.profileId,
+                        referencedTable: $$LibraryEntriesTableReferences
+                            ._profileIdTable(db),
+                        referencedColumn: $$LibraryEntriesTableReferences
+                            ._profileIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ),
       );
 }
@@ -1952,12 +2816,9 @@ typedef $$LibraryEntriesTableProcessedTableManager =
       $$LibraryEntriesTableAnnotationComposer,
       $$LibraryEntriesTableCreateCompanionBuilder,
       $$LibraryEntriesTableUpdateCompanionBuilder,
-      (
-        LibraryEntryRow,
-        BaseReferences<_$AppDatabase, $LibraryEntriesTable, LibraryEntryRow>,
-      ),
+      (LibraryEntryRow, $$LibraryEntriesTableReferences),
       LibraryEntryRow,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool profileId})
     >;
 typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
   required String key,
@@ -2104,6 +2965,8 @@ class $AppDatabaseManager {
       $$CachedAnimeTableTableManager(_db, _db.cachedAnime);
   $$CacheEntriesTableTableManager get cacheEntries =>
       $$CacheEntriesTableTableManager(_db, _db.cacheEntries);
+  $$ProfilesTableTableManager get profiles =>
+      $$ProfilesTableTableManager(_db, _db.profiles);
   $$LibraryEntriesTableTableManager get libraryEntries =>
       $$LibraryEntriesTableTableManager(_db, _db.libraryEntries);
   $$SettingsTableTableManager get settings =>

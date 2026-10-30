@@ -9,6 +9,7 @@ import 'package:anime_viewer/data/github/gist_client.dart';
 import 'package:anime_viewer/data/github/token_store.dart';
 import 'package:anime_viewer/data/library/library_repository.dart';
 import 'package:anime_viewer/data/music/music_recognition.dart';
+import 'package:anime_viewer/data/profiles/profile_repository.dart';
 import 'package:anime_viewer/data/settings/app_preferences.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:anime_viewer/main.dart';
@@ -39,27 +40,41 @@ class UiHarness {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     db = AppDatabase(NativeDatabase.memory());
     fake = FakeAniList(_route);
-    final library = LibraryRepository(db);
     final preferences = AppPreferences(db);
+    final profiles = ProfileRepository(db);
     services = AppServices(
       db: db,
       anime: AnimeRepository(
         client: AniListClient(httpClient: fake.client),
         db: db,
       ),
-      library: library,
       preferences: preferences,
-      sync: SyncService(
-        library: library,
-        db: db,
-        tokens: MemoryTokenStore(),
-        auth: () => null,
-        gistClient: (token) => GistClient(token),
-      ),
+      profiles: profiles,
+      tokensFor: tokenStore,
       music: MusicRecognitionGate(
         isEnabled: preferences.musicRecognition,
         hasApiKey: false,
         recognizer: const StubMusicRecognizer(),
+      ),
+      sessionFactory: (profile) {
+        final library = LibraryRepository(db, profileId: profile.id);
+        return ProfileSession(
+          profile: profile,
+          library: library,
+          sync: SyncService(
+            library: library,
+            db: db,
+            tokens: tokenStore(profile.id),
+            profiles: profiles,
+            auth: () => null,
+            gistClient: (token) => GistClient(token),
+          ),
+        );
+      },
+      initialProfile: const Profile(
+        id: AppDatabase.defaultProfileId,
+        name: 'Основной',
+        color: 0,
       ),
     );
     settings = AppSettings(services.preferences);
@@ -67,6 +82,10 @@ class UiHarness {
 
   late final AppDatabase db;
   late final FakeAniList fake;
+  final tokens = <int, MemoryTokenStore>{};
+
+  MemoryTokenStore tokenStore(int profileId) =>
+      tokens.putIfAbsent(profileId, MemoryTokenStore.new);
   late final AppServices services;
   late final AppSettings settings;
   final ImageResolver imageResolver;

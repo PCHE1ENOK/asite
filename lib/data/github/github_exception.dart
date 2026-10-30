@@ -15,6 +15,9 @@ enum GitHubErrorKind {
   /// Вход отменён в приложении.
   cancelled,
 
+  /// Этот аккаунт GitHub уже привязан к другому профилю.
+  accountInUse,
+
   /// Прочие ответы GitHub.
   other,
 }

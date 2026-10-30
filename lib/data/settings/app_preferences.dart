@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../cache/app_database.dart';
+import '../profiles/profile_repository.dart';
 
 /// Тема оформления.
 enum ThemePreference { system, dark, light }
@@ -50,9 +51,12 @@ class AppPreferences {
   Future<void> setTheme(ThemePreference value) =>
       _db.putSetting(_theme, value.name);
 
-  /// Недавние поисковые запросы, новые первыми.
-  Future<List<String>> recentSearches() async {
-    final v = await _db.setting(_recentSearches);
+  String _recentKey(int profileId) =>
+      ProfileRepository.settingKey(profileId, _recentSearches);
+
+  /// Недавние поисковые запросы профиля, новые первыми.
+  Future<List<String>> recentSearches(int profileId) async {
+    final v = await _db.setting(_recentKey(profileId));
     if (v == null) return const [];
     try {
       return (jsonDecode(v) as List).whereType<String>().toList();
@@ -63,17 +67,18 @@ class AppPreferences {
 
   /// Добавляет запрос в начало; повтор без учёта регистра поднимается
   /// наверх, список обрезается до [maxRecentSearches].
-  Future<List<String>> addRecentSearch(String query) async {
+  Future<List<String>> addRecentSearch(int profileId, String query) async {
     final q = query.trim();
-    if (q.isEmpty) return recentSearches();
+    if (q.isEmpty) return recentSearches(profileId);
     final list = [
       q,
-      for (final s in await recentSearches())
+      for (final s in await recentSearches(profileId))
         if (s.toLowerCase() != q.toLowerCase()) s,
     ].take(maxRecentSearches).toList();
-    await _db.putSetting(_recentSearches, jsonEncode(list));
+    await _db.putSetting(_recentKey(profileId), jsonEncode(list));
     return list;
   }
 
-  Future<void> clearRecentSearches() => _db.putSetting(_recentSearches, null);
+  Future<void> clearRecentSearches(int profileId) =>
+      _db.putSetting(_recentKey(profileId), null);
 }

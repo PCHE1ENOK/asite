@@ -34,8 +34,23 @@ class CacheEntries extends Table {
 
 /// Списки пользователя. Источник правды на устройстве; синхронизируются
 /// с приватным GitHub Gist.
+/// Профиль пользователя: свои списки, свой вход в GitHub и свой Gist.
+@DataClassName('ProfileRow')
+class Profiles extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().unique()();
+
+  /// Номер цвета аватара (0–4).
+  IntColumn get color => integer().withDefault(const Constant(0))();
+
+  /// Логин GitHub; один аккаунт — один профиль.
+  TextColumn get githubLogin => text().nullable().unique()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
 @DataClassName('LibraryEntryRow')
 class LibraryEntries extends Table {
+  IntColumn get profileId => integer().references(Profiles, #id)();
   IntColumn get mediaId => integer()();
 
   /// Значение `ListStatus.apiValue`.
@@ -49,7 +64,7 @@ class LibraryEntries extends Table {
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
 
   @override
-  Set<Column<Object>> get primaryKey => {mediaId};
+  Set<Column<Object>> get primaryKey => {profileId, mediaId};
 }
 
 /// Настройки приложения; в отличие от [CacheEntries], не очищаются.
@@ -62,7 +77,9 @@ class Settings extends Table {
   Set<Column<Object>> get primaryKey => {key};
 }
 
-@DriftDatabase(tables: [CachedAnime, CacheEntries, LibraryEntries, Settings])
+@DriftDatabase(
+  tables: [CachedAnime, CacheEntries, Profiles, LibraryEntries, Settings],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
@@ -78,16 +95,74 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
+
+  /// Id профиля «Основной», в который переносятся списки из версии 2.
+  static const defaultProfileId = 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async {
+      await m.createAll();
+      await into(profiles).insert(
+        ProfilesCompanion.insert(
+          id: const Value(defaultProfileId),
+          name: 'Основной',
+          createdAt: DateTime.now(),
+        ),
+      );
+    },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
+        await m.createTable(profiles);
         await m.createTable(libraryEntries);
         await m.createTable(settings);
+        return;
+      }
+      if (from < 3) {
+        // Профили: существующие списки, вход в GitHub и недавние запросы
+        // переходят в профиль «Основной».
+        await m.createTable(profiles);
+        final login = await (select(
+          settings,
+        )..where((t) => t.key.equals('sync_login'))).getSingleOrNull();
+        await into(profiles).insert(
+          ProfilesCompanion.insert(
+            id: const Value(defaultProfileId),
+            name: 'Основной',
+            githubLogin: Value(login?.value),
+            createdAt: DateTime.now(),
+          ),
+        );
+        await m.alterTable(
+          TableMigration(
+            libraryEntries,
+            newColumns: [libraryEntries.profileId],
+            columnTransformer: {
+              libraryEntries.profileId: const Constant(defaultProfileId),
+            },
+          ),
+        );
+        for (final key in [
+          'sync_gist_id',
+          'sync_login',
+          'sync_last_synced_at',
+          'recent_searches',
+        ]) {
+          await customStatement('UPDATE settings SET key = ? WHERE key = ?', [
+            'p$defaultProfileId:$key',
+            key,
+          ]);
+        }
+        await into(settings).insertOnConflictUpdate(
+          SettingsCompanion.insert(
+            key: 'active_profile',
+            value: '$defaultProfileId',
+          ),
+        );
       }
     },
+    beforeOpen: (details) => customStatement('PRAGMA foreign_keys = ON'),
   );
 
   Future<CachedAnimeRow?> animeById(int id) =>

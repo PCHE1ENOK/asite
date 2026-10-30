@@ -8,6 +8,7 @@ import '../github/github_auth.dart';
 import '../github/github_exception.dart';
 import '../github/token_store.dart';
 import '../library/library_repository.dart';
+import '../profiles/profile_repository.dart';
 import '../models/library_entry.dart';
 import 'library_codec.dart';
 import 'library_merge.dart';
@@ -91,6 +92,7 @@ class SyncService {
     required this._tokens,
     required this._auth,
     required this._gistClient,
+    required this.profiles,
     this.debounce = const Duration(seconds: 5),
     DateTime Function()? clock,
   }) : _now = clock ?? DateTime.now;
@@ -103,9 +105,16 @@ class SyncService {
   final Duration debounce;
   final DateTime Function() _now;
 
-  static const _gistIdKey = 'sync_gist_id';
-  static const _loginKey = 'sync_login';
-  static const _lastSyncedKey = 'sync_last_synced_at';
+  /// Профили: привязка логина GitHub к профилю списков.
+  final ProfileRepository profiles;
+
+  int get profileId => _library.profileId;
+
+  String get _gistIdKey =>
+      ProfileRepository.settingKey(profileId, 'sync_gist_id');
+  String get _loginKey => ProfileRepository.settingKey(profileId, 'sync_login');
+  String get _lastSyncedKey =>
+      ProfileRepository.settingKey(profileId, 'sync_last_synced_at');
 
   final state = ValueNotifier<SyncState>(const SyncState.signedOut());
 
@@ -163,6 +172,14 @@ class SyncService {
       client.close();
     }
 
+    // Один аккаунт GitHub — один профиль: иначе списки разных людей
+    // смешаются. Токен не сохраняем, списки профиля не трогаем.
+    try {
+      await profiles.bindGitHub(profileId, login);
+    } on GitHubAccountInUse catch (e) {
+      throw GitHubException(GitHubErrorKind.accountInUse, e.message);
+    }
+
     // Новый аккаунт: старая привязка к Gist не годится.
     await _db.putSetting(_gistIdKey, null);
     await _tokens.write(token);
@@ -190,6 +207,7 @@ class SyncService {
     await _db.putSetting(_gistIdKey, null);
     await _db.putSetting(_loginKey, null);
     await _db.putSetting(_lastSyncedKey, null);
+    await profiles.unbindGitHub(profileId);
     await _publishIdle();
   }
 

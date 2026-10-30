@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+
 import 'config/app_config.dart';
 import 'data/anilist/anilist_client.dart';
 import 'data/anime_repository.dart';
@@ -7,38 +11,52 @@ import 'data/github/github_auth.dart';
 import 'data/github/token_store.dart';
 import 'data/library/library_repository.dart';
 import 'data/music/music_recognition.dart';
+import 'data/profiles/profile_repository.dart';
 import 'data/settings/app_preferences.dart';
 import 'data/sync/sync_service.dart';
 
-/// Сервисы приложения, общие для всех платформ.
+/// Списки и синхронизация одного профиля.
+class ProfileSession {
+  ProfileSession({
+    required this.profile,
+    required this.library,
+    required this.sync,
+  });
+
+  final Profile profile;
+  final LibraryRepository library;
+  final SyncService sync;
+}
+
+/// Сервисы приложения, общие для всех платформ. Списки и синхронизация
+/// принадлежат активному профилю ([session]) и пересоздаются при
+/// переключении.
 class AppServices {
   AppServices({
     required this.db,
     required this.anime,
-    required this.library,
     required this.preferences,
-    required this.sync,
+    required this.profiles,
     required this.music,
-  });
+    required this.tokensFor,
+    required ProfileSession Function(Profile) sessionFactory,
+    required Profile initialProfile,
+  }) : _sessionFactory = sessionFactory,
+       session = ValueNotifier(sessionFactory(initialProfile));
 
-  factory AppServices.create() {
+  /// Сервисы для приложения: база в каталоге данных, сеть, токены в
+  /// защищённом хранилище.
+  static Future<AppServices> open() async {
     final db = AppDatabase.open();
-    final library = LibraryRepository(db);
+    final profiles = ProfileRepository(db);
     final preferences = AppPreferences(db);
+    TokenStore tokensFor(int id) => SecureTokenStore(profileId: id);
     return AppServices(
       db: db,
       anime: AnimeRepository(client: AniListClient(), db: db),
-      library: library,
       preferences: preferences,
-      sync: SyncService(
-        library: library,
-        db: db,
-        tokens: SecureTokenStore(),
-        auth: () => AppConfig.hasGitHubClientId
-            ? GitHubAuth(clientId: AppConfig.githubClientId)
-            : null,
-        gistClient: GistClient.new,
-      ),
+      profiles: profiles,
+      tokensFor: tokensFor,
       // Этап 4.5: заглушка заменится распознавателем на Chromaprint +
       // AcoustID, звук — из AudioSnippetSource слоя источников.
       music: MusicRecognitionGate(
@@ -46,15 +64,70 @@ class AppServices {
         hasApiKey: AppConfig.hasAcoustIdApiKey,
         recognizer: const StubMusicRecognizer(),
       ),
+      sessionFactory: (profile) {
+        final library = LibraryRepository(db, profileId: profile.id);
+        return ProfileSession(
+          profile: profile,
+          library: library,
+          sync: SyncService(
+            library: library,
+            db: db,
+            tokens: tokensFor(profile.id),
+            profiles: profiles,
+            auth: () => AppConfig.hasGitHubClientId
+                ? GitHubAuth(clientId: AppConfig.githubClientId)
+                : null,
+            gistClient: GistClient.new,
+          ),
+        );
+      },
+      initialProfile: await profiles.active(),
     );
   }
 
   final AppDatabase db;
   final AnimeRepository anime;
-  final LibraryRepository library;
   final AppPreferences preferences;
-  final SyncService sync;
+  final ProfileRepository profiles;
 
   /// Распознавание музыки в плеере.
   final MusicRecognizer music;
+
+  /// Хранилище токена GitHub профиля.
+  final TokenStore Function(int profileId) tokensFor;
+  final ProfileSession Function(Profile) _sessionFactory;
+
+  /// Активный профиль со своими списками и синхронизацией.
+  final ValueNotifier<ProfileSession> session;
+
+  Profile get profile => session.value.profile;
+  LibraryRepository get library => session.value.library;
+  SyncService get sync => session.value.sync;
+
+  /// Переключает профиль: синхронизация старого останавливается, новый
+  /// синхронизируется сразу.
+  Future<void> switchProfile(int profileId) async {
+    if (profileId == profile.id) return;
+    final next = await profiles.byId(profileId);
+    if (next == null) return;
+    final old = session.value;
+    await profiles.setActive(profileId);
+    session.value = _sessionFactory(next);
+    await old.sync.dispose();
+    unawaited(session.value.sync.start());
+  }
+
+  /// Создаёт профиль и сразу переключается на него.
+  Future<Profile> addProfile(String name, {int color = 0}) async {
+    final p = await profiles.create(name, color: color);
+    await switchProfile(p.id);
+    return p;
+  }
+
+  /// Удаляет профиль с устройства: списки, настройки и токен. Gist на
+  /// GitHub не трогается.
+  Future<void> deleteProfile(int profileId) async {
+    await profiles.delete(profileId);
+    await tokensFor(profileId).delete();
+  }
 }

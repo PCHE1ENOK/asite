@@ -8,19 +8,27 @@ import '../models/library_entry.dart';
 /// Каждое изменение получает `updatedAt` = текущее время и флаг `dirty`
 /// до отправки в Gist; после изменения вызывается [onChanged].
 class LibraryRepository {
-  LibraryRepository(this._db, {DateTime Function()? clock})
-    : _now = clock ?? DateTime.now;
+  LibraryRepository(
+    this._db, {
+    this.profileId = AppDatabase.defaultProfileId,
+    DateTime Function()? clock,
+  }) : _now = clock ?? DateTime.now;
 
   final AppDatabase _db;
+
+  /// Профиль, к которому относятся все чтения и записи.
+  final int profileId;
   final DateTime Function() _now;
 
   /// Вызывается после каждого локального изменения (для автоотправки).
   void Function()? onChanged;
 
   Future<LibraryEntry?> entry(int mediaId) async {
-    final row = await (_db.select(
-      _db.libraryEntries,
-    )..where((t) => t.mediaId.equals(mediaId))).getSingleOrNull();
+    final row =
+        await (_db.select(_db.libraryEntries)..where(
+              (t) => t.profileId.equals(profileId) & t.mediaId.equals(mediaId),
+            ))
+            .getSingleOrNull();
     final e = row == null ? null : _fromRow(row);
     return e == null || e.deleted ? null : e;
   }
@@ -28,19 +36,21 @@ class LibraryRepository {
   /// Записи без удалённых, по убыванию времени изменения.
   Stream<List<LibraryEntry>> watchEntries({ListStatus? status}) {
     final q = _db.select(_db.libraryEntries)
-      ..where((t) => t.deleted.equals(false))
+      ..where((t) => t.profileId.equals(profileId) & t.deleted.equals(false))
       ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
     if (status != null) q.where((t) => t.status.equals(status.apiValue));
     return q.watch().map((rows) => [for (final r in rows) ?_fromRow(r)]);
   }
 
   Stream<LibraryEntry?> watchEntry(int mediaId) =>
-      (_db.select(
-        _db.libraryEntries,
-      )..where((t) => t.mediaId.equals(mediaId))).watchSingleOrNull().map((r) {
-        final e = r == null ? null : _fromRow(r);
-        return e == null || e.deleted ? null : e;
-      });
+      (_db.select(_db.libraryEntries)..where(
+            (t) => t.profileId.equals(profileId) & t.mediaId.equals(mediaId),
+          ))
+          .watchSingleOrNull()
+          .map((r) {
+            final e = r == null ? null : _fromRow(r);
+            return e == null || e.deleted ? null : e;
+          });
 
   /// Отмечает серию [episode] просмотренной: прогресс поднимается до неё.
   /// Тайтл без статуса становится «Смотрю», последняя серия —
@@ -95,14 +105,19 @@ class LibraryRepository {
 
   /// Все записи, включая удалённые, для синхронизации.
   Future<List<LibraryEntry>> allForSync() async => [
-    for (final r in await _db.select(_db.libraryEntries).get()) ?_fromRow(r),
+    for (final r in await (_db.select(
+      _db.libraryEntries,
+    )..where((t) => t.profileId.equals(profileId))).get())
+      ?_fromRow(r),
   ];
 
   /// Есть ли на устройстве хотя бы один тайтл в списках.
   Future<bool> hasEntries() async {
     final row =
         await (_db.select(_db.libraryEntries)
-              ..where((t) => t.deleted.equals(false))
+              ..where(
+                (t) => t.profileId.equals(profileId) & t.deleted.equals(false),
+              )
               ..limit(1))
             .getSingleOrNull();
     return row != null;
@@ -112,7 +127,10 @@ class LibraryRepository {
     final count = _db.libraryEntries.mediaId.count();
     final q = _db.selectOnly(_db.libraryEntries)
       ..addColumns([count])
-      ..where(_db.libraryEntries.dirty.equals(true));
+      ..where(
+        _db.libraryEntries.profileId.equals(profileId) &
+            _db.libraryEntries.dirty.equals(true),
+      );
     return q.map((r) => r.read(count) ?? 0).watchSingle();
   }
 
@@ -140,9 +158,11 @@ class LibraryRepository {
 
   /// Убирает тайтл из списков (запись остаётся как удалённая).
   Future<void> remove(int mediaId) async {
-    final row = await (_db.select(
-      _db.libraryEntries,
-    )..where((t) => t.mediaId.equals(mediaId))).getSingleOrNull();
+    final row =
+        await (_db.select(_db.libraryEntries)..where(
+              (t) => t.profileId.equals(profileId) & t.mediaId.equals(mediaId),
+            ))
+            .getSingleOrNull();
     final e = row == null ? null : _fromRow(row);
     if (e == null || e.deleted) return;
     await _write(e.copyWith(deleted: true, updatedAt: _stamp()), dirty: true);
@@ -159,9 +179,12 @@ class LibraryRepository {
     required bool Function(LibraryEntry) isClean,
   }) => _db.transaction(() async {
     for (final e in changed) {
-      final row = await (_db.select(
-        _db.libraryEntries,
-      )..where((t) => t.mediaId.equals(e.mediaId))).getSingleOrNull();
+      final row =
+          await (_db.select(_db.libraryEntries)..where(
+                (t) =>
+                    t.profileId.equals(profileId) & t.mediaId.equals(e.mediaId),
+              ))
+              .getSingleOrNull();
       final current = row == null ? null : _fromRow(row);
       if (current != snapshot[e.mediaId]) continue;
       await _write(e, dirty: !isClean(e));
@@ -187,9 +210,11 @@ class LibraryRepository {
     LibraryEntry Function(LibraryEntry) change, {
     ListStatus defaultStatus = ListStatus.planning,
   }) async {
-    final row = await (_db.select(
-      _db.libraryEntries,
-    )..where((t) => t.mediaId.equals(mediaId))).getSingleOrNull();
+    final row =
+        await (_db.select(_db.libraryEntries)..where(
+              (t) => t.profileId.equals(profileId) & t.mediaId.equals(mediaId),
+            ))
+            .getSingleOrNull();
     final now = _stamp();
     var current = row == null ? null : _fromRow(row);
     if (current == null || current.deleted) {
@@ -215,7 +240,8 @@ class LibraryRepository {
       .into(_db.libraryEntries)
       .insertOnConflictUpdate(
         LibraryEntriesCompanion.insert(
-          mediaId: Value(e.mediaId),
+          profileId: profileId,
+          mediaId: e.mediaId,
           status: e.status.apiValue,
           progress: Value(e.progress),
           score: Value(e.score),

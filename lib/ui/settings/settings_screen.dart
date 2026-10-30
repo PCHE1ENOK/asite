@@ -5,10 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../data/profiles/profile_repository.dart';
 import '../../data/settings/app_preferences.dart';
 import '../../data/sync/sync_service.dart';
 import '../app_scope.dart';
 import '../login_flow.dart';
+import '../profiles/profile_widgets.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/badges.dart';
@@ -46,7 +48,20 @@ class SettingsScreen extends StatelessWidget {
                             : AppText.displayStyle,
                       ),
                       const SizedBox(height: 24),
-                      _AccountGroup(sync: scope.services.sync),
+                      const _ProfilesGroup(),
+                      _AccountGroup(
+                        sync: scope.services.sync,
+                        profileName: scope.services.profile.name,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Text(
+                          'Настройки ниже общие для всех профилей на этом устройстве',
+                          style: AppText.label.copyWith(
+                            color: context.tokens.fg2,
+                          ),
+                        ),
+                      ),
                       _Group(
                         title: 'Каталог',
                         rows: [
@@ -152,6 +167,7 @@ class _Row extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.leading,
+    this.avatar,
     required this.trailing,
     this.onTap,
   });
@@ -159,6 +175,9 @@ class _Row extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget? leading;
+
+  /// Слева от подписи (аватар профиля).
+  final Widget? avatar;
   final Widget trailing;
   final VoidCallback? onTap;
 
@@ -174,6 +193,7 @@ class _Row extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
+              if (avatar != null) ...[avatar!, const SizedBox(width: 12)],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,9 +265,10 @@ class _ThemePicker extends StatelessWidget {
 }
 
 class _AccountGroup extends StatelessWidget {
-  const _AccountGroup({required this.sync});
+  const _AccountGroup({required this.sync, required this.profileName});
 
   final SyncService sync;
+  final String profileName;
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +278,7 @@ class _AccountGroup extends StatelessWidget {
       builder: (context, state, _) {
         if (state.status == SyncStatus.signedOut) {
           return _Group(
-            title: 'Аккаунт и синхронизация',
+            title: 'Аккаунт профиля «$profileName»',
             rows: [
               _Row(
                 title: 'Вход не выполнен',
@@ -286,7 +307,7 @@ class _AccountGroup extends StatelessWidget {
           _ => null,
         };
         return _Group(
-          title: 'Аккаунт и синхронизация',
+          title: 'Аккаунт профиля «$profileName»',
           rows: [
             _Row(
               title: v.label,
@@ -317,6 +338,87 @@ class _AccountGroup extends StatelessWidget {
                 },
                 child: const Text('Выйти из GitHub'),
               ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ProfilesGroup extends StatelessWidget {
+  const _ProfilesGroup();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final services = AppScope.of(context).services;
+    return StreamBuilder<List<Profile>>(
+      stream: services.profiles.watchAll(),
+      builder: (context, snapshot) {
+        final profiles = snapshot.data ?? [services.profile];
+        return _Group(
+          title: 'Профили',
+          rows: [
+            for (final p in profiles)
+              FutureBuilder<int>(
+                // Ключ по профилю и логину: подпись обновляется после входа.
+                key: ValueKey('${p.id}:${p.githubLogin}'),
+                future: services.profiles.entryCount(p.id),
+                builder: (context, count) {
+                  final current = p.id == services.profile.id;
+                  return _Row(
+                    title: p.name,
+                    leading: current
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: t.accentSoft,
+                              borderRadius: BorderRadius.circular(AppRadius.xs),
+                            ),
+                            child: Text(
+                              'текущий',
+                              style: AppText.caption.copyWith(color: t.accent),
+                            ),
+                          )
+                        : null,
+                    avatar: ProfileAvatar(profile: p),
+                    subtitle: profileSubtitle(p, count.data ?? 0),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!current)
+                          OutlinedButton(
+                            onPressed: () => services.switchProfile(p.id),
+                            child: const Text('Переключить'),
+                          ),
+                        if (profiles.length > 1)
+                          IconButton(
+                            tooltip: 'Удалить профиль «${p.name}»',
+                            onPressed: () => confirmDeleteProfile(context, p),
+                            icon: const Icon(Symbols.delete_rounded),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            _Row(
+              title: 'Добавить профиль',
+              avatar: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: t.borderStrong),
+                ),
+                child: Icon(Symbols.add_rounded, color: t.fg2, size: 20),
+              ),
+              trailing: const SizedBox.shrink(),
+              onTap: () => showAddProfileDialog(context),
             ),
           ],
         );

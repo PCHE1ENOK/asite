@@ -28,7 +28,7 @@ flutter test test/screenshots --update-goldens --dart-define=SCREENSHOTS=true
 | `05-title-similar-dark.png` | Карточка, «Похожие»: рекомендации и связанные |
 | `06-search-idle-dark.png` | Поиск до ввода: популярное сейчас |
 | `07-search-results-dark.png` | Поиск «Fri»: подсказки с подсветкой и результаты |
-| `08-settings-dark.png` | Настройки: аккаунт, 18+, «Распознавать музыку» (выкл.), тема, версия |
+| `08-settings-dark.png` | Настройки: профили, аккаунт профиля, 18+, «Распознавать музыку» (выкл.), тема, версия |
 | `09-catalog-light.png` | Каталог, 1280×800, светлая тема, свёрнутая панель навигации |
 | `10-title-stats-light.png` | Статистика тайтла, светлая тема |
 | `11-catalog-error-dark.png` | Каталог без сети: ошибка и «Повторить» (светлая тема — тест без сохранённой темы) |
@@ -37,3 +37,4 @@ flutter test test/screenshots --update-goldens --dart-define=SCREENSHOTS=true
 | `14-lists-grid-dark.png` | «Мои списки»: полоса синхронизации, сводка, вкладки со счётчиками, сетка |
 | `15-lists-list-dark.png` | «Мои списки», вид списком: прогресс, рейтинг, статус |
 | `16-title-episode-marked-light.png` | Серия отмечена просмотренной: статус «Смотрю», «Смотреть серию 2», тост с «Отменить» |
+| `17-profile-menu-dark.png` | Меню профилей над аватаром внизу панели навигации |

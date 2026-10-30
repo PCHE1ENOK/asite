@@ -11,9 +11,12 @@ ImageProvider networkImage(String url) => NetworkImage(url);
 
 /// Настройки, которые влияют на несколько экранов сразу.
 class AppSettings extends ChangeNotifier {
-  AppSettings(this._prefs);
+  AppSettings(this._prefs, {this._profileId = 1});
 
   final AppPreferences _prefs;
+
+  /// Профиль, чьи недавние запросы показываются.
+  int _profileId;
 
   bool _showAdult = true;
   ThemePreference _theme = ThemePreference.system;
@@ -38,7 +41,7 @@ class AppSettings extends ChangeNotifier {
   Future<void> load() async {
     _showAdult = await _prefs.showAdult();
     _theme = await _prefs.theme();
-    _recentSearches = await _prefs.recentSearches();
+    _recentSearches = await _prefs.recentSearches(_profileId);
     _musicRecognition = await _prefs.musicRecognition();
     notifyListeners();
   }
@@ -64,15 +67,22 @@ class AppSettings extends ChangeNotifier {
     await _prefs.setTheme(value);
   }
 
+  /// Переключение профиля: недавние запросы у каждого свои.
+  Future<void> setProfile(int profileId) async {
+    _profileId = profileId;
+    _recentSearches = await _prefs.recentSearches(profileId);
+    notifyListeners();
+  }
+
   Future<void> addRecentSearch(String query) async {
-    _recentSearches = await _prefs.addRecentSearch(query);
+    _recentSearches = await _prefs.addRecentSearch(_profileId, query);
     notifyListeners();
   }
 
   Future<void> clearRecentSearches() async {
     _recentSearches = const [];
     notifyListeners();
-    await _prefs.clearRecentSearches();
+    await _prefs.clearRecentSearches(_profileId);
   }
 }
 

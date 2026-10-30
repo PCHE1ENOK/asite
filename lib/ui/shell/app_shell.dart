@@ -7,6 +7,7 @@ import '../../data/sync/sync_service.dart';
 import '../app_scope.dart';
 import '../catalog/catalog_screen.dart';
 import '../lists/lists_screen.dart';
+import '../profiles/profile_widgets.dart';
 import '../search/search_screen.dart';
 import '../settings/settings_screen.dart';
 import '../settings/sync_visuals.dart';
@@ -30,24 +31,33 @@ enum AppTab {
 /// телефоне. У каждой вкладки свой навигатор, поэтому карточка тайтла
 /// открывается внутри вкладки и панель навигации остаётся видна.
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, this.now});
+  const AppShell({
+    super.key,
+    this.now,
+    this.initialTab = AppTab.catalog,
+    this.onTabChanged,
+  });
 
   /// Текущее время для фильтра сезонов (в тестах фиксируется).
   final DateTime? now;
+
+  /// Раздел, открытый при создании (после смены профиля — прежний).
+  final AppTab initialTab;
+  final ValueChanged<AppTab>? onTabChanged;
 
   @override
   State<AppShell> createState() => AppShellState();
 }
 
 class AppShellState extends State<AppShell> {
-  AppTab _tab = AppTab.catalog;
+  late AppTab _tab = widget.initialTab;
   final _navigators = {
     for (final t in AppTab.values) t: GlobalKey<NavigatorState>(),
   };
   final _searchKey = GlobalKey<SearchScreenState>();
 
   /// Вкладки строятся при первом открытии, чтобы не грузить их заранее.
-  final _visited = {AppTab.catalog};
+  late final _visited = {widget.initialTab};
 
   AppTab get tab => _tab;
 
@@ -59,6 +69,7 @@ class AppShellState extends State<AppShell> {
         _tab = tab;
         _visited.add(tab);
       });
+      widget.onTabChanged?.call(tab);
     }
     if (tab == AppTab.search) {
       WidgetsBinding.instance.addPostFrameCallback(
@@ -215,6 +226,11 @@ class _Rail extends StatelessWidget {
                 icon: AppTab.settings.icon,
                 fill: selected == AppTab.settings ? 1 : 0,
               ),
+            ),
+            const SizedBox(height: 4),
+            ProfileMenuButton(
+              extended: extended,
+              onManage: () => onSelect(AppTab.settings),
             ),
           ],
         ),
