@@ -10,12 +10,20 @@ import '../data/sync/sync_service.dart';
 ///
 /// Функциональная заготовка: оформление по дизайну — на этапе 2.
 class LoginFlow extends StatefulWidget {
-  const LoginFlow({super.key, required this.sync, required this.onDone});
+  const LoginFlow({
+    super.key,
+    required this.sync,
+    required this.onDone,
+    this.onSwitchProfile,
+  });
 
   final SyncService sync;
 
   /// Вызывается при входе, пропуске или отмене.
   final VoidCallback onDone;
+
+  /// «Переключиться на «…»», если аккаунт уже привязан к другому профилю.
+  final ValueChanged<int>? onSwitchProfile;
 
   @override
   State<LoginFlow> createState() => _LoginFlowState();
@@ -46,7 +54,11 @@ class _LoginFlowState extends State<LoginFlow> {
       if (mounted) setState(() => _result = result);
     } on GitHubException catch (e) {
       if (mounted && e.kind != GitHubErrorKind.cancelled) {
-        setState(() => _error = e);
+        // Возврат к первому шагу, где показаны ошибка и действия.
+        setState(() {
+          _error = e;
+          _code = null;
+        });
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -136,10 +148,26 @@ class _LoginFlowState extends State<LoginFlow> {
         const SizedBox(height: 24),
         FilledButton(
           onPressed: widget.sync.canSignIn && !_busy ? _start : null,
-          child: Text(
-            _error == null ? 'Войти через GitHub' : 'Попробовать снова',
-          ),
+          child: Text(switch (_error?.kind) {
+            null => 'Войти через GitHub',
+            GitHubErrorKind.accountInUse => 'Войти другим аккаунтом',
+            _ => 'Попробовать снова',
+          }),
         ),
+        if (_error
+            case GitHubException(
+              kind: GitHubErrorKind.accountInUse,
+              conflictProfileId: final id?,
+              conflictProfileName: final name?,
+            )
+            when widget.onSwitchProfile != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: OutlinedButton(
+              onPressed: () => widget.onSwitchProfile!(id),
+              child: Text('Переключиться на «$name»'),
+            ),
+          ),
         if (!widget.sync.canSignIn)
           const Text('Вход недоступен: не задан GITHUB_CLIENT_ID'),
         TextButton(
@@ -167,6 +195,9 @@ class _LoginFlowState extends State<LoginFlow> {
   }
 
   static String _errorText(GitHubException e) => switch (e.kind) {
+    GitHubErrorKind.accountInUse =>
+      '${e.message} Чтобы войти другим аккаунтом, сначала выйдите из этого '
+          'на github.com.',
     GitHubErrorKind.network =>
       'Не удалось связаться с GitHub. Проверьте подключение. '
           'Списки на устройстве не пострадали',
@@ -175,3 +206,21 @@ class _LoginFlowState extends State<LoginFlow> {
     _ => e.message,
   };
 }
+
+/// Открывает вход через GitHub для текущего профиля поверх приложения.
+Future<void> pushLoginFlow(
+  BuildContext context, {
+  required SyncService sync,
+  required Future<void> Function(int profileId) switchProfile,
+}) => Navigator.of(context, rootNavigator: true).push(
+  MaterialPageRoute<void>(
+    builder: (context) => LoginFlow(
+      sync: sync,
+      onDone: () => Navigator.of(context).pop(),
+      onSwitchProfile: (id) {
+        Navigator.of(context).pop();
+        switchProfile(id);
+      },
+    ),
+  ),
+);

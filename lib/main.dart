@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'app_services.dart';
+import 'data/profiles/profile_repository.dart';
 import 'ui/app_scope.dart';
 import 'ui/library_index.dart';
 import 'ui/login_flow.dart';
+import 'ui/profiles/profile_widgets.dart';
 import 'ui/shell/app_shell.dart';
 import 'ui/theme/app_theme.dart';
 
@@ -65,6 +67,7 @@ class _AnimeViewerAppState extends State<AnimeViewerApp> {
   @override
   void dispose() {
     widget.services.session.removeListener(_onProfile);
+    _splashTimer?.cancel();
     _library.dispose();
     super.dispose();
   }
@@ -73,15 +76,27 @@ class _AnimeViewerAppState extends State<AnimeViewerApp> {
   /// текущий раздел открывается заново с данными нового профиля.
   void _onProfile() {
     final old = _library;
-    setState(() => _library = LibraryIndex(widget.services.library));
+    final profile = widget.services.profile;
+    setState(() {
+      _library = LibraryIndex(widget.services.library);
+      _switchingTo = profile;
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
-    widget.settings.setProfile(widget.services.profile.id);
-    _messenger.currentState
-      ?..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text('Профиль «${widget.services.profile.name}»')),
-      );
+    widget.settings.setProfile(profile.id);
+    _splashTimer?.cancel();
+    _splashTimer = Timer(switchSplash, () {
+      if (!mounted) return;
+      setState(() => _switchingTo = null);
+      _messenger.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('Профиль «${profile.name}»')));
+    });
   }
+
+  /// Заставка при переключении профиля (design/screens.md §9).
+  static const switchSplash = Duration(milliseconds: 600);
+  Profile? _switchingTo;
+  Timer? _splashTimer;
 
   void _finishOnboarding() {
     widget.services.preferences.markOnboardingSeen();
@@ -104,6 +119,12 @@ class _AnimeViewerAppState extends State<AnimeViewerApp> {
           theme: AppTheme.build(Brightness.light),
           darkTheme: AppTheme.build(Brightness.dark),
           themeMode: widget.settings.themeMode,
+          builder: (context, child) => Stack(
+            children: [
+              ?child,
+              if (_switchingTo case final p?) _SwitchSplash(profile: p),
+            ],
+          ),
           home: _onboarding
               ? LoginFlow(sync: widget.services.sync, onDone: _finishOnboarding)
               : AppShell(
@@ -112,6 +133,40 @@ class _AnimeViewerAppState extends State<AnimeViewerApp> {
                   initialTab: _tab,
                   onTabChanged: (t) => _tab = t,
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SwitchSplash extends StatelessWidget {
+  const _SwitchSplash({required this.profile});
+
+  final Profile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Positioned.fill(
+      child: Semantics(
+        liveRegion: true,
+        // Над навигатором нет Material: без него текст без стиля темы.
+        child: Material(
+          color: theme.scaffoldBackgroundColor,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ProfileAvatar(profile: profile, size: 88),
+                const SizedBox(height: 20),
+                Text(
+                  'Переключаем на профиль «${profile.name}»…',
+                  style: theme.textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

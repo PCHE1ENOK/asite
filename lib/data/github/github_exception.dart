@@ -23,11 +23,22 @@ enum GitHubErrorKind {
 }
 
 class GitHubException implements Exception {
-  const GitHubException(this.kind, this.message, {this.statusCode});
+  const GitHubException(
+    this.kind,
+    this.message, {
+    this.statusCode,
+    this.conflictProfileId,
+    this.conflictProfileName,
+  });
 
   final GitHubErrorKind kind;
   final String message;
   final int? statusCode;
+
+  /// Для [GitHubErrorKind.accountInUse]: профиль, к которому уже привязан
+  /// аккаунт.
+  final int? conflictProfileId;
+  final String? conflictProfileName;
 
   @override
   String toString() => 'GitHubException(${kind.name}): $message';

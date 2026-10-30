@@ -69,6 +69,7 @@ class SettingsScreen extends StatelessWidget {
                             title: 'Показывать 18+',
                             leading: const AdultBadge(),
                             subtitle: 'Тайтлы для взрослых видны в каталоге и поиске с пометкой 18+',
+                            inlineOnNarrow: true,
                             trailing: Switch.adaptive(
                               value: settings.showAdult,
                               onChanged: settings.setShowAdult,
@@ -84,6 +85,7 @@ class SettingsScreen extends StatelessWidget {
                           _Row(
                             title: 'Распознавать музыку',
                             subtitle: 'Короткий фрагмент звука из серии отправляется на сервер AcoustID для распознавания. Кнопка «Что играет» в плеере',
+                            inlineOnNarrow: true,
                             trailing: Switch.adaptive(
                               value: settings.musicRecognition,
                               onChanged: settings.setMusicRecognition,
@@ -170,6 +172,7 @@ class _Row extends StatelessWidget {
     this.avatar,
     required this.trailing,
     this.onTap,
+    this.inlineOnNarrow = false,
   });
 
   final String title;
@@ -181,9 +184,32 @@ class _Row extends StatelessWidget {
   final Widget trailing;
   final VoidCallback? onTap;
 
+  /// Компактный контрол (переключатель) остаётся справа и на узком экране.
+  final bool inlineOnNarrow;
+
+  /// Уже этой ширины кнопки переносятся под подпись.
+  static const narrow = 480.0;
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final texts = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Flexible(child: Text(title, style: AppText.bodyStrong)),
+            if (leading != null) ...[const SizedBox(width: 8), leading!],
+          ],
+        ),
+        if (subtitle != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(subtitle!, style: AppText.label.copyWith(color: t.fg2)),
+          ),
+      ],
+    );
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.md),
@@ -191,37 +217,29 @@ class _Row extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 56),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              if (avatar != null) ...[avatar!, const SizedBox(width: 12)],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(child: Text(title, style: AppText.bodyStrong)),
-                        if (leading != null) ...[
-                          const SizedBox(width: 8),
-                          leading!,
-                        ],
-                      ],
-                    ),
-                    if (subtitle != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          subtitle!,
-                          style: AppText.label.copyWith(color: t.fg2),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              trailing,
-            ],
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final stacked = c.maxWidth < narrow && !inlineOnNarrow;
+              final head = Row(
+                children: [
+                  if (avatar != null) ...[avatar!, const SizedBox(width: 12)],
+                  Expanded(child: texts),
+                  if (!stacked) ...[const SizedBox(width: 16), trailing],
+                ],
+              );
+              if (!stacked || trailing is SizedBox) return head;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  head,
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FittedBox(fit: BoxFit.scaleDown, child: trailing),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -285,13 +303,12 @@ class _AccountGroup extends StatelessWidget {
                 subtitle: 'Списки хранятся только на этом устройстве',
                 trailing: FilledButton(
                   onPressed: sync.canSignIn
-                      ? () => Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute<void>(
-                            builder: (context) => LoginFlow(
-                              sync: sync,
-                              onDone: () => Navigator.of(context).pop(),
-                            ),
-                          ),
+                      ? () => pushLoginFlow(
+                          context,
+                          sync: sync,
+                          switchProfile: AppScope.of(context)
+                              .services
+                              .switchProfile,
                         )
                       : null,
                   child: const Text('Войти через GitHub'),

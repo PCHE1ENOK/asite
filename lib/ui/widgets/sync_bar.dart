@@ -21,13 +21,10 @@ class SyncBar extends StatelessWidget {
         final v = syncVisual(state, t);
         final Widget? action = switch (state.status) {
           SyncStatus.signedOut when sync.canSignIn => FilledButton(
-            onPressed: () => Navigator.of(context, rootNavigator: true).push(
-              MaterialPageRoute<void>(
-                builder: (context) => LoginFlow(
-                  sync: sync,
-                  onDone: () => Navigator.of(context).pop(),
-                ),
-              ),
+            onPressed: () => pushLoginFlow(
+              context,
+              sync: sync,
+              switchProfile: AppScope.of(context).services.switchProfile,
             ),
             child: const Text('Войти через GitHub'),
           ),

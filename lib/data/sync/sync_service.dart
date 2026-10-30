@@ -177,7 +177,12 @@ class SyncService {
     try {
       await profiles.bindGitHub(profileId, login);
     } on GitHubAccountInUse catch (e) {
-      throw GitHubException(GitHubErrorKind.accountInUse, e.message);
+      throw GitHubException(
+        GitHubErrorKind.accountInUse,
+        e.message,
+        conflictProfileId: e.profile.id,
+        conflictProfileName: e.profile.name,
+      );
     }
 
     // Новый аккаунт: старая привязка к Gist не годится.

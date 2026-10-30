@@ -358,3 +358,73 @@ class ProfileMenuButton extends StatelessWidget {
     );
   }
 }
+
+/// Быстрый выбор профиля на телефоне (долгое нажатие на вкладку «Профиль»).
+Future<void> showProfileSheet(
+  BuildContext context, {
+  required VoidCallback onManage,
+}) {
+  final services = AppScope.of(context).services;
+  final t = context.tokens;
+  return showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    backgroundColor: t.surface1,
+    showDragHandle: true,
+    builder: (sheet) => SafeArea(
+      child: FutureBuilder<List<Profile>>(
+        future: services.profiles.all(),
+        builder: (sheet, snapshot) {
+          final profiles = snapshot.data ?? [services.profile];
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Профили', style: AppText.title),
+                ),
+              ),
+              for (final p in profiles)
+                ListTile(
+                  minTileHeight: 56,
+                  leading: ProfileAvatar(profile: p),
+                  title: Text(p.name, style: AppText.bodyStrong),
+                  subtitle: Text(
+                    p.githubLogin ?? 'Без входа в GitHub',
+                    style: AppText.caption.copyWith(color: t.fg2),
+                  ),
+                  trailing: p.id == services.profile.id
+                      ? Icon(Symbols.check_rounded, color: t.accent)
+                      : null,
+                  onTap: () {
+                    Navigator.pop(sheet);
+                    services.switchProfile(p.id);
+                  },
+                ),
+              ListTile(
+                minTileHeight: 56,
+                leading: const Icon(Symbols.person_add_rounded),
+                title: const Text('Добавить профиль'),
+                onTap: () {
+                  Navigator.pop(sheet);
+                  showAddProfileDialog(context);
+                },
+              ),
+              ListTile(
+                minTileHeight: 56,
+                leading: const Icon(Symbols.manage_accounts_rounded),
+                title: const Text('Управление профилями'),
+                onTap: () {
+                  Navigator.pop(sheet);
+                  onManage();
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    ),
+  );
+}

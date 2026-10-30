@@ -38,3 +38,6 @@ flutter test test/screenshots --update-goldens --dart-define=SCREENSHOTS=true
 | `15-lists-list-dark.png` | «Мои списки», вид списком: прогресс, рейтинг, статус |
 | `16-title-episode-marked-light.png` | Серия отмечена просмотренной: статус «Смотрю», «Смотреть серию 2», тост с «Отменить» |
 | `17-profile-menu-dark.png` | Меню профилей над аватаром внизу панели навигации |
+| `18-phone-settings-dark.png` | Телефон: настройки с группой «Профили» |
+| `19-phone-profile-sheet-dark.png` | Телефон: быстрый выбор профиля по долгому нажатию на «Профиль» |
+| `20-phone-profile-switch-dark.png` | Заставка «Переключаем на профиль…» (0,6 с) |

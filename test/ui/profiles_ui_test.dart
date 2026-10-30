@@ -15,13 +15,22 @@ void main() {
     await UiHarness.settle(tester);
   }
 
+  /// Переключение показывает заставку 0,6 с, затем тост.
+  Future<void> afterSwitch(WidgetTester tester) async {
+    await UiHarness.settle(tester);
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+  }
+
   Future<void> addProfile(WidgetTester tester, String name) async {
     await tester.tap(find.text('Добавить профиль'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, name);
     await tester.tap(find.text('Создать и переключиться'));
     await UiHarness.settle(tester);
-    await tester.pumpAndSettle();
+    expect(find.text('Переключаем на профиль «$name»…'), findsOneWidget);
+    await afterSwitch(tester);
+    expect(find.text('Переключаем на профиль «$name»…'), findsNothing);
   }
 
   testWidgets('settings: profiles group, add with validation, switch', (
@@ -76,7 +85,7 @@ void main() {
     await tester.tap(find.text('Настройки').first);
     await UiHarness.settle(tester);
     await tester.tap(find.text('Переключить'));
-    await UiHarness.settle(tester);
+    await afterSwitch(tester);
     await tester.tap(find.text('Каталог').first);
     await UiHarness.settle(tester);
     expect(find.byType(ListStatusDot), findsOneWidget);
@@ -99,7 +108,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Переключить'));
-    await UiHarness.settle(tester);
+    await afterSwitch(tester);
     await tester.tap(find.byTooltip('Удалить профиль «Каито»'));
     await UiHarness.settle(tester);
     await tester.pumpAndSettle();
@@ -127,6 +136,29 @@ void main() {
     expect(find.text('Без входа в GitHub'), findsOneWidget);
     expect(find.text('Управление профилями'), findsOneWidget);
     await tester.tap(find.text('Управление профилями'));
+    await UiHarness.settle(tester);
+    expect(find.text('Добавить профиль'), findsOneWidget);
+    await h.dispose(tester);
+  });
+
+  testWidgets('phone: long press on «Профиль» opens the profile sheet', (
+    tester,
+  ) async {
+    await h.pump(tester, size: const Size(390, 844));
+    await tester.longPress(find.text('Профиль'));
+    await tester.pumpAndSettle();
+    expect(find.text('Управление профилями'), findsOneWidget);
+    expect(find.text('Без входа в GitHub'), findsOneWidget);
+
+    await tester.tap(find.text('Управление профилями'));
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Добавить профиль'), findsOneWidget);
+
+    // Обычное нажатие по-прежнему открывает вкладку.
+    await tester.tap(find.text('Каталог').last);
+    await UiHarness.settle(tester);
+    await tester.tap(find.text('Профиль'));
     await UiHarness.settle(tester);
     expect(find.text('Добавить профиль'), findsOneWidget);
     await h.dispose(tester);

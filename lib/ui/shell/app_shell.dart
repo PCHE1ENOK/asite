@@ -161,30 +161,66 @@ class AppShellState extends State<AppShell> {
                   ],
                 ),
           bottomNavigationBar: compact
-              ? NavigationBar(
-                  selectedIndex: _tab.index,
-                  onDestinationSelected: (i) => select(AppTab.values[i]),
-                  destinations: [
-                    for (final tab in AppTab.values)
-                      NavigationDestination(
-                        icon: tab == AppTab.settings
-                            ? _ProfileIcon(icon: Symbols.person_rounded)
-                            : Icon(tab.icon),
-                        selectedIcon: tab == AppTab.settings
-                            ? _ProfileIcon(
-                                icon: Symbols.person_rounded,
-                                fill: 1,
-                              )
-                            : Icon(tab.icon, fill: 1),
-                        label: tab == AppTab.settings ? 'Профиль' : tab.label,
-                      ),
-                  ],
+              ? _ProfileLongPress(
+                  onLongPress: () => showProfileSheet(
+                    context,
+                    onManage: () => select(AppTab.settings),
+                  ),
+                  child: NavigationBar(
+                    selectedIndex: _tab.index,
+                    onDestinationSelected: (i) => select(AppTab.values[i]),
+                    destinations: [
+                      for (final tab in AppTab.values)
+                        NavigationDestination(
+                          icon: tab == AppTab.settings
+                              ? _ProfileIcon(icon: Symbols.person_rounded)
+                              : Icon(tab.icon),
+                          selectedIcon: tab == AppTab.settings
+                              ? _ProfileIcon(
+                                  icon: Symbols.person_rounded,
+                                  fill: 1,
+                                )
+                              : Icon(tab.icon, fill: 1),
+                          label: tab == AppTab.settings ? 'Профиль' : tab.label,
+                        ),
+                    ],
+                  ),
                 )
               : null,
         ),
       ),
     );
   }
+}
+
+/// Долгое нажатие на вкладку «Профиль» (последняя часть панели)
+/// открывает быстрый выбор профиля; обычное нажатие проходит к вкладке.
+class _ProfileLongPress extends StatelessWidget {
+  const _ProfileLongPress({required this.child, required this.onLongPress});
+
+  final Widget child;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      child,
+      Positioned(
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: MediaQuery.sizeOf(context).width / AppTab.values.length,
+        child: Semantics(
+          onLongPressHint: 'Сменить профиль',
+          onLongPress: onLongPress,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onLongPress: onLongPress,
+          ),
+        ),
+      ),
+    ],
+  );
 }
 
 class _Rail extends StatelessWidget {

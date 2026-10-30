@@ -147,8 +147,12 @@ void main() {
     return h;
   }
 
-  Future<void> shot(WidgetTester tester, String name) async {
-    await _precacheAll(tester);
+  Future<void> shot(
+    WidgetTester tester,
+    String name, {
+    bool precache = true,
+  }) async {
+    if (precache) await _precacheAll(tester);
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('../../golden/$name.png'),
@@ -234,6 +238,21 @@ void main() {
     await shot(tester, '12-phone-catalog-dark');
     await openTitle(tester);
     await shot(tester, '13-phone-title-dark');
+    await tester.tap(find.text('Профиль'));
+    await UiHarness.settle(tester);
+    await shot(tester, '18-phone-settings-dark');
+    await tester.longPress(find.text('Профиль'));
+    await tester.pumpAndSettle();
+    await shot(tester, '19-phone-profile-sheet-dark');
+    await tester.tap(find.text('Каито').last);
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+    await shot(tester, '20-phone-profile-switch-dark', precache: false);
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
     await h.dispose(tester);
   }, skip: !enabled);
 }
