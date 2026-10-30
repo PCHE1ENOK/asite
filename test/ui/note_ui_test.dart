@@ -68,6 +68,10 @@ void main() {
     expect(find.text('Моя заметка'), findsOneWidget);
     expect(find.text('Записать, почему бросили'), findsOneWidget);
     expect(find.widgetWithText(Tab, 'Заметка'), findsNothing);
+    // Смена вкладки не прячет блок даже на один кадр.
+    await tester.tap(find.text('Описание'));
+    await tester.pump();
+    expect(find.text('Моя заметка'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('Моя заметка')).dy,
       lessThan(tester.getTopLeft(find.byType(TabBar)).dy),

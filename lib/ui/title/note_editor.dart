@@ -19,11 +19,34 @@ import 'episode_list.dart';
 
 /// Блок «Моя заметка» на карточке тайтла — между шапкой и вкладками
 /// (design/screens.md §12).
-class NoteBlock extends StatelessWidget {
+class NoteBlock extends StatefulWidget {
   const NoteBlock({super.key, required this.details, required this.width});
 
   final AnimeDetails details;
   final double width;
+
+  @override
+  State<NoteBlock> createState() => _NoteBlockState();
+}
+
+class _NoteBlockState extends State<NoteBlock> {
+  /// Подписка живёт, пока жив блок: перестроения (смена вкладки) не
+  /// сбрасывают её в «загрузку».
+  Stream<TitleNote?>? _stream;
+  NotesRepository? _repo;
+
+  AnimeDetails get details => widget.details;
+  double get width => widget.width;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final repo = AppScope.of(context).services.notes;
+    if (!identical(repo, _repo)) {
+      _repo = repo;
+      _stream = repo.watchNote(details.id);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +54,7 @@ class NoteBlock extends StatelessWidget {
     final t = context.tokens;
     final dropped = scope.library[details.id]?.status == ListStatus.dropped;
     return StreamBuilder<TitleNote?>(
-      stream: scope.services.notes.watchNote(details.id),
+      stream: _stream,
       builder: (context, snap) {
         if (!snap.hasData && snap.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
