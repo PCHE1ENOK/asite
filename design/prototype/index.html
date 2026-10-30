@@ -478,6 +478,58 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .app[data-platform="ios"] .pcolors { justify-content: center; }
 .app[data-platform="android"] .dialog { border-radius: 28px; }
 .app[data-platform="android"] .btn-danger { border-radius: 20px; }
+.note-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; align-items: start; margin-top: 24px; padding: 16px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-md); }
+.nb-head { grid-column: 1 / -1; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.nb-head .cap { display: inline-flex; gap: 4px; align-items: center; color: var(--fg3); }
+.nb-head .cap svg { width: 14px; height: 14px; }
+.nb-body { display: grid; gap: 6px; min-width: 0; }
+.nb-sum { margin: 0; color: var(--fg); max-width: 65ch; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.nb-empty { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; color: var(--fg2); }
+.vchip { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; }
+.vchip svg { width: 18px; height: 18px; }
+.vbadge { position: absolute; right: 8px; bottom: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--badge-ground); display: grid; place-items: center; }
+.vbadge svg { width: 15px; height: 15px; }
+.nsum { display: flex; gap: 4px; align-items: flex-start; font-size: 12px; line-height: 16px; color: var(--fg2); margin-top: 2px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.nsum svg { width: 12px; height: 12px; vertical-align: -1px; margin-right: 3px; color: var(--fg3); }
+.vfilter { margin: -8px 0 20px; }
+.editor-wrap { position: fixed; inset: 0; z-index: 75; background: #00000066; display: flex; justify-content: flex-end; }
+.editor { width: min(480px, 100%); height: 100%; background: var(--s1); color: var(--fg); border-left: 1px solid var(--border); box-shadow: var(--shadow-3); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; animation: slidein .2s var(--ease); }
+@keyframes slidein { from { transform: translateX(24px); opacity: 0; } }
+.ed-head { display: flex; gap: 8px; align-items: center; padding: 12px 16px 12px 8px; border-bottom: 1px solid var(--border); }
+.ed-head h2 { font-size: 18px; line-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-body { overflow-y: auto; padding: 8px 20px 20px; display: grid; gap: 20px; align-content: start; }
+.ed-sec { display: grid; gap: 10px; }
+.ed-sec h3 { font-size: 15px; }
+.row-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.field textarea, .field select, .field input { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 8px 10px; outline: none; resize: vertical; min-width: 0; }
+.field textarea:focus, .field input:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.field span b { font-weight: 500; color: var(--fg3); float: right; }
+.moments { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.moments li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 4px 4px 4px 10px; background: var(--s2); border-radius: var(--r-sm); }
+.moments .mm { font-size: 12px; color: var(--accent); font-weight: 600; white-space: nowrap; }
+.moments .mt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.moments .icon-btn { width: 32px; height: 32px; }
+.madd { display: grid; grid-template-columns: 72px 84px minmax(0, 1fr); gap: 8px; align-items: end; }
+.madd .btn { grid-column: 1 / -1; justify-self: start; height: 36px; }
+.madd input, .madd select { height: 38px; padding: 0 8px; }
+.vseg { display: grid; grid-template-columns: 1fr 1fr; }
+.vseg button { display: inline-flex; gap: 6px; align-items: center; justify-content: flex-start; height: 40px; }
+.vseg svg { width: 16px; height: 16px; }
+.ed-foot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); }
+.ed-foot .grow { flex: 1; }
+.ed-foot .cap { display: inline-flex; gap: 4px; align-items: center; }
+.ed-foot .cap svg { width: 16px; height: 16px; color: var(--good); }
+.ed-foot .btn:disabled { opacity: .45; cursor: default; }
+.ed-err { display: flex; gap: 8px; align-items: flex-start; color: var(--bad); font-size: 13px; line-height: 18px; flex-basis: 100%; }
+.ed-err svg { width: 18px; height: 18px; flex: none; }
+.demo-fail { font-size: 11px; color: var(--fg3); gap: 4px; }
+.app.m .editor-wrap { background: none; }
+.app.m .editor { width: 100%; border-left: 0; box-shadow: none; animation-name: slideup; }
+@keyframes slideup { from { transform: translateY(24px); opacity: 0; } }
+.app.m .ed-body { padding: 8px 16px 16px; }
+.app.m .vseg button { font-size: 13px; white-space: nowrap; padding: 0 8px; }
+.app.m .note-card { grid-template-columns: minmax(0, 1fr); }
+.app.m .note-card > .btn { justify-self: start; }
 .sample { font-size: 12px; color: var(--fg3); margin-top: 40px; }
 
 /* ---------- телефон ---------- */
@@ -750,6 +802,10 @@ const I = {
   music:'M12 3v10.6A4 4 0 1 0 14 17V7h4V3z',
   ext:'M14 3v2h3.6l-9.8 9.8 1.4 1.4L19 6.4V10h2V3zm5 16H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2z',
   vol_off:'M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.5 2.5V12zm2.5 0c0 .9-.2 1.8-.5 2.6l1.5 1.5A9 9 0 0 0 14 3.2v2.1A7 7 0 0 1 19 12zM4.3 3 3 4.3 7.7 9H3v6h4l5 5v-6.7l4.3 4.3A7 7 0 0 1 14 18.7v2.1a9 9 0 0 0 3.7-1.8L19.7 21 21 19.7l-9-9zM12 4 9.9 6.1 12 8.2z',
+  thumb_up:'M2 21h4V9H2zm20-11a2 2 0 0 0-2-2h-6.3l1-4.6v-.3c0-.4-.2-.8-.4-1.1L13.2 1 6.6 7.6c-.4.4-.6.9-.6 1.4v10a2 2 0 0 0 2 2h9c.8 0 1.5-.5 1.8-1.2l3-7.1c.1-.2.2-.5.2-.7z',
+  thumb_down:'M15 3H6c-.8 0-1.5.5-1.8 1.2l-3 7.1c-.1.2-.2.5-.2.7v2a2 2 0 0 0 2 2h6.3l-1 4.6v.3c0 .4.2.8.4 1.1l1.1 1L16.4 16c.4-.4.6-.9.6-1.4V5a2 2 0 0 0-2-2zm4 0v12h4V3z',
+  edit:'M3 17.2V21h3.8l11-11-3.8-3.8zM20.7 7a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.8 3.8z',
+  dash:'M5 11h14v2H5z',
   full_exit:'M5 16h3v3h2v-5H5zm3-8H5v2h5V5H8zm6 11h2v-3h3v-2h-5zm2-11V5h-2v5h5V8z',
   heart:'M12 21.4 10.6 20C5.4 15.4 2 12.3 2 8.5A5.4 5.4 0 0 1 7.5 3 6 6 0 0 1 12 5a6 6 0 0 1 4.5-2A5.4 5.4 0 0 1 22 8.5c0 3.8-3.4 6.9-8.6 11.5z',
   plus:'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z', skip:'M4 18l8.5-6L4 6zm9-12v12l8.5-6z',
@@ -823,13 +879,30 @@ function saveLists() { const p = prof(); p.lists = {}; DATA.forEach(a => { if (a
 function loadLists(p) { DATA.forEach(a => { const v = p.lists && p.lists[a.id]; a.st = v ? v.st : undefined; a.pr = v ? (v.pr || 0) : undefined; }); $('#demoSync').value = p.sync; }
 function switchProfile(id) {
   if (id === CUR) return;
-  saveLists(); CUR = id; const p = prof(); loadLists(p); S.login = 'start'; closeSheet(); closeDialog();
+  saveLists(); CUR = id; const p = prof(); loadLists(p); S.login = 'start'; closeSheet(); closeDialog(); closeEditor();
   const ov = document.createElement('div'); ov.className = 'switching'; ov.innerHTML = `${avatarHtml(p, 56)}<div>Переключаем на профиль «${esc(p.name)}»…</div>`;
   $('#device').appendChild(ov);
   setTimeout(() => { ov.remove(); render(); toast(`Профиль «${p.name}»`); }, 650);
 }
 
-const S = { genres:new Set(), format:'all', sort:'pop', hideMine:false, tab:'CURRENT', view:'grid', titleId:1, titleTab:'eps', dub:0, lang:'ru', music:false, musicDemo:'found', theme:null, adult:true, login:'start' };
+/* ---------- Заметки о тайтле: личные, у каждого профиля свои ---------- */
+const VERD = {
+  rewatch:{ label:'Стоит пересмотреть', icon:'rw', v:'--accent', badge:'#8399FF' },
+  recommend:{ label:'Советую', icon:'thumb_up', v:'--good', badge:'#4CC38A' },
+  not:{ label:'Не советую', icon:'thumb_down', v:'--bad', badge:'#F27B7B' },
+  none:{ label:'Без вердикта', icon:'dash', v:'--fg3', badge:'#A7ADC0' },
+};
+const DROP_CHIPS = ['Затянуто', 'Скучный сюжет', 'Не зашла рисовка', 'Не понравилась озвучка', 'Нет времени', 'Слишком мрачно'];
+const NOTES = { yu: {
+  1:{ verdict:'recommend', summary:'Безумно и смешно, опенинг — огонь', liked:'Темп, монтаж, химия Момо и Окаруна', reasons:[], reasonText:'', moments:[{ep:1,t:'05:12',text:'Первая встреча Момо и Окаруна'},{ep:4,t:'17:40',text:'Погоня Турбо-бабки'}], at:'вчера' },
+  2:{ verdict:'rewatch', summary:'Тихая и тёплая, пересмотреть зимой', liked:'Музыка и паузы', reasons:[], reasonText:'', moments:[{ep:1,t:'18:20',text:'Метеоритный дождь'}], at:'3 дня назад' },
+  5:{ verdict:'recommend', summary:'Лучший сюжет из всего, что смотрел', liked:'', reasons:[], reasonText:'', moments:[], at:'в марте' },
+  11:{ verdict:'not', summary:'Сильное начало, дальше потерял интерес', liked:'Первая серия-фильм', reasons:['Затянуто','Слишком мрачно'], reasonText:'После 4-й серии стало про шоу-бизнес, а не про детектив', moments:[], at:'2 недели назад' },
+} };
+const notesOf = () => (NOTES[CUR] = NOTES[CUR] || {});
+const E = { id:null, draft:null, dirty:false, status:'idle', failNext:false, mErr:'' };
+
+const S = { genres:new Set(), format:'all', sort:'pop', hideMine:false, tab:'CURRENT', view:'grid', titleId:1, titleTab:'eps', dub:0, lang:'ru', music:false, musicDemo:'found', theme:null, verdictFilter:'all', adult:true, login:'start' };
 try { const t = localStorage.getItem('ai-theme'); if (t) { S.theme = t; document.documentElement.dataset.theme = t; } } catch(e) {}
 
 const $ = s => document.querySelector(s);
@@ -838,14 +911,15 @@ const scoreCls = v => v == null ? '' : v >= 75 ? 'good' : v >= 60 ? 'warn' : 'ba
 const art = (a, big) => `<div class="art" style="background:radial-gradient(70% 50% at 70% 20%, hsl(${a.h+30} 70% 62% / .55), transparent 70%), linear-gradient(165deg, hsl(${a.h} 52% 42%), hsl(${a.h+40} 58% 16%))"><span class="glyph">${esc(a.t[0])}</span>${big ? '' : `<span class="ttl">${esc(a.t)}</span>`}</div>`;
 const fmtK = n => n.toLocaleString('ru-RU');
 
-function card(a) {
+function card(a, withNote) {
+  const nt = withNote && notesOf()[a.id];
   const st = a.st ? `<span class="stdot" style="background:var(${STATUS[a.st].v})" title="${STATUS[a.st].label}">${ic(a.st)}</span>` : '';
   const pr = a.st === 'CURRENT' ? `<span class="prog"><i style="width:${a.pr / a.ep * 100}%"></i></span>` : '';
   return `<div class="card">
     <a href="#title" data-open="${a.id}" class="poster" aria-label="${esc(a.t)}">${art(a)}
       <span class="score ${scoreCls(a.sc)}" title="Рейтинг AniList"><i></i>${a.sc}</span>${a.adult ? '<span class="adult" title="Для взрослых">18+</span>' : ''}${st}${pr}
-      <span class="btn btn-filled hover-cta" aria-hidden="true">${ic('play')}Смотреть</span></a>
-    <div><div class="name">${esc(a.t)}</div><div class="cap">${a.f} · ${a.y} · ${a.st === 'CURRENT' ? `${a.pr} / ${a.ep}` : a.ep} эп.</div></div>
+      <span class="btn btn-filled hover-cta" aria-hidden="true">${ic('play')}Смотреть</span>${nt ? `<span class="vbadge" style="color:${VERD[nt.verdict].badge}" title="Моя заметка: ${VERD[nt.verdict].label}">${ic(VERD[nt.verdict].icon)}</span>` : ''}</a>
+    <div><div class="name">${esc(a.t)}</div><div class="cap">${a.f} · ${a.y} · ${a.st === 'CURRENT' ? `${a.pr} / ${a.ep}` : a.ep} эп.</div>${nt && nt.summary ? `<div class="nsum" title="${esc(nt.summary)}">${ic('edit')}${esc(nt.summary)}</div>` : ''}</div>
   </div>`;
 }
 
@@ -897,15 +971,19 @@ function viewLists() {
         <div class="frame">${art(a, true)}<span class="prog"><i style="width:${a.id === 1 ? 42 : 18}%"></i></span><span class="play">${ic('play')}</span></div>
         <div><div class="name" style="font-weight:600;font-size:14px">${esc(a.t)}</div><div class="cap">Серия ${a.pr + 1} · осталось ${a.id === 1 ? 14 : 20} мин</div></div>
       </a>`).join('')}</div><div class="overline" style="margin-bottom:12px">Все в «Смотрю»</div>` : '';
-  const body = items.length ? `<div class="grid">${items.map(card).join('')}</div>`
-    : `<div class="state">${ic(S.tab)}<h3>Пока пусто</h3><div>Здесь появятся тайтлы со статусом «${STATUS[S.tab].label}».</div><a class="btn btn-outline" href="#catalog" style="text-decoration:none">Открыть каталог</a></div>`;
+  const vf = S.verdictFilter || 'all';
+  const shown = items.filter(a => { const n = notesOf()[a.id]; return vf === 'all' || (vf === 'any' ? !!n : n && n.verdict === vf); });
+  const vfilter = `<div class="toolbar vfilter" role="group" aria-label="Фильтр по заметкам"><span class="cap">Заметки:</span>${[['all','Все'],['any','С заметкой'],['recommend','Советую'],['rewatch','Стоит пересмотреть'],['not','Не советую'],['none','Без вердикта']].map(([k,l]) => `<button class="chip" type="button" data-vf="${k}" aria-pressed="${vf === k}">${VERD[k] ? `<span style="color:var(${VERD[k].v});display:inline-flex">${ic(VERD[k].icon)}</span>` : ''}${l}</button>`).join('')}</div>`;
+  const body = !items.length ? null : shown.length ? `${vfilter}<div class="grid">${shown.map(x => card(x, true)).join('')}</div>`
+    : `${vfilter}<div class="state">${ic('edit')}<h3>Нет тайтлов с таким вердиктом</h3><div>Вердикт ставится в заметке на карточке тайтла.</div><button class="btn btn-outline" type="button" data-vf="all">Показать все</button></div>`;
+  const bodyFinal = body || `<div class="state">${ic(S.tab)}<h3>Пока пусто</h3><div>Здесь появятся тайтлы со статусом «${STATUS[S.tab].label}».</div><a class="btn btn-outline" href="#catalog" style="text-decoration:none">Открыть каталог</a></div>`;
   return `<div class="page">
     <div class="head"><h1>Мои списки</h1></div>
     ${syncBar()}<div class="cap">Всего ${tot} тайтлов</div>
     ${tot ? a_bar(counts) : `<div class="statusbar" role="img" aria-label="Списки пусты"><i style="flex:1;background:var(--s3);border-radius:4px"></i></div>`}
     <div class="legend">${ORDER.map(k => `<span><span style="color:var(${STATUS[k].v});display:inline-flex">${ic(k)}</span>${STATUS[k].label} <b>${counts[k]}</b></span>`).join('')}</div>
     <div class="tabs" role="tablist">${ORDER.map(k => `<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${S.tab === k}">${STATUS[k].label}<span class="count">${counts[k]}</span></button>`).join('')}</div>
-    ${cont}${body}
+    ${cont}${bodyFinal}
     <p class="sample">Примерные данные. В прототипе показаны только тайтлы из демо-каталога.</p>
   </div>`;
 }
@@ -987,6 +1065,7 @@ function paintSearch(loading) {
   box.innerHTML = `${q.length >= 2 ? `<div class="suggest"><div>${res.slice(0,3).map(a => `<a class="sline" href="#title" data-open="${a.id}"><span class="mini">${art(a, true)}</span><span><div>${hl(a.t, q)}</div><div class="cap">${hl(a.o, q)} · ${a.f} · ${a.y}</div></span><span class="score ${scoreCls(a.sc)}" style="position:static;margin-left:auto"><i></i>${a.sc}</span></a>`).join('')}</div></div>` : ''}
     <div class="overline" style="margin-bottom:12px">Результаты · ${res.length}</div><div class="grid">${res.map(card).join('')}</div>`;
 }
+document.addEventListener('input', e => { if (E.id) editorInput(e.target.id, e.target.value); });
 document.addEventListener('input', e => {
   if (e.target.id !== 'sq') return;
   SQ = e.target.value; clearTimeout(sTimer);
@@ -1029,6 +1108,75 @@ function viewSettings() {
     <p class="sample">Прототип: логин, Gist и номер сборки примерные.</p>
   </div></div>`;
 }
+
+/* ---------- Заметка: блок на карточке и редактор ---------- */
+function noteBlock(a) {
+  const n = notesOf()[a.id], pf = prof();
+  const head = `<div class="nb-head"><h3>Моя заметка</h3><span class="cap">${ic('lock')}видна только в профиле «${esc(pf.name)}»</span></div>`;
+  if (!n) return `<section class="note-card empty">${head}<div class="nb-empty"><span>${a.st === 'DROPPED' ? 'Записать, почему бросили' : 'Записать, почему бросили или что понравилось'}</span><button class="btn btn-tonal" type="button" data-act="nEdit">${ic('edit')}Добавить заметку</button></div></section>`;
+  const V = VERD[n.verdict];
+  return `<section class="note-card">${head}
+    <div class="nb-body"><span class="vchip" style="color:var(${V.v})">${ic(V.icon)}${V.label}</span>
+      <p class="nb-sum">${esc(n.summary || 'Без итога')}</p>
+      <div class="cap">${n.moments.length ? `${n.moments.length} ${n.moments.length === 1 ? 'момент' : n.moments.length < 5 ? 'момента' : 'моментов'} · ` : ''}${n.reasons.length ? 'причина: ' + esc(n.reasons.join(', ')) + ' · ' : ''}обновлено ${esc(n.at)}</div></div>
+    <button class="btn btn-outline" type="button" data-act="nEdit">${ic('edit')}Редактировать</button></section>`;
+}
+function openEditor(id) {
+  const n = notesOf()[id];
+  E.id = id; E.draft = JSON.parse(JSON.stringify(n || { verdict:'none', summary:'', liked:'', reasons:[], reasonText:'', moments:[] })); E.dirty = false; E.status = n ? 'saved' : 'new'; E.mErr = '';
+  const w = document.createElement('div'); w.className = 'editor-wrap'; w.id = 'editor';
+  w.addEventListener('click', e => { if (e.target === w) askCloseEditor(); });
+  $('#device').appendChild(w); paintEditor();
+  const f = w.querySelector('textarea, input'); if (f && !isMob()) f.focus();
+}
+function paintEditor() {
+  const w = $('#editor'); if (!w) return;
+  const a = DATA.find(x => x.id === E.id), d = E.draft, dropped = a.st === 'DROPPED';
+  const stLine = { new:'Новая заметка', saved:'Сохранено' + (notesOf()[E.id] && notesOf()[E.id].at ? ' · ' + notesOf()[E.id].at : ''), dirty:'Есть несохранённые изменения', saving:'Сохраняем…', error:'' }[E.dirty && E.status !== 'error' ? 'dirty' : E.status];
+  w.innerHTML = `<div class="editor" role="dialog" aria-modal="true" aria-label="Заметка: ${esc(a.t)}">
+    <header class="ed-head"><button class="icon-btn" type="button" data-act="nClose" aria-label="Закрыть">${ic(isMob() ? 'back' : 'DROPPED')}</button><div style="min-width:0"><div class="overline">Моя заметка</div><h2>${esc(a.t)}</h2></div></header>
+    <div class="ed-body">
+      ${dropped || d.reasons.length || d.reasonText ? `<section class="ed-sec"><h3>Почему бросили</h3><div class="row-chips">${DROP_CHIPS.map(c => `<button class="chip" type="button" data-nchip="${esc(c)}" aria-pressed="${d.reasons.includes(c)}">${esc(c)}</button>`).join('')}</div>
+        <label class="field"><span>Своими словами</span><textarea id="nReasonText" rows="2" placeholder="Например: после 4-й серии потерял интерес">${esc(d.reasonText)}</textarea></label></section>` : ''}
+      <section class="ed-sec"><label class="field"><span>Что понравилось</span><textarea id="nLiked" rows="2" placeholder="Музыка, персонажи, отдельные серии…">${esc(d.liked)}</textarea></label></section>
+      <section class="ed-sec"><h3>Запомнившиеся моменты</h3>
+        ${d.moments.length ? `<ul class="moments">${d.moments.map((m, i) => `<li><span class="mm num">Серия ${m.ep} · ${esc(m.t)}</span><span class="mt">${esc(m.text)}</span><button class="icon-btn" type="button" data-mdel="${i}" aria-label="Удалить момент «${esc(m.text)}»">${ic('DROPPED')}</button></li>`).join('')}</ul>` : '<div class="cap">Пока нет. Добавьте серию, время и пару слов.</div>'}
+        <div class="madd"><label class="field"><span>Серия</span><select id="nmEp" class="select">${Array.from({length:a.ep}, (_, i) => `<option${i + 1 === curEp(a) ? ' selected' : ''}>${i + 1}</option>`).join('')}</select></label>
+          <label class="field"><span>Время</span><input id="nmT" inputmode="numeric" placeholder="мм:сс" maxlength="5" value="${fmtT(P.t)}"></label>
+          <label class="field grow"><span>Что произошло</span><input id="nmText" maxlength="80" placeholder="Коротко"></label>
+          <button class="btn btn-outline" type="button" data-act="nmAdd">${ic('plus')}Добавить</button></div>
+        ${E.mErr ? `<div class="dlg-err">${esc(E.mErr)}</div>` : ''}</section>
+      <section class="ed-sec"><h3>Вердикт</h3><div class="seg vseg" role="radiogroup" aria-label="Вердикт">${Object.entries(VERD).map(([k, v]) => `<button type="button" role="radio" data-nverdict="${k}" aria-pressed="${d.verdict === k}" aria-checked="${d.verdict === k}"><span style="color:var(${v.v});display:inline-flex">${ic(v.icon)}</span>${v.label}</button>`).join('')}</div></section>
+      <section class="ed-sec"><label class="field"><span>Итог одной-двумя строками <b class="num" id="nSumCount">${d.summary.length}/140</b></span><textarea id="nSum" rows="2" maxlength="140" placeholder="Это увидите в «Моих списках» под названием">${esc(d.summary)}</textarea></label></section>
+    </div>
+    <footer class="ed-foot">${E.status === 'error' ? `<div class="ed-err" role="alert">${ic('cloud_off')}<span>Не удалось сохранить: нет связи с хранилищем. Изменения не потеряны — они остаются в редакторе.</span></div>` : `<span class="cap" role="status">${E.status === 'saved' && !E.dirty ? ic('check') : ''}${esc(stLine || '')}</span>`}
+      <span class="grow"></span><label class="cap demo-fail"><input type="checkbox" id="nFail" ${E.failNext ? 'checked' : ''}> Демо: ошибка сохранения</label>
+      <button class="btn btn-filled" type="button" data-act="nSave" ${!E.dirty && E.status !== 'error' ? 'disabled' : ''}>${E.status === 'error' ? 'Повторить' : 'Сохранить'}</button></footer>
+  </div>`;
+}
+function editorInput(id, v) {
+  const d = E.draft; if (!d) return;
+  if (id === 'nReasonText') d.reasonText = v; else if (id === 'nLiked') d.liked = v; else if (id === 'nSum') { d.summary = v; const c = $('#nSumCount'); if (c) c.textContent = v.length + '/140'; } else return;
+  if (!E.dirty) { E.dirty = true; paintEditorFoot(); }
+}
+function paintEditorFoot() { const keep = document.activeElement && document.activeElement.id, pos = document.activeElement && document.activeElement.selectionStart; paintEditor(); if (keep && $('#' + keep)) { const el = $('#' + keep); el.focus(); try { el.setSelectionRange(pos, pos); } catch(e) {} } }
+function saveNote(thenClose) {
+  E.status = 'saving'; paintEditor();
+  setTimeout(() => {
+    if (E.failNext) { E.status = 'error'; E.failNext = false; paintEditor(); return; }
+    const d = E.draft; const empty = !d.summary && !d.liked && !d.reasonText && !d.reasons.length && !d.moments.length && d.verdict === 'none';
+    if (empty) delete notesOf()[E.id]; else notesOf()[E.id] = Object.assign(JSON.parse(JSON.stringify(d)), { at:'только что' });
+    E.dirty = false; E.status = 'saved';
+    if (thenClose) { closeEditor(); toast(empty ? 'Пустая заметка удалена' : 'Заметка сохранена'); } else paintEditor();
+    const keepE = $('#editor'); render(); if (keepE && !$('#editor')) $('#device').appendChild(keepE);
+  }, 450);
+}
+function askCloseEditor() {
+  if (!E.dirty) { closeEditor(); return; }
+  openDialog(`<h3>Сохранить изменения в заметке?</h3><p class="dlg-text">Если закрыть без сохранения, правки пропадут.</p>
+    <div class="dlg-acts"><button class="btn btn-text" type="button" data-dlg="close">Продолжить редактирование</button><button class="btn btn-outline" type="button" data-act="nDiscard">Не сохранять</button><button class="btn btn-filled" type="button" data-act="nSaveClose">Сохранить</button></div>`);
+}
+function closeEditor() { const w = $('#editor'); if (w) w.remove(); E.id = null; E.draft = null; E.dirty = false; }
 
 /* ---------- Карточка тайтла ---------- */
 const HIST = [420,310,520,900,2400,6100,15800,31200,28400,14100];
@@ -1095,6 +1243,7 @@ function viewTitle() {
             <div class="menu" role="menu" id="statusMenu" hidden style="left:0">${ORDER.map(k => `<button role="menuitemradio" type="button" data-setst="${k}" aria-checked="${a.st === k}"><span style="color:var(${STATUS[k].v});display:inline-flex">${ic(k)}</span>${STATUS[k].label}${a.st === k ? `<span class="chk">${ic('check')}</span>` : ''}</button>`).join('')}${a.st ? `<hr><button role="menuitem" type="button" data-setst="">Удалить из списка</button>` : ''}</div>
           </div>
         </div></div></div>
+    ${noteBlock(a)}
     <div class="tabs" role="tablist">${Object.entries(tabs).map(([k,v]) => `<button class="tab" role="tab" type="button" data-ttab="${k}" aria-selected="${S.titleTab === k}">${v}</button>`).join('')}</div>
     ${body}
     <p class="sample">Примерные данные: оценки, распределения и позиция в сезоне вымышлены для макета.</p>
@@ -1378,6 +1527,7 @@ function render() {
   $('#main').innerHTML = ROUTES[r]();
   if (r !== 'player') $('#main').scrollTop = 0;
   if (r === 'search') { paintSearch(); const i = $('#sq'); if (i) i.focus(); }
+  if (E.id && r !== 'title' && r !== 'lists') closeEditor();
   if (r !== 'player') { clearTimeout(P.musT); P.mus = null; P.ep = null; P.t = Math.min(P.t, 70); }
   if (r === 'player') syncPlayerUi();
   if (r === 'player') { P.timer = setInterval(playerTick, 1000); playerPaint(); showUi(); }
@@ -1419,6 +1569,21 @@ document.addEventListener('click', e => {
   else if (d.pfdel) { const p = prof(d.pfdel); PROFILES.splice(PROFILES.indexOf(p), 1); closeDialog(); render(); toast(`Профиль «${p.name}» удалён с устройства${p.gh ? '. Gist на GitHub не тронут' : ''}`); }
   else if (d.act === 'retry') { $('#demoState').value = 'loading'; render(); setTimeout(() => { $('#demoState').value = 'data'; render(); }, 900); }
   else if (d.tab) { S.tab = d.tab; render(); }
+  else if (d.vf) { S.verdictFilter = d.vf; render(); }
+  else if (d.act === 'nEdit') openEditor(S.titleId);
+  else if (d.act === 'nClose') askCloseEditor();
+  else if (d.act === 'nSave') saveNote(false);
+  else if (d.act === 'nSaveClose') { closeDialog(); saveNote(true); }
+  else if (d.act === 'nDiscard') { closeDialog(); closeEditor(); toast('Изменения не сохранены'); }
+  else if (d.nchip) { const r = E.draft.reasons, i = r.indexOf(d.nchip); i < 0 ? r.push(d.nchip) : r.splice(i, 1); E.dirty = true; paintEditor(); }
+  else if (d.nverdict) { E.draft.verdict = d.nverdict; E.dirty = true; paintEditor(); }
+  else if (d.mdel) { E.draft.moments.splice(+d.mdel, 1); E.dirty = true; paintEditor(); }
+  else if (d.act === 'nmAdd') {
+    const a = DATA.find(x => x.id === E.id), ep = +$('#nmEp').value, t = $('#nmT').value.trim(), tx = $('#nmText').value.trim();
+    const m = /^(\d{1,2}):([0-5]\d)$/.exec(t);
+    if (!m || +m[1] >= a.d) E.mErr = `Время в формате мм:сс, меньше ${a.d}:00`; else if (!tx) E.mErr = 'Напишите пару слов о моменте'; else { E.mErr = ''; E.draft.moments.push({ ep, t:m[1].padStart(2, '0') + ':' + m[2], text:tx }); E.draft.moments.sort((x, y) => x.ep - y.ep || x.t.localeCompare(y.t)); E.dirty = true; }
+    paintEditor();
+  }
   else if (d.tseason) { S.tseason = +d.tseason; render(); }
   else if (d.ttab) { S.titleTab = d.ttab; render(); }
   else if (d.dub) { S.dub = +d.dub; render(); }
@@ -1484,6 +1649,7 @@ document.addEventListener('click', e => { if (!e.target.closest('#pmenu') && !e.
 document.addEventListener('change', e => {
   if (e.target.id === 'sort') { S.sort = e.target.value; render(); }
   if (e.target.id === 'demoPlatform') render();
+  if (e.target.id === 'nFail') E.failNext = e.target.checked;
   if (e.target.id === 'demoPlayer' && e.target.value === 'play') P.playing = true;
   if (e.target.id === 'demoPlayer') { if (route() === 'player' || route() === 'title') render(); else location.hash = 'player'; }
   if (e.target.id === 'musDemo') { S.musicDemo = e.target.value; runMusic(); }
@@ -1520,6 +1686,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && e.target.id === 'sq') { SQ = ''; e.target.value = ''; paintSearch(); }
   if (e.key === 'Escape' && $('#sheet')) { closeSheet(); return; }
   if (e.key === 'Escape' && $('#dialog')) { closeDialog(); return; }
+  if (e.key === 'Escape' && $('#editor')) { askCloseEditor(); return; }
+  if (e.key === 'Enter' && e.target.id === 'nmText') { e.preventDefault(); document.querySelector('[data-act="nmAdd"]').click(); return; }
   if (e.key === 'Escape' && $('#pmenu')) { $('#pmenu').remove(); return; }
   if (e.key === 'Enter' && e.target.id === 'pfName') { $('[data-act="pfCreate"]').click(); }
   if (!$('#player')) return;

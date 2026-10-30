@@ -1,0 +1,32 @@
+// Заметки о тайтле: 17 проверок на ПК и телефоне. Запуск: node design/prototype/notes.test.js [shots]
+const {chromium}=require('playwright');const fs=require('fs'),path=require('path');
+const os=require('os');const SP=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'ai-notes-')),'n.html');fs.writeFileSync(SP,'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>'+fs.readFileSync(path.join(__dirname,'index.html'),'utf8')+'</body></html>');
+const OUT=path.join(__dirname,'..','screenshots')+'/';const shots=process.argv[2]==='shots';
+const UA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1';
+(async()=>{const b=await chromium.launch();
+const V=[['ПК 1440×900',{viewport:{width:1440,height:900}},'d'],['телефон 390×844',{viewport:{width:390,height:844},isMobile:true,hasTouch:true,userAgent:UA},'m']];
+for(const th of (shots?['dark','light']:['dark']))for(const [vn,o,k] of V){const ctx=await b.newContext({...o,colorScheme:th});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+ const ev=(f,a)=>p.evaluate(f,a);const click=async s=>{const l=p.locator(s).first();if(o.hasTouch)await l.tap({timeout:3000});else await l.click({timeout:3000});await p.waitForTimeout(200)};
+ const shot=async n=>{if(shots)await p.screenshot({path:OUT+n+'-'+(k==='m'?'phone-':'')+th+'.png'})};
+ const res=[];const T=async(n,f)=>{try{res.push([n,(await f())?'OK':'FAIL'])}catch(e){res.push([n,'FAIL '+e.message.split('\n')[0].slice(0,80)])}};
+ await p.goto('file://'+SP+'#title');await p.waitForTimeout(600);
+ await T('Блок заметки на карточке',async()=>{const t=await ev(()=>document.querySelector('.note-card').textContent);await shot('100-note-card');return /Советую/.test(t)&&/Безумно/.test(t)});
+ await T('Открыть редактор',async()=>{await click('[data-act=nEdit]');await shot('101-note-editor');return await ev(()=>!!document.querySelector('#editor'))});
+ await T('Вердикт',async()=>{await click('[data-nverdict=rewatch]');return await ev(()=>E.draft.verdict==='rewatch'&&E.dirty)});
+ await T('Итог и счётчик',async()=>{await p.locator('#nSum').fill('Пересмотреть с друзьями');return await ev(()=>E.draft.summary==='Пересмотреть с друзьями'&&document.querySelector('#nSumCount').textContent==='23/140')});
+ await T('Момент: ошибка времени',async()=>{await p.locator('#nmT').fill('99:99');await p.locator('#nmText').fill('Тест');await click('[data-act=nmAdd]');return await ev(()=>/мм:сс/.test(E.mErr))});
+ await T('Момент: добавить',async()=>{await p.locator('#nmT').fill('12:30');await p.locator('#nmText').fill('Финальная битва');await click('[data-act=nmAdd]');return await ev(()=>E.draft.moments.some(m=>m.text==='Финальная битва'))});
+ await T('Момент: удалить',async()=>{const n0=await ev(()=>E.draft.moments.length);await click('[data-mdel="0"]');return await ev(n0=>E.draft.moments.length===n0-1,n0)});
+ await T('Закрыть с изменениями → диалог',async()=>{await click('[data-act=nClose]');await shot('102-note-unsaved-dialog');return await ev(()=>!!document.querySelector('#dialog'))});
+ await T('Диалог: продолжить редактирование',async()=>{await click('#dialog [data-dlg=close]');return await ev(()=>!document.querySelector('#dialog')&&!!document.querySelector('#editor'))});
+ await T('Ошибка сохранения',async()=>{await click('#nFail');await click('[data-act=nSave]');await p.waitForTimeout(600);await shot('103-note-save-error');return await ev(()=>E.status==='error'&&!!document.querySelector('.ed-err'))});
+ await T('Повторить → сохранено',async()=>{await click('[data-act=nSave]');await p.waitForTimeout(600);await shot('104-note-saved');return await ev(()=>E.status==='saved'&&!E.dirty&&NOTES.yu[1].verdict==='rewatch')});
+ await T('Закрыть без изменений',async()=>{await click('[data-act=nClose]');return await ev(()=>!document.querySelector('#editor')&&/Пересмотреть с друзьями/.test(document.querySelector('.note-card').textContent))});
+ await T('Пустая заметка (другой тайтл)',async()=>{await ev(()=>{S.titleId=4;location.hash='catalog'});await p.waitForTimeout(200);await ev(()=>{location.hash='title'});await p.waitForTimeout(400);await shot('105-note-empty');return await ev(()=>!!document.querySelector('.note-card.empty'))});
+ await T('Брошенный: причины',async()=>{await ev(()=>{S.titleId=11;location.hash='catalog'});await p.waitForTimeout(200);await ev(()=>{location.hash='title'});await p.waitForTimeout(400);await click('[data-act=nEdit]');await shot('106-note-dropped-reasons');const ok=await ev(()=>document.querySelectorAll('[data-nchip]').length===6&&document.querySelector('[data-nchip="Затянуто"]').getAttribute('aria-pressed')==='true');await click('[data-act=nClose]');return ok});
+ await T('Списки: вердикт и итог',async()=>{await ev(()=>{S.tab='COMPLETED';location.hash='lists'});await p.waitForTimeout(400);await shot('107-lists-verdicts');return await ev(()=>document.querySelectorAll('.vbadge').length>=2&&document.querySelectorAll('.nsum').length>=2)});
+ await T('Списки: фильтр «Советую»',async()=>{await click('[data-vf=recommend]');await shot('108-lists-filter-recommend');return await ev(()=>document.querySelectorAll('.grid .card').length===1)});
+ await T('Фильтр без результатов',async()=>{await click('[data-vf=not]');return await ev(()=>!!document.querySelector('.state'))});
+ await ev(()=>{S.verdictFilter='all'});
+ console.log(th,vn,res.filter(r=>r[1]!=='OK').length?res.filter(r=>r[1]!=='OK'):'все '+res.length+' OK',errs);await ctx.close();}
+await b.close();})();
