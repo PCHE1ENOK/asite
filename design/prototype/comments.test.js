@@ -1,7 +1,7 @@
 // Комментарии YouTube: 15 проверок на ПК и телефоне. Запуск: node design/prototype/comments.test.js [shots]
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path'),os=require('os');
 const IDX=path.join(__dirname,'index.html');
-const SP=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'ai-com-')),'c.html');fs.writeFileSync(SP,'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>'+fs.readFileSync(IDX,'utf8')+'</body></html>');
+const SP=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'ai-com-')),'index.html');fs.writeFileSync(SP,fs.readFileSync(IDX,'utf8'));
 const OUT=path.join(path.dirname(IDX),'..','screenshots')+'/';const shots=process.argv[2]==='shots';
 const UA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1';
 (async()=>{const b=await chromium.launch();let fails=0;

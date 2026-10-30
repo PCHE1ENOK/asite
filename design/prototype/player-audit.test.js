@@ -1,7 +1,7 @@
 // Запуск: node design/prototype/player-audit.test.js (нужен Playwright с Chromium)
 const {chromium}=require('playwright');const fs=require('fs'),os=require('os'),path=require('path');
-const SP=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'ai-audit-')),'p.html');
-fs.writeFileSync(SP,'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>'+fs.readFileSync(path.join(__dirname,'index.html'),'utf8')+'</body></html>');
+const SP=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'ai-audit-')),'index.html');
+fs.writeFileSync(SP,fs.readFileSync(path.join(__dirname,'index.html'),'utf8'));
 const UA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 YaBrowser/24.6 Mobile/15E148 Safari/604.1';
 const VIEWS=[['мышь 1280×800',{viewport:{width:1280,height:800}}],['мышь 390×844',{viewport:{width:390,height:844},userAgent:UA}],['мышь 844×390',{viewport:{width:844,height:390},userAgent:UA}],['касание 390×844',{viewport:{width:390,height:844},isMobile:true,hasTouch:true,userAgent:UA}],['касание 844×390',{viewport:{width:844,height:390},isMobile:true,hasTouch:true,userAgent:UA}]];
 (async()=>{const b=await chromium.launch();const results={};

@@ -53,6 +53,8 @@
   --hover:#1417220F; --pressed:#1417221F;
 }
 
+/* Скрытое скрыто всегда, даже если у элемента свой display (панели, меню, тосты) и даже когда файл открыт без обёртки публикации */
+[hidden] { display: none !important; pointer-events: none !important; }
 html, body { height: 100%; }
 body { background: var(--bg); color: var(--fg); font: 400 15px/22px var(--f-text); overflow: hidden; }
 * { box-sizing: border-box; }
