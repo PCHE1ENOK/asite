@@ -72,6 +72,8 @@ svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
 .titlebar .brand { font: 600 12px/1 var(--f-display); color: var(--fg); letter-spacing: .02em; }
 .titlebar .proto { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .titlebar .proto label { color: var(--fg3); }
+.titlebar .pf { display: contents; }
+.proto-toggle { display: none; }
 .titlebar select, .titlebar .tb-btn { height: 24px; border: 1px solid var(--border); background: var(--s1); border-radius: var(--r-xs); padding: 0 6px; font-size: 12px; }
 .winbtns { display: flex; padding-right: max(0px, env(safe-area-inset-right, 0px)); }
 .winbtns span { width: 46px; height: 32px; display: grid; place-items: center; color: var(--fg2); }
@@ -432,10 +434,18 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 
 /* ---------- телефон ---------- */
 @media (max-width: 640px) {
-  .winbtns, .titlebar .proto label, .titlebar .sub { display: none; }
-  .titlebar { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding-right: max(8px, env(safe-area-inset-right, 0px)); }
-  .titlebar .proto { flex: none; }
-  .titlebar select { max-width: 120px; }
+  /* телефон: панель демо-настроек прототипа сворачивается в одну кнопку */
+  .app { grid-template-rows: auto minmax(0, 1fr); }
+  .winbtns, .titlebar .brand { display: none; }
+  .titlebar { flex-wrap: wrap; row-gap: 8px; min-height: 36px; padding-block: 6px; padding-right: max(12px, env(safe-area-inset-right, 0px)); padding-left: max(12px, env(safe-area-inset-left, 0px)); }
+  .titlebar .sub { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .titlebar .proto-toggle { display: inline-flex; flex: none; height: 28px; align-items: center; }
+  .titlebar .proto { display: none; width: 100%; margin-left: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .titlebar.open .proto { display: grid; }
+  .titlebar .pf { display: grid; gap: 2px; min-width: 0; }
+  .titlebar .pf label { font-size: 11px; }
+  .titlebar select { width: 100%; max-width: none; min-width: 0; height: 32px; }
+  .titlebar #themeBtn { height: 32px; grid-column: 1 / -1; }
 }
 .app.m .device { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; }
 .app.m .device > .main { grid-column: 1; grid-row: 2; }
@@ -456,6 +466,7 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .app.m .toolbar { flex-wrap: nowrap; overflow-x: auto; margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px))); padding-right: 16px; padding-bottom: 4px; }
 .app.m .toolbar .right { margin-left: 0; }
 .app.m .chip { flex: none; }
+.app.m .toolbar { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
 .app.m .art .ttl { font-size: 11px; line-height: 14px; }
 .app.m .ep { grid-template-columns: 28px 1fr auto 24px; padding: 6px 4px; }
 .app.m .skip, .app.m .next { bottom: 150px; }
@@ -611,37 +622,38 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 
 <div class="app">
   <header class="titlebar">
-    <span class="brand">Ai</span><span class="sub">Прототип · примерные данные</span>
-    <div class="proto">
-      <label for="demoState">Данные:</label>
+    <span class="brand">Anilist</span><span class="sub">Прототип · примерные данные</span>
+    <button class="tb-btn proto-toggle" id="protoToggle" type="button" aria-expanded="false" aria-controls="protoPanel">Демо-настройки ▾</button>
+    <div class="proto" id="protoPanel">
+      <span class="pf"><label for="demoState">Данные:</label>
       <select id="demoState" aria-label="Состояние данных каталога и поиска">
         <option value="data">с данными</option>
         <option value="loading">загрузка</option>
         <option value="empty">пусто</option>
         <option value="error">ошибка</option>
-      </select>
-      <label for="demoSync">Синхронизация:</label>
+      </select></span>
+      <span class="pf"><label for="demoSync">Синхронизация:</label>
       <select id="demoSync" aria-label="Состояние синхронизации">
         <option value="ok">синхронизировано</option>
         <option value="pending">не синхронизировано</option>
         <option value="syncing">идёт</option>
         <option value="error">ошибка сети</option>
         <option value="out">не вошёл</option>
-      </select>
-      <label for="demoPlayer">Плеер:</label>
+      </select></span>
+      <span class="pf"><label for="demoPlayer">Плеер:</label>
       <select id="demoPlayer" aria-label="Состояние плеера">
         <option value="play">воспроизведение</option>
         <option value="loading">загрузка серии</option>
         <option value="buffering">буферизация</option>
         <option value="error">видео недоступно</option>
         <option value="empty">источники не подключены</option>
-      </select>
-      <label for="demoPlatform">Платформа:</label>
+      </select></span>
+      <span class="pf"><label for="demoPlatform">Платформа:</label>
       <select id="demoPlatform" aria-label="Платформа">
         <option value="windows">Windows</option>
         <option value="ios">iOS</option>
         <option value="android">Android</option>
-      </select>
+      </select></span>
       <button class="tb-btn" id="themeBtn" type="button">Тема</button>
     </div>
     <div class="winbtns" aria-hidden="true">
@@ -1397,6 +1409,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && P.epOpen) { P.epOpen = false; $('#eppanel').hidden = true; return; }
   if (e.key === 'Escape') { if (P.next && P.next.iv) { clearNext(); P.next = { cancelled:true }; } else if (P.dubOpen) { P.dubOpen = false; $('#dubPop').hidden = true; } }
 });
+$('#protoToggle').onclick = () => { const tb = $('.titlebar'), o = tb.classList.toggle('open'); $('#protoToggle').setAttribute('aria-expanded', o); $('#protoToggle').textContent = o ? 'Скрыть ▴' : 'Демо-настройки ▾'; };
 $('#themeBtn').onclick = () => {
   const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   const nx = cur === 'dark' ? 'light' : 'dark';
