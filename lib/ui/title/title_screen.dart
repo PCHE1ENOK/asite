@@ -23,6 +23,7 @@ import '../widgets/state_views.dart';
 import '../widgets/status_widgets.dart';
 import 'episode_actions.dart';
 import 'episode_list.dart';
+import 'note_editor.dart';
 import 'title_charts.dart';
 
 /// Карточка аниме (design/screens.md §3) на данных AniList.
@@ -48,7 +49,8 @@ enum TitleTab {
   episodes('Серии'),
   description('Описание'),
   stats('Статистика'),
-  similar('Похожие');
+  similar('Похожие'),
+  note('Заметка');
 
   const TitleTab(this.label);
 
@@ -263,6 +265,14 @@ class _TitleScreenState extends State<TitleScreen>
           padding: pad,
           sliver: SliverToBoxAdapter(
             child: _Similar(details: d, onOpenTitle: widget.onOpenTitle),
+          ),
+        ),
+      ],
+      TitleTab.note => [
+        SliverPadding(
+          padding: pad,
+          sliver: SliverToBoxAdapter(
+            child: NoteEditor(key: ValueKey(d.id), details: d),
           ),
         ),
       ],

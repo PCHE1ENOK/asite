@@ -11,6 +11,7 @@ import 'data/github/github_auth.dart';
 import 'data/github/token_store.dart';
 import 'data/library/library_repository.dart';
 import 'data/music/music_recognition.dart';
+import 'data/notes/notes_repository.dart';
 import 'data/profiles/profile_repository.dart';
 import 'data/settings/app_preferences.dart';
 import 'data/sources/video_source.dart';
@@ -22,11 +23,15 @@ class ProfileSession {
   ProfileSession({
     required this.profile,
     required this.library,
+    required this.notes,
     required this.sync,
   });
 
   final Profile profile;
   final LibraryRepository library;
+
+  /// Личные заметки о тайтлах.
+  final NotesRepository notes;
   final SyncService sync;
 }
 
@@ -78,11 +83,14 @@ class AppServices {
       ),
       sessionFactory: (profile) {
         final library = LibraryRepository(db, profileId: profile.id);
+        final notes = NotesRepository(db, profileId: profile.id);
         return ProfileSession(
           profile: profile,
           library: library,
+          notes: notes,
           sync: SyncService(
             library: library,
+            notes: notes,
             db: db,
             tokens: tokensFor(profile.id),
             profiles: profiles,
@@ -117,6 +125,7 @@ class AppServices {
 
   Profile get profile => session.value.profile;
   LibraryRepository get library => session.value.library;
+  NotesRepository get notes => session.value.notes;
   SyncService get sync => session.value.sync;
 
   /// Переключает профиль: синхронизация старого останавливается, новый

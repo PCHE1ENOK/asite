@@ -8,8 +8,9 @@ import '../github/github_auth.dart';
 import '../github/github_exception.dart';
 import '../github/token_store.dart';
 import '../library/library_repository.dart';
+import '../models/title_note.dart';
+import '../notes/notes_repository.dart';
 import '../profiles/profile_repository.dart';
-import '../models/library_entry.dart';
 import 'library_codec.dart';
 import 'library_merge.dart';
 
@@ -93,6 +94,7 @@ class SyncService {
     required this._auth,
     required this._gistClient,
     required this.profiles,
+    this.notes,
     this.debounce = const Duration(seconds: 5),
     DateTime Function()? clock,
   }) : _now = clock ?? DateTime.now;
@@ -107,6 +109,9 @@ class SyncService {
 
   /// Профили: привязка логина GitHub к профилю списков.
   final ProfileRepository profiles;
+
+  /// Заметки о тайтлах; синхронизируются в том же файле Gist.
+  final NotesRepository? notes;
 
   int get profileId => _library.profileId;
 
@@ -123,6 +128,9 @@ class SyncService {
   Future<void>? _running;
   bool _rerun = false;
   StreamSubscription<int>? _pendingSub;
+  StreamSubscription<int>? _notesPendingSub;
+  int _libraryPending = 0;
+  int _notesPending = 0;
   bool _lastHadGist = false;
   int _lastConflicts = 0;
 
@@ -133,7 +141,15 @@ class SyncService {
   Future<void> start() async {
     _token = await _tokens.read();
     _library.onChanged = _scheduleSync;
-    _pendingSub ??= _library.watchPendingCount().listen(_onPendingChanged);
+    notes?.onChanged = _scheduleSync;
+    _pendingSub ??= _library.watchPendingCount().listen((c) {
+      _libraryPending = c;
+      _onPendingChanged(_libraryPending + _notesPending);
+    });
+    _notesPendingSub ??= notes?.watchPendingCount().listen((c) {
+      _notesPending = c;
+      _onPendingChanged(_libraryPending + _notesPending);
+    });
     await _publishIdle();
     if (_token != null) await syncNow();
   }
@@ -141,7 +157,9 @@ class SyncService {
   Future<void> dispose() async {
     _debounceTimer?.cancel();
     await _pendingSub?.cancel();
+    await _notesPendingSub?.cancel();
     _library.onChanged = null;
+    notes?.onChanged = null;
     state.dispose();
   }
 
@@ -248,9 +266,11 @@ class SyncService {
 
     final client = _gistClient(token);
     try {
-      final (gistId, remote) = await _loadRemote(client);
+      final (gistId, remoteFile) = await _loadRemote(client);
+      final remote = remoteFile.entries;
       final local = await _library.allForSync();
       final merge = mergeLibraries(local, remote);
+      final notesMerge = await _mergeNotes(remoteFile.notes);
       _lastHadGist = gistId != null;
       _lastConflicts = merge.conflicts;
 
@@ -262,7 +282,10 @@ class SyncService {
         isClean: (e) => remoteById[e.mediaId] == e,
       );
 
-      final content = LibraryCodec.encode(merge.entries);
+      final content = LibraryCodec.encode(
+        merge.entries,
+        notes: notesMerge?.entries ?? const [],
+      );
       if (gistId == null) {
         final id = await client.createGist(
           fileName: LibraryCodec.fileName,
@@ -270,10 +293,11 @@ class SyncService {
           description: LibraryCodec.description,
         );
         await _db.putSetting(_gistIdKey, id);
-      } else if (merge.remoteChanged) {
+      } else if (merge.remoteChanged || (notesMerge?.remoteChanged ?? false)) {
         await client.writeFile(gistId, LibraryCodec.fileName, content);
       }
       await _library.markSynced(merge.entries);
+      if (notesMerge != null) await notes!.markSynced(notesMerge.entries);
       await _db.putSetting(_lastSyncedKey, _now().toUtc().toIso8601String());
       await _publishIdle();
     } on GitHubException catch (e) {
@@ -287,7 +311,7 @@ class SyncService {
       _set(
         SyncState(
           status: SyncStatus.error,
-          pendingCount: await _library.pendingCount(),
+          pendingCount: await _pendingCount(),
           lastSyncedAt: await _lastSyncedAt(),
           login: await _db.setting(_loginKey),
           error: e,
@@ -298,13 +322,31 @@ class SyncService {
     }
   }
 
-  /// Id Gist (`null`, если его ещё нет) и записи из него.
-  Future<(String?, List<LibraryEntry>)> _loadRemote(GistClient client) async {
+  /// Заметки: слияние по `updatedAt` на заметку, как у списков.
+  Future<MergeResult<TitleNote>?> _mergeNotes(List<TitleNote> remote) async {
+    final repo = notes;
+    if (repo == null) return null;
+    final local = await repo.allForSync();
+    final merge = mergeNotes(local, remote);
+    final remoteById = {for (final n in remote) n.mediaId: n};
+    await repo.applyMerged(
+      merge.localChanged,
+      snapshot: {for (final n in local) n.mediaId: n},
+      isClean: (n) => remoteById[n.mediaId] == n,
+    );
+    return merge;
+  }
+
+  Future<int> _pendingCount() async =>
+      await _library.pendingCount() + (await notes?.pendingCount() ?? 0);
+
+  /// Id Gist (`null`, если его ещё нет) и его содержимое.
+  Future<(String?, LibraryFile)> _loadRemote(GistClient client) async {
     var gistId = await _db.setting(_gistIdKey);
     if (gistId != null) {
       try {
         final content = await client.readFile(gistId, LibraryCodec.fileName);
-        return (gistId, LibraryCodec.decode(content));
+        return (gistId, LibraryCodec.decodeFile(content));
       } on GitHubException catch (e) {
         // Gist удалили на GitHub — ищем другой или создаём новый.
         if (e.statusCode != 404) rethrow;
@@ -312,10 +354,10 @@ class SyncService {
       }
     }
     gistId = await client.findGistWithFile(LibraryCodec.fileName);
-    if (gistId == null) return (null, const <LibraryEntry>[]);
+    if (gistId == null) return (null, const LibraryFile());
     await _db.putSetting(_gistIdKey, gistId);
     final content = await client.readFile(gistId, LibraryCodec.fileName);
-    return (gistId, LibraryCodec.decode(content));
+    return (gistId, LibraryCodec.decodeFile(content));
   }
 
   void _scheduleSync() {
@@ -350,7 +392,7 @@ class SyncService {
   }
 
   Future<void> _publishIdle() async {
-    final pending = await _library.pendingCount();
+    final pending = await _pendingCount();
     if (_token == null) {
       _set(SyncState.signedOut(pendingCount: pending));
       return;

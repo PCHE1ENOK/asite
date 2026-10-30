@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:anime_viewer/data/models/library_entry.dart';
+import 'package:anime_viewer/data/models/title_note.dart';
 import 'package:anime_viewer/data/settings/app_preferences.dart';
 
 import 'package:anime_viewer/ui/profiles/profile_widgets.dart';
@@ -185,6 +186,29 @@ void main() {
     await tester.tap(find.text('Похожие'));
     await tester.pumpAndSettle();
     await shot(tester, '05-title-similar-dark');
+    await tester.runAsync(
+      () => h.services.notes.save(
+        TitleNote(
+          mediaId: 16498,
+          updatedAt: DateTime.now(),
+          summary: 'Сильный старт, затянутая середина',
+          verdict: NoteVerdict.recommend,
+          liked: 'Музыка и постановка боёв',
+          moments: const [
+            NoteMoment(
+              episode: 1,
+              timecode: Duration(minutes: 21, seconds: 40),
+              text: 'Стена Мария',
+            ),
+            NoteMoment(episode: 5, text: 'Неожиданный поворот'),
+          ],
+        ),
+      ),
+    );
+    await tester.tap(find.text('Заметка'));
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    await shot(tester, '22-title-note-dark');
 
     await tester.tap(find.text('Поиск').first);
     await UiHarness.settle(tester);

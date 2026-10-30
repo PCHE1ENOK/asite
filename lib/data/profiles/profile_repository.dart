@@ -173,6 +173,9 @@ class ProfileRepository {
         _db.libraryEntries,
       )..where((t) => t.profileId.equals(profileId))).go();
       await (_db.delete(
+        _db.notes,
+      )..where((t) => t.profileId.equals(profileId))).go();
+      await (_db.delete(
         _db.settings,
       )..where((t) => t.key.like('p$profileId:%'))).go();
       await (_db.delete(

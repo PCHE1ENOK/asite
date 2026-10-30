@@ -9,6 +9,7 @@ import 'package:anime_viewer/data/github/gist_client.dart';
 import 'package:anime_viewer/data/github/token_store.dart';
 import 'package:anime_viewer/data/library/library_repository.dart';
 import 'package:anime_viewer/data/music/music_recognition.dart';
+import 'package:anime_viewer/data/notes/notes_repository.dart';
 import 'package:anime_viewer/data/profiles/profile_repository.dart';
 import 'package:anime_viewer/data/settings/app_preferences.dart';
 import 'package:anime_viewer/data/models/anime.dart';
@@ -61,11 +62,14 @@ class UiHarness {
       ),
       sessionFactory: (profile) {
         final library = LibraryRepository(db, profileId: profile.id);
+        final notes = NotesRepository(db, profileId: profile.id);
         return ProfileSession(
           profile: profile,
           library: library,
+          notes: notes,
           sync: SyncService(
             library: library,
+            notes: notes,
             db: db,
             tokens: tokenStore(profile.id),
             profiles: profiles,

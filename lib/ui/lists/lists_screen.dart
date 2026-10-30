@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../data/models/anime.dart';
 import '../../data/models/library_entry.dart';
+import '../../data/models/title_note.dart';
 import '../app_scope.dart';
 import '../format.dart';
 import '../library_index.dart';
@@ -51,6 +54,10 @@ class _ListsScreenState extends State<ListsScreen>
   final Map<int, Anime> _summaries = {};
   Set<int> _requested = {};
   ListsSort _sort = ListsSort.updated;
+
+  /// Краткие итоги заметок для вида «список».
+  Map<int, TitleNote> _notes = const {};
+  StreamSubscription<Map<int, TitleNote>>? _notesSub;
   bool _grid = true;
   bool _initialized = false;
 
@@ -61,11 +68,15 @@ class _ListsScreenState extends State<ListsScreen>
     _initialized = true;
     _library = AppScope.of(context).library..addListener(_loadSummaries);
     _loadSummaries();
+    _notesSub = AppScope.of(context).services.notes
+        .watchAll()
+        .listen((n) => setState(() => _notes = n));
   }
 
   @override
   void dispose() {
     _library.removeListener(_loadSummaries);
+    _notesSub?.cancel();
     _tabs.dispose();
     super.dispose();
   }
@@ -249,6 +260,7 @@ class _ListsScreenState extends State<ListsScreen>
                       itemBuilder: (context, i) => _ListRow(
                         entry: entries[i],
                         anime: _summaries[entries[i].mediaId],
+                        note: _notes[entries[i].mediaId],
                         onTap: widget.onOpenTitle,
                       ),
                     ),
@@ -289,11 +301,13 @@ class _ListRow extends StatelessWidget {
   const _ListRow({
     required this.entry,
     required this.anime,
+    required this.note,
     required this.onTap,
   });
 
   final LibraryEntry entry;
   final Anime? anime;
+  final TitleNote? note;
   final ValueChanged<Anime> onTap;
 
   @override
@@ -334,7 +348,11 @@ class _ListRow extends StatelessWidget {
                     style: AppText.bodyStrong,
                   ),
                   Text(
-                    'обновлено ${Fmt.dayMonth(entry.updatedAt)}',
+                    note?.summary.isNotEmpty ?? false
+                        ? note!.summary.replaceAll('\n', ' ')
+                        : 'обновлено ${Fmt.dayMonth(entry.updatedAt)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: AppText.caption.copyWith(color: t.fg2),
                   ),
                 ],

@@ -67,6 +67,25 @@ class LibraryEntries extends Table {
   Set<Column<Object>> get primaryKey => {profileId, mediaId};
 }
 
+/// Личные заметки о тайтлах в профиле; синхронизируются с Gist вместе
+/// со списками.
+@DataClassName('NoteRow')
+class Notes extends Table {
+  IntColumn get profileId => integer().references(Profiles, #id)();
+  IntColumn get mediaId => integer()();
+
+  /// JSON `TitleNote.toJson()` без служебных полей.
+  TextColumn get payload => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  /// Изменение ещё не отправлено в Gist.
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {profileId, mediaId};
+}
+
 /// Настройки приложения; в отличие от [CacheEntries], не очищаются.
 @DataClassName('SettingRow')
 class Settings extends Table {
@@ -78,7 +97,14 @@ class Settings extends Table {
 }
 
 @DriftDatabase(
-  tables: [CachedAnime, CacheEntries, Profiles, LibraryEntries, Settings],
+  tables: [
+    CachedAnime,
+    CacheEntries,
+    Profiles,
+    LibraryEntries,
+    Settings,
+    Notes,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
@@ -95,7 +121,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   /// Id профиля «Основной», в который переносятся списки из версии 2.
   static const defaultProfileId = 1;
@@ -117,6 +143,7 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(profiles);
         await m.createTable(libraryEntries);
         await m.createTable(settings);
+        await m.createTable(notes);
         return;
       }
       if (from < 3) {
@@ -160,6 +187,10 @@ class AppDatabase extends _$AppDatabase {
             value: '$defaultProfileId',
           ),
         );
+      }
+      if (from < 4) {
+        // Заметки о тайтлах.
+        await m.createTable(notes);
       }
     },
     beforeOpen: (details) => customStatement('PRAGMA foreign_keys = ON'),

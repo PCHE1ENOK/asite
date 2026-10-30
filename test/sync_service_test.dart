@@ -5,6 +5,8 @@ import 'package:anime_viewer/data/github/github_exception.dart';
 import 'package:anime_viewer/data/github/token_store.dart';
 import 'package:anime_viewer/data/library/library_repository.dart';
 import 'package:anime_viewer/data/models/library_entry.dart';
+import 'package:anime_viewer/data/models/title_note.dart';
+import 'package:anime_viewer/data/notes/notes_repository.dart';
 import 'package:anime_viewer/data/profiles/profile_repository.dart';
 import 'package:anime_viewer/data/sync/library_codec.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
@@ -281,5 +283,64 @@ void main() {
     expect((await profiles.byId(1))!.githubLogin, 'octocat');
     await sync.signOut();
     expect((await profiles.byId(1))!.githubLogin, isNull);
+  });
+
+  test('notes sync with the lists in the same Gist file', () async {
+    final notes = NotesRepository(db, clock: () => now);
+    await sync.dispose();
+    sync = SyncService(
+      library: library,
+      notes: notes,
+      db: db,
+      tokens: tokens,
+      profiles: ProfileRepository(db),
+      auth: () => GitHubAuth(
+        clientId: 'client',
+        httpClient: github.client,
+        delay: (_) async {},
+        clock: () => now,
+      ),
+      gistClient: (token) => GistClient(token, httpClient: github.client),
+      clock: () => now,
+    );
+    await sync.start();
+    await notes.save(
+      TitleNote(mediaId: 1, updatedAt: now, summary: 'с устройства'),
+    );
+    await notes.save(TitleNote(mediaId: 2, updatedAt: now, summary: 'старая'));
+    expect(sync.state.value.pendingCount, 0, reason: 'signed out');
+    await signIn();
+
+    var file = LibraryCodec.decodeFile(
+      github.gists.values.single[LibraryCodec.fileName],
+    );
+    expect(file.notes.map((n) => n.summary), ['с устройства', 'старая']);
+    expect(await notes.pendingCount(), 0);
+
+    // Другое устройство обновило заметку 2 и добавило 3.
+    final gistId = github.gists.keys.single;
+    github.gists[gistId]![LibraryCodec.fileName] = LibraryCodec.encode(
+      const [],
+      notes: [
+        file.notes.first,
+        TitleNote(
+          mediaId: 2,
+          updatedAt: now.add(const Duration(hours: 1)),
+          summary: 'новее',
+        ),
+        TitleNote(mediaId: 3, updatedAt: now, summary: 'с телефона'),
+      ],
+    );
+    now = now.add(const Duration(minutes: 1));
+    await notes.save(TitleNote(mediaId: 1, updatedAt: now, summary: 'правка'));
+    await sync.syncNow();
+
+    expect((await notes.note(1))!.summary, 'правка');
+    expect((await notes.note(2))!.summary, 'новее');
+    expect((await notes.note(3))!.summary, 'с телефона');
+    file = LibraryCodec.decodeFile(
+      github.gists.values.single[LibraryCodec.fileName],
+    );
+    expect(file.notes.map((n) => n.summary), ['правка', 'новее', 'с телефона']);
   });
 }
