@@ -119,6 +119,7 @@ flutter pub get
 flutter analyze
 flutter test
 dart run tool/smoke_anilist.dart   # реальные запросы к AniList
+dart run tool/youtube_check.dart "DAN DA DAN"   # почему у тайтла нет видео YouTube (ключ из config/local.json)
 ```
 
 Настройки сборки передаются через `--dart-define-from-file`, в коде значений

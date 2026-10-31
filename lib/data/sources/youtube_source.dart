@@ -6,15 +6,9 @@ import 'package:http/http.dart' as http;
 import '../cache/app_database.dart';
 import '../models/anime.dart';
 import 'video_source.dart';
+import 'youtube_match.dart';
 
-/// Официальный канал правообладателя на YouTube.
-class OfficialChannel {
-  const OfficialChannel(this.handle, this.name);
-
-  /// @-имя канала; id канала узнаётся через API и кэшируется.
-  final String handle;
-  final String name;
-}
+export 'youtube_match.dart' show OfficialChannel;
 
 /// Официальные бесплатные видео правообладателей на YouTube.
 ///
@@ -47,10 +41,7 @@ class YouTubeSource implements VideoSource {
   final DateTime Function() _now;
 
   /// Каналы, которые выкладывают аниме бесплатно и официально.
-  static const defaultChannels = [
-    OfficialChannel('@MuseAsia', 'Muse Asia'),
-    OfficialChannel('@AniOneAsia', 'Ani-One Asia'),
-  ];
+  static const defaultChannels = YouTubeMatch.officialChannels;
 
   static final _api = Uri.parse('https://www.googleapis.com/youtube/v3/');
 
@@ -160,7 +151,9 @@ class YouTubeSource implements VideoSource {
   ) {
     final videoId = (item['id'] as Map?)?['videoId'] as String?;
     final snippet = item['snippet'] as Map?;
-    final videoTitle = _unescape(snippet?['title'] as String? ?? '');
+    final videoTitle = YouTubeMatch.unescape(
+      snippet?['title'] as String? ?? '',
+    );
     if (videoId == null || !matchesTitle(videoTitle, title)) return null;
     final thumbs = snippet?['thumbnails'] as Map?;
     return EmbeddedVideo(
@@ -175,36 +168,9 @@ class YouTubeSource implements VideoSource {
     );
   }
 
-  /// Название ролика содержит одно из названий тайтла (от 4 символов).
-  static bool matchesTitle(String videoTitle, AnimeDetails title) {
-    final v = _norm(videoTitle);
-    final names = [
-      title.anime.title.romaji,
-      title.anime.title.english,
-      title.anime.title.native,
-      ...title.synonyms,
-    ].whereType<String>().map(_norm).where((n) => n.length >= 4);
-    return names.any(v.contains);
-  }
+  static bool matchesTitle(String videoTitle, AnimeDetails title) =>
+      YouTubeMatch.matchesTitle(videoTitle, title);
 
-  /// Номер серии из названия: «Episode 5», «EP05», «Ep. 12», «#3».
-  static int? episodeNumber(String videoTitle) {
-    final m = RegExp(
-      r'(?:episode|ep\.?|эпизод|серия|#)\s*0*(\d{1,4})\b',
-      caseSensitive: false,
-    ).firstMatch(videoTitle);
-    return m == null ? null : int.parse(m.group(1)!);
-  }
-
-  static String _norm(String s) => s
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ')
-      .trim();
-
-  static String _unescape(String s) => s
-      .replaceAll('&amp;', '&')
-      .replaceAll('&quot;', '"')
-      .replaceAll('&#39;', "'")
-      .replaceAll('&lt;', '<')
-      .replaceAll('&gt;', '>');
+  static int? episodeNumber(String videoTitle) =>
+      YouTubeMatch.episodeNumber(videoTitle);
 }

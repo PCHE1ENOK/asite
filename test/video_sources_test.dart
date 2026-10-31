@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:anime_viewer/data/cache/app_database.dart';
 import 'package:anime_viewer/data/models/anime.dart';
 import 'package:anime_viewer/data/sources/video_source.dart';
+import 'package:anime_viewer/data/sources/youtube_match.dart';
 import 'package:anime_viewer/data/sources/youtube_source.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
@@ -199,6 +200,17 @@ void main() {
       YouTubeSource.matchesTitle('Some other anime ep 1', frieren()),
       isFalse,
     );
+  });
+
+  test('matched name is reported for diagnostics', () {
+    final names = YouTubeMatch.titleNames(frieren());
+    expect(names, everyElement(hasLength(greaterThanOrEqualTo(4))));
+    expect(names.toSet().length, names.length, reason: 'no duplicates');
+    expect(
+      YouTubeMatch.matchedName('SOUSOU NO FRIEREN ep 1', frieren()),
+      isNotNull,
+    );
+    expect(YouTubeMatch.matchedName('Other ep 1', frieren()), isNull);
   });
 
   test(
