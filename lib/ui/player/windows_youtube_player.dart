@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -15,10 +16,18 @@ class WindowsYouTubePlayer extends StatefulWidget {
     super.key,
     required this.videoId,
     required this.fallback,
+    required this.onEvent,
+    this.onUnavailable,
   });
 
   final String videoId;
   final Widget fallback;
+
+  /// События IFrame API (`chrome.webview.postMessage`).
+  final ValueChanged<PlayerEvent> onEvent;
+
+  /// WebView2 нет — показан [fallback], ждать событий не нужно.
+  final VoidCallback? onUnavailable;
 
   @override
   State<WindowsYouTubePlayer> createState() => _WindowsYouTubePlayerState();
@@ -32,6 +41,8 @@ class _WindowsYouTubePlayerState extends State<WindowsYouTubePlayer> {
   /// `dispose()` контроллера падает, если `initialize()` не вызывался
   /// (например, нет WebView2 Runtime).
   bool _initStarted = false;
+  StreamSubscription<dynamic>? _messages;
+  StreamSubscription<dynamic>? _loadErrors;
 
   @override
   void initState() {
@@ -53,6 +64,12 @@ class _WindowsYouTubePlayerState extends State<WindowsYouTubePlayer> {
 
       _initStarted = true;
       await _controller.initialize();
+      _messages = _controller.webMessage.listen((m) {
+        if (PlayerEvent.parse(m) case final e?) widget.onEvent(e);
+      }, onError: (_) {});
+      _loadErrors = _controller.onLoadError.listen(
+        (status) => widget.onEvent(PlayerError('load:${status.name}')),
+      );
       await _controller.addVirtualHostNameMapping(
         playerHost,
         dir.path,
@@ -64,11 +81,14 @@ class _WindowsYouTubePlayerState extends State<WindowsYouTubePlayer> {
       if (mounted) setState(() => _ready = true);
     } on Object {
       if (mounted) setState(() => _failed = true);
+      widget.onUnavailable?.call();
     }
   }
 
   @override
   void dispose() {
+    _messages?.cancel();
+    _loadErrors?.cancel();
     if (_initStarted) _controller.dispose();
     super.dispose();
   }

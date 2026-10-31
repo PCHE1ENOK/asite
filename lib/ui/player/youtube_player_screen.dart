@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,10 +28,16 @@ class YouTubePlayerScreen extends StatefulWidget {
     super.key,
     required this.video,
     required this.details,
+    this.embedBuilder,
   });
 
   final EmbeddedVideo video;
   final AnimeDetails details;
+
+  /// Подмена встроенного плеера в тестах (WebView там не запускается).
+  @visibleForTesting
+  final Widget Function(String videoId, ValueChanged<PlayerEvent> onEvent)?
+  embedBuilder;
 
   @override
   State<YouTubePlayerScreen> createState() => _YouTubePlayerScreenState();
@@ -53,6 +61,56 @@ Future<void> openExternally(BuildContext context, Uri url) async {
 }
 
 class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
+  /// Ошибка плеера — вместо чёрного экрана показываем, что случилось.
+  PlayerError? _error;
+
+  /// Новый ключ пересоздаёт плеер («Повторить»).
+  int _attempt = 0;
+  Timer? _readyTimer;
+
+  bool get _embedded =>
+      widget.embedBuilder != null ||
+      embedKindFor(defaultTargetPlatform) != EmbedKind.browser;
+
+  @override
+  void initState() {
+    super.initState();
+    _armTimer();
+  }
+
+  /// Плеер, который не прислал `onReady`, считаем неоткрывшимся.
+  void _armTimer() {
+    _readyTimer?.cancel();
+    if (!_embedded) return;
+    _readyTimer = Timer(
+      playerReadyTimeout,
+      () => _onEvent(const PlayerError('timeout')),
+    );
+  }
+
+  void _onEvent(PlayerEvent e) {
+    if (!mounted) return;
+    switch (e) {
+      case PlayerReady():
+        _readyTimer?.cancel();
+      case PlayerError():
+        _readyTimer?.cancel();
+        debugPrint(
+          'YouTube IFrame API: ошибка ${e.code}, ролик ${widget.video.videoId}'
+          '${widget.video.isTrailer ? ' (трейлер)' : ''}, origin $playerOrigin',
+        );
+        setState(() => _error = e);
+    }
+  }
+
+  void _retry() {
+    setState(() {
+      _error = null;
+      _attempt++;
+    });
+    _armTimer();
+  }
+
   /// Полный экран — наш: панели прячутся, видео остаётся единственным
   /// содержимым (iframe ничем не перекрывается).
   bool _fullscreen = false;
@@ -110,6 +168,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
 
   @override
   void dispose() {
+    _readyTimer?.cancel();
     if (_fullscreen) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
@@ -194,14 +253,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
           children: [
             Expanded(
               flex: 100 - _commentsShare(context),
-              child: switch (embedKindFor(defaultTargetPlatform)) {
-                EmbedKind.webview => _EmbeddedPlayer(videoId: video.videoId),
-                EmbedKind.webview2 => WindowsYouTubePlayer(
-                  videoId: video.videoId,
-                  fallback: _OpenOnYouTube(video: video),
-                ),
-                EmbedKind.browser => _OpenOnYouTube(video: video),
-              },
+              child: _player(video),
             ),
             if (!_fullscreen)
               Padding(
@@ -249,10 +301,107 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
   }
 }
 
+extension on _YouTubePlayerScreenState {
+  Widget _player(EmbeddedVideo video) {
+    if (_error case final e?) {
+      return _PlayerErrorView(video: video, error: e, onRetry: _retry);
+    }
+    final key = ValueKey(_attempt);
+    if (widget.embedBuilder case final build?) {
+      return KeyedSubtree(key: key, child: build(video.videoId, _onEvent));
+    }
+    return switch (embedKindFor(defaultTargetPlatform)) {
+      EmbedKind.webview => _EmbeddedPlayer(
+        key: key,
+        videoId: video.videoId,
+        onEvent: _onEvent,
+      ),
+      EmbedKind.webview2 => WindowsYouTubePlayer(
+        key: key,
+        videoId: video.videoId,
+        onEvent: _onEvent,
+        onUnavailable: () => _readyTimer?.cancel(),
+        fallback: _OpenOnYouTube(video: video),
+      ),
+      EmbedKind.browser => _OpenOnYouTube(video: video),
+    };
+  }
+}
+
+/// Плеер не открылся: причина, код IFrame API и выход в браузер.
+class _PlayerErrorView extends StatelessWidget {
+  const _PlayerErrorView({
+    required this.video,
+    required this.error,
+    required this.onRetry,
+  });
+
+  final EmbeddedVideo video;
+  final PlayerError error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Symbols.error_outline_rounded,
+            size: 48,
+            color: Colors.white54,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            video.isTrailer ? 'Трейлер не открывается' : 'Видео не открывается',
+            textAlign: TextAlign.center,
+            style: AppText.title.copyWith(color: Colors.white),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error.reason,
+            textAlign: TextAlign.center,
+            style: AppText.body.copyWith(color: Colors.white70),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Код ошибки YouTube: ${error.code}',
+            style: AppText.caption.copyWith(color: Colors.white54),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              FilledButton.icon(
+                onPressed: () => openExternally(context, video.watchUrl),
+                icon: const Icon(Symbols.open_in_new_rounded),
+                label: const Text('Открыть на YouTube'),
+              ),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
+                onPressed: onRetry,
+                child: const Text('Повторить'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _EmbeddedPlayer extends StatefulWidget {
-  const _EmbeddedPlayer({required this.videoId});
+  const _EmbeddedPlayer({
+    super.key,
+    required this.videoId,
+    required this.onEvent,
+  });
 
   final String videoId;
+  final ValueChanged<PlayerEvent> onEvent;
 
   @override
   State<_EmbeddedPlayer> createState() => _EmbeddedPlayerState();
@@ -262,6 +411,12 @@ class _EmbeddedPlayerState extends State<_EmbeddedPlayer> {
   late final _controller = WebViewController()
     ..setJavaScriptMode(JavaScriptMode.unrestricted)
     ..setBackgroundColor(Colors.black)
+    ..addJavaScriptChannel(
+      playerBridge,
+      onMessageReceived: (m) {
+        if (PlayerEvent.parse(m.message) case final e?) widget.onEvent(e);
+      },
+    )
     // Страница с iframe открывается с адреса приложения, чтобы плеер
     // получил origin/Referer.
     ..loadHtmlString(youtubePlayerHtml(widget.videoId), baseUrl: playerOrigin);

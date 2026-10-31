@@ -63,3 +63,26 @@ WebView, WebView2 и YouTube в контейнере не запускались
 Тесты, которые сначала падали на старом коде: `youtube_embed_test`
 (`fs=0`), `player_audit_test` «failed browser launch is reported»,
 `player_audit_test` «fullscreen: button, F and Esc».
+
+## 2026-10-31 — чёрный экран трейлера
+
+Причины чёрного экрана без сообщения: ошибка IFrame API (153/152 —
+YouTube не получил Referer/origin; 101/150 — владелец запретил встраивание;
+100 — ролик удалён) или плеер вообще не загрузился. Раньше приложение
+событий плеера не получало.
+
+- Страница плеера подключает IFrame API к iframe (`enablejsapi=1`) и
+  отправляет `onReady`/`onError` в приложение: WebView2 —
+  `chrome.webview.postMessage`, мобильный WebView — JS-канал `AppBridge`.
+- Ошибка или нет `onReady` за 20 с → «Трейлер не открывается» / «Видео
+  не открывается», причина, «Код ошибки YouTube: N», «Открыть на YouTube»
+  и «Повторить». Код пишется в консоль (`debugPrint`).
+- Origin/Referer: страница открывается с `https://player.anime-viewer.pche1enok`
+  (WebView2 — виртуальный хост, мобильный WebView — `baseUrl`), iframe с
+  `referrerpolicy=strict-origin-when-cross-origin` отдаёт Referer
+  `https://player.anime-viewer.pche1enok/`, параметр `origin` — тот же адрес.
+  Совпадают. На реальном WebView2/WebView не проверено (YouTube из
+  контейнера недоступен): если придёт 153, значит Referer не дошёл, и
+  следующий шаг — отдавать страницу с настоящего https-адреса.
+- Тесты: `player_error_test` (153, 150, таймаут, «Повторить», браузер),
+  `youtube_embed_test` (разбор сообщений, тексты причин, оба моста).

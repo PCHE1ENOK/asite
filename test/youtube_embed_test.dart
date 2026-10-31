@@ -20,8 +20,11 @@ void main() {
         .allMatches(html)
         .map((m) => Uri.parse(m.group(1)!))
         .toList();
-    expect(urls, hasLength(1));
-    final src = urls.single;
+    expect(urls, hasLength(2));
+    expect(urls.every((u) => u.host == 'www.youtube.com'), isTrue);
+    expect(urls.last.path, '/iframe_api', reason: 'only for onReady/onError');
+    final src = urls.first;
+    expect(src.queryParameters['enablejsapi'], '1');
     expect(src.host, 'www.youtube.com');
     expect(src.path, '/embed/dQw4w9WgXcQ');
     expect(src.queryParameters['origin'], playerOrigin);
@@ -35,5 +38,42 @@ void main() {
   test('video id is validated (no injection into the page)', () {
     expect(() => youtubePlayerHtml('a"><script>'), throwsArgumentError);
     expect(() => youtubePlayerHtml(''), throwsArgumentError);
+  });
+
+  test('IFrame API messages: ready, error codes, garbage', () {
+    expect(PlayerEvent.parse({'event': 'ready'}), isA<PlayerReady>());
+    expect(
+      (PlayerEvent.parse('{"event":"error","code":153}')! as PlayerError).code,
+      '153',
+    );
+    expect(
+      PlayerEvent.parse({'event': 'error', 'code': 150}),
+      isA<PlayerError>(),
+    );
+    expect(PlayerEvent.parse('not json'), isNull);
+    expect(PlayerEvent.parse({'event': 'other'}), isNull);
+    expect(PlayerEvent.parse(42), isNull);
+  });
+
+  test('error reasons', () {
+    expect(const PlayerError('153').reason, contains('настройки встраивания'));
+    expect(const PlayerError('152').reason, contains('настройки встраивания'));
+    expect(const PlayerError('150').reason, contains('запретил'));
+    expect(const PlayerError('101').reason, contains('запретил'));
+    expect(const PlayerError('100').reason, contains('удалён'));
+    expect(const PlayerError('timeout').reason, 'Плеер YouTube не ответил');
+    expect(
+      const PlayerError('load:connectionAborted').reason,
+      contains('не загрузилась'),
+    );
+    expect(const PlayerError('999').reason, 'Плеер YouTube сообщил об ошибке');
+  });
+
+  test('page posts events to both bridges', () {
+    final html = youtubePlayerHtml('dQw4w9WgXcQ');
+    expect(html, contains('chrome.webview.postMessage'));
+    expect(html, contains('window.$playerBridge.postMessage'));
+    expect(html, contains('onError'));
+    expect(html, contains("code: 'script'"));
   });
 }
