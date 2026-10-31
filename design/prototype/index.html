@@ -73,10 +73,16 @@ svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
 .sbar, .mnav, .pl-center, .homebar { display: none; }
 .titlebar { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); background: var(--bg); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--fg2); -webkit-user-select: none; user-select: none; }
 .titlebar .brand { font: 600 12px/1 var(--f-display); color: var(--fg); letter-spacing: .02em; }
-.titlebar .proto { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.titlebar { position: relative; }
+.titlebar .proto-toggle { margin-left: auto; }
+/* Демо-настройки прототипа — выпадающая панель, чтобы строка заголовка помещалась при любой ширине */
+.titlebar .proto { display: none; position: absolute; top: 32px; right: 8px; z-index: 100; width: min(640px, calc(100vw - 16px)); grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 12px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-3); }
+.titlebar.open .proto { display: grid; }
+.titlebar .proto .pf { display: grid; gap: 2px; min-width: 0; }
+.titlebar .proto select { width: 100%; min-width: 0; height: 28px; }
+.titlebar .proto #themeBtn { height: 28px; align-self: end; }
 .titlebar .proto label { color: var(--fg3); }
-.titlebar .pf { display: contents; }
-.proto-toggle { display: none; }
+.proto-toggle { display: inline-flex; align-items: center; }
 .titlebar select, .titlebar .tb-btn { height: 24px; border: 1px solid var(--border); background: var(--s1); border-radius: var(--r-xs); padding: 0 6px; font-size: 12px; }
 .winbtns { display: flex; padding-right: max(0px, env(safe-area-inset-right, 0px)); }
 .winbtns span { width: 46px; height: 32px; display: grid; place-items: center; color: var(--fg2); }
@@ -127,6 +133,9 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .btn-outline:active { background: var(--pressed); }
 .btn-text { color: var(--accent); padding: 0 10px; height: 36px; }
 .btn-text:hover { background: var(--hover); }
+.btn:disabled { cursor: default; }
+.btn-text:disabled { color: var(--fg2); }
+.btn-text:disabled:hover { background: none; }
 .icon-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--fg2); }
 .icon-btn:hover { background: var(--hover); color: var(--fg); }
 
@@ -587,7 +596,7 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
   .titlebar { flex-wrap: wrap; row-gap: 8px; min-height: 36px; padding-block: 6px; padding-right: max(12px, env(safe-area-inset-right, 0px)); padding-left: max(12px, env(safe-area-inset-left, 0px)); }
   .titlebar .sub { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .titlebar .proto-toggle { display: inline-flex; flex: none; height: 28px; align-items: center; }
-  .titlebar .proto { display: none; width: 100%; margin-left: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .titlebar .proto { position: static; box-shadow: none; border: 0; padding: 0; background: none; display: none; width: 100%; margin-left: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .titlebar.open .proto { display: grid; }
   .titlebar .pf { display: grid; gap: 2px; min-width: 0; }
   .titlebar .pf label { font-size: 11px; }
@@ -596,7 +605,7 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 }
 @media (max-height: 500px) and (min-width: 641px) {
   /* телефон в альбомной: переключатели в одну строку */
-  .titlebar .proto { grid-template-columns: repeat(5, minmax(0, 1fr)) auto; align-items: end; }
+  .titlebar .proto { grid-template-columns: repeat(6, minmax(0, 1fr)) auto; align-items: end; }
   .titlebar #themeBtn { grid-column: auto; }
 }
 .app.m .device { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; }
@@ -814,6 +823,13 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
         <option value="off">отключены</option>
         <option value="error">ошибка сети</option>
       </select></span>
+      <span class="pf"><label for="demoTrailer">Трейлер:</label>
+      <select id="demoTrailer" aria-label="Трейлер на карточке">
+        <option value="search-empty">поиск: не найдёт</option>
+        <option value="search-found">поиск: найдёт</option>
+        <option value="anilist">есть в AniList</option>
+        <option value="nokey">нет ключа</option>
+      </select></span>
       <span class="pf"><label for="demoPlatform">Платформа:</label>
       <select id="demoPlatform" aria-label="Платформа">
         <option value="windows">Windows</option>
@@ -863,6 +879,7 @@ const I = {
   dash:'M5 11h14v2H5z',
   chat:'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 9h12v2H6zm8 5H6v-2h8zm4-6H6V6h12z',
   translate:'M12.9 15.1 10.3 12.6v-.1A17.6 17.6 0 0 0 14 6h3V4h-7V2H8v2H1v2h11.2A15.7 15.7 0 0 1 9 11.4 15.6 15.6 0 0 1 6.7 8H4.7a17.6 17.6 0 0 0 3 4.6L2.6 17.6 4 19l5-5 3.1 3.1zM18.5 10h-2L12 22h2l1.1-3h4.8l1.1 3h2zm-2.6 7 1.6-4.3 1.6 4.3z',
+  movie:'M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V4z',
   full_exit:'M5 16h3v3h2v-5H5zm3-8H5v2h5V5H8zm6 11h2v-3h3v-2h-5zm2-11V5h-2v5h5V8z',
   heart:'M12 21.4 10.6 20C5.4 15.4 2 12.3 2 8.5A5.4 5.4 0 0 1 7.5 3 6 6 0 0 1 12 5a6 6 0 0 1 4.5-2A5.4 5.4 0 0 1 22 8.5c0 3.8-3.4 6.9-8.6 11.5z',
   plus:'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z', skip:'M4 18l8.5-6L4 6zm9-12v12l8.5-6z',
@@ -1243,6 +1260,17 @@ function downloadPack(id) {
 }
 function paintComments() { document.querySelectorAll('.comments-wrap, .ytcom').forEach(w => { w.innerHTML = commentsView(); }); }
 
+/* ---------- Трейлер на карточке: AniList → по нажатию поиск по официальным каналам ---------- */
+const TRL = { searched:{}, found:{}, searching:null };
+function trailerBtn(a) {
+  const d = $('#demoTrailer').value;
+  const found = d === 'anilist' || TRL.found[a.id];
+  if (found) return `<a class="btn btn-outline" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('movie')}Трейлер на YouTube</a>`;
+  if (TRL.searching === a.id) return `<button class="btn btn-text" type="button" disabled aria-busy="true"><span class="spin sm"></span>Ищем трейлер…</button>`;
+  if (d === 'nokey' || TRL.searched[a.id]) return '';
+  return `<button class="btn btn-text" type="button" data-act="findTrailer" title="Поиск по официальным каналам — расходует квоту YouTube, поэтому только по нажатию">${ic('search')}Найти трейлер</button>`;
+}
+
 /* ---------- Заметка: блок на карточке и редактор ---------- */
 function noteBlock(a) {
   const n = notesOf()[a.id], pf = prof();
@@ -1375,6 +1403,7 @@ function viewTitle() {
           <div class="actions">
             <a class="btn btn-filled" href="#player" data-open="${a.id}" style="text-decoration:none">${ic('play')}${a.st === 'CURRENT' ? `Смотреть серию ${nextEp}` : 'Начать просмотр'}</a>
             <button class="btn btn-outline" type="button" data-act="statusMenu" aria-haspopup="menu" aria-expanded="false">${st ? `<span style="color:var(${st.v});display:inline-flex">${ic(a.st)}</span>${st.label}` : `${ic('plus')}Добавить в список`}${ic('chev')}</button>
+            ${trailerBtn(a)}
             <button class="icon-btn" type="button" aria-label="В избранное">${ic('heart')}</button>
             <div class="menu" role="menu" id="statusMenu" hidden style="left:0">${ORDER.map(k => `<button role="menuitemradio" type="button" data-setst="${k}" aria-checked="${a.st === k}"><span style="color:var(${STATUS[k].v});display:inline-flex">${ic(k)}</span>${STATUS[k].label}${a.st === k ? `<span class="chk">${ic('check')}</span>` : ''}</button>`).join('')}${a.st ? `<hr><button role="menuitem" type="button" data-setst="">Удалить из списка</button>` : ''}</div>
           </div>
@@ -1711,6 +1740,7 @@ document.addEventListener('click', e => {
   else if (d.act === 'trNo') { delete TR.st[TR.pending]; TR.pending = null; paintComments(); }
   else if (d.trorig) { TR.showOrig.has(d.trorig) ? TR.showOrig.delete(d.trorig) : TR.showOrig.add(d.trorig); paintComments(); }
   else if (d.trpack) downloadPack(d.trpack);
+  else if (d.act === 'findTrailer') { const id = S.titleId; TRL.searching = id; render(); setTimeout(() => { TRL.searching = null; TRL.searched[id] = true; if ($('#demoTrailer').value === 'search-found') TRL.found[id] = true; if (route() === 'title') render(); }, 1200); }
   else if (d.csort) { C.sort = d.csort; paintComments(); }
   else if (d.cmore) { C.open.has(d.cmore) ? C.open.delete(d.cmore) : C.open.add(d.cmore); paintComments(); }
   else if (d.act === 'cMore') { C.loadingMore = true; paintComments(); setTimeout(() => { C.loadingMore = false; C.more = true; paintComments(); }, 700); }
@@ -1796,6 +1826,7 @@ document.addEventListener('click', e => { if (!e.target.closest('#pmenu') && !e.
 document.addEventListener('change', e => {
   if (e.target.id === 'sort') { S.sort = e.target.value; render(); }
   if (e.target.id === 'demoPlatform') render();
+  if (e.target.id === 'demoTrailer') { TRL.searched = {}; TRL.found = {}; TRL.searching = null; if (route() === 'title') render(); else location.hash = 'title'; }
   if (e.target.id === 'trDemo') { C.trDemo = e.target.value; TR.st = {}; TR.showOrig.clear(); TR.pack = {}; TR.pending = null; paintComments(); }
   if (e.target.id === 'demoComments') { C.more = false; paintComments(); }
   if (e.target.id === 'nFail') E.failNext = e.target.checked;
@@ -1854,6 +1885,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && P.epOpen) { P.epOpen = false; $('#eppanel').hidden = true; return; }
   if (e.key === 'Escape') { if (P.next && P.next.iv) { clearNext(); P.next = { cancelled:true }; } else if (P.dubOpen) { P.dubOpen = false; $('#dubPop').hidden = true; } }
 });
+document.addEventListener('click', e => { const tb = $('.titlebar'); if (tb.classList.contains('open') && !e.target.closest('.titlebar')) { tb.classList.remove('open'); $('#protoToggle').setAttribute('aria-expanded', false); $('#protoToggle').textContent = 'Демо-настройки ▾'; } }, true);
 $('#protoToggle').onclick = () => { const tb = $('.titlebar'), o = tb.classList.toggle('open'); $('#protoToggle').setAttribute('aria-expanded', o); $('#protoToggle').textContent = o ? 'Скрыть ▴' : 'Демо-настройки ▾'; };
 $('#themeBtn').onclick = () => {
   const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
