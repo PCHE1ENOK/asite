@@ -18,6 +18,36 @@ abstract final class YouTubeMatch {
     OfficialChannel('@AniOneAsia', 'Ani-One Asia'),
   ];
 
+  /// Официальные каналы, откуда берутся только трейлеры (серии — нет).
+  static const trailerChannels = [
+    OfficialChannel('@Crunchyroll', 'Crunchyroll'),
+    OfficialChannel('@NetflixAnime', 'Netflix Anime'),
+  ];
+
+  /// Слова трейлера в названии ролика.
+  static final _trailerWord = RegExp(
+    r'(?<![\p{L}\p{N}])(?:trailer|teaser|pv\d*|трейлер|тизер|予告|ティザー)(?![\p{L}])',
+    caseSensitive: false,
+    unicode: true,
+  );
+
+  /// Опенинги, эндинги, клипы и музыка — не трейлеры, даже если в
+  /// названии есть «PV» («Music PV», «Opening PV»).
+  static final _notTrailer = RegExp(
+    r'(?<![\p{L}\p{N}])(?:opening|ending|op\d*|ed\d*|ncop|nced|creditless|'
+    r'music video|mv|clip|lyric|lyrics|song|ost|soundtrack|full episode|'
+    r'episode|ep\d+|опенинг|эндинг|клип)(?![\p{L}])',
+    caseSensitive: false,
+    unicode: true,
+  );
+
+  /// Ролик — трейлер этого тайтла: есть название тайтла и слово
+  /// трейлера, нет признаков опенинга, клипа или серии.
+  static bool isTrailerFor(String videoTitle, AnimeDetails title) =>
+      matchesTitle(videoTitle, title) &&
+      _trailerWord.hasMatch(videoTitle) &&
+      !_notTrailer.hasMatch(videoTitle);
+
   /// Названия тайтла, которые ищутся в названии ролика: romaji, english,
   /// native и синонимы AniList после [norm], не короче 4 символов.
   static List<String> titleNames(AnimeDetails title) => [

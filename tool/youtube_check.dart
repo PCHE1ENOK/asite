@@ -5,7 +5,7 @@
 //
 // Ключ берётся из config/local.json (YOUTUBE_API_KEY) и не печатается.
 // Скрипт только читает: ничего не записывает и кэш приложения не трогает.
-// Квота YouTube: около 5 × 100 + 4 единиц из 10 000 в сутки.
+// Квота YouTube: около 7 × 100 + 6 единиц из 10 000 в сутки.
 // ignore_for_file: avoid_print
 import 'dart:convert';
 import 'dart:io';
@@ -127,7 +127,44 @@ Future<void> main(List<String> args) async {
     if (global.isEmpty) print('  ничего');
   }
 
-  // 4. Региональные ограничения найденных роликов.
+  // 4. Трейлеры: каналы и отбор, как в приложении.
+  for (final c in YouTubeMatch.trailerChannels) {
+    print('\n== Трейлеры: channels.list forHandle=${c.handle} ==');
+    final r = await _get('channels', {
+      'part': 'snippet',
+      'forHandle': c.handle,
+    });
+    final items = (r?['items'] as List? ?? const []).cast<Map>();
+    if (r != null && items.isEmpty) print('Канал не найден по @-имени.');
+    if (items.isEmpty) continue;
+    final ch = items.first;
+    print(
+      'id канала: ${ch['id']}, название: «${(ch['snippet'] as Map?)?['title']}»',
+    );
+    print('\n== search.list трейлера на ${c.name} ==');
+    final found = await _search(
+      '$q trailer|PV|teaser',
+      channelId: ch['id'] as String,
+      region: region,
+    );
+    if (found == null) continue;
+    print('Найдено роликов: ${found.length}');
+    for (final i in found) {
+      final name = YouTubeMatch.unescape(
+        (i['snippet'] as Map?)?['title'] as String? ?? '',
+      );
+      final ok = title != null && YouTubeMatch.isTrailerFor(name, title);
+      print(
+        '  $name\n    → ${title == null
+            ? '?'
+            : ok
+            ? 'ТРЕЙЛЕР (подходит)'
+            : 'не трейлер этого тайтла'}',
+      );
+    }
+  }
+
+  // 5. Региональные ограничения найденных роликов.
   if (allIds.isNotEmpty && region != null) {
     print('\n== videos.list: доступность в регионе $region ==');
     final r = await _get('videos', {

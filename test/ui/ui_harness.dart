@@ -285,6 +285,15 @@ class FakeVideoSource implements VideoSource {
 
   /// Вызовы [find]: `true` — с «Проверить снова».
   final findCalls = <bool>[];
+
+  /// Трейлер тайтла (по умолчанию нет).
+  EmbeddedVideo? trailer;
+
+  @override
+  Future<EmbeddedVideo?> findTrailer(
+    AnimeDetails title, {
+    bool refresh = false,
+  }) async => isConfigured ? trailer : null;
 }
 
 class _DelegatingEngine implements TranslationEngine {

@@ -140,4 +140,47 @@ void main() {
     expect(h.videoSource.findCalls, [false, true]);
     await h.dispose(tester);
   });
+
+  testWidgets('trailer button: shown only when a trailer exists', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    h.videoSource.isConfigured = true;
+    await openAot(tester);
+    expect(find.text('Трейлер на YouTube'), findsNothing);
+    expect(find.textContaining('трейлер'), findsNothing, reason: 'no error');
+    await h.dispose(tester);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('trailer opens in the embedded YouTube player', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    const trailer = EmbeddedVideo(
+      sourceId: 'fake',
+      videoId: 'trl',
+      title: 'Attack on Titan | Official Trailer',
+      channel: 'Crunchyroll',
+      isTrailer: true,
+    );
+    h.videoSource
+      ..isConfigured = true
+      ..trailer = trailer;
+    await openAot(tester);
+    expect(find.text('Трейлер на YouTube'), findsOneWidget);
+    await tester.tap(find.text('Трейлер на YouTube'));
+    await UiHarness.settle(tester);
+    await tester.pump(const Duration(milliseconds: 500));
+    final player = tester.widget<YouTubePlayerScreen>(
+      find.byType(YouTubePlayerScreen),
+    );
+    expect(player.video.videoId, 'trl');
+    expect(player.video.embedUrl.host, 'www.youtube.com');
+    expect(player.video.embedUrl.path, '/embed/trl');
+    expect(find.textContaining('Трейлер · Crunchyroll'), findsOneWidget);
+    expect(find.textContaining('просмотренной'), findsNothing);
+    await tester.pageBack();
+    await UiHarness.settle(tester);
+    await h.dispose(tester);
+    debugDefaultTargetPlatformOverride = null;
+  });
 }

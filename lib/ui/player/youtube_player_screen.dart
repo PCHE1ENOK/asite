@@ -166,7 +166,9 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                   Text(
                     [
                       if (episode != null) 'Серия $episode',
-                      'Официальное видео · ${video.channel}',
+                      video.isTrailer
+                          ? 'Трейлер · ${video.channel}'
+                          : 'Официальное видео · ${video.channel}',
                     ].join(' · '),
                     style: AppText.caption.copyWith(color: Colors.white70),
                   ),

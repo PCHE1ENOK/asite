@@ -24,6 +24,7 @@ class YouTubeSource implements VideoSource {
     required this._db,
     http.Client? httpClient,
     this.channels = defaultChannels,
+    this.trailerChannels = YouTubeMatch.trailerChannels,
     this.regionCode,
     this.ttl = const Duration(days: 3),
     this.emptyTtl = const Duration(hours: 6),
@@ -35,6 +36,9 @@ class YouTubeSource implements VideoSource {
   final AppDatabase _db;
   final http.Client _http;
   final List<OfficialChannel> channels;
+
+  /// Каналы только для трейлеров.
+  final List<OfficialChannel> trailerChannels;
 
   /// Страна пользователя (ISO 3166-1): ролики, недоступные в регионе,
   /// не попадают в выдачу.
@@ -89,15 +93,43 @@ class YouTubeSource implements VideoSource {
     ];
   }
 
+  @override
+  Future<EmbeddedVideo?> findTrailer(
+    AnimeDetails title, {
+    bool refresh = false,
+  }) async {
+    if (!isConfigured) return null;
+    for (final channel in trailerChannels) {
+      try {
+        final found = await _search(
+          channel,
+          title,
+          refresh: refresh,
+          trailer: true,
+        );
+        if (found.isNotEmpty) return found.first;
+      } on Object {
+        // Как и у серий: ошибка канала — пробуем следующий.
+      }
+    }
+    return null;
+  }
+
   Future<List<EmbeddedVideo>> _search(
     OfficialChannel channel,
     AnimeDetails title, {
     required bool refresh,
+    bool trailer = false,
   }) async {
     List<EmbeddedVideo> parse(List<Map<String, dynamic>> items) => [
-      for (final item in items) ?parseSearchItem(item, channel.name, title),
+      for (final item in items)
+        ?(trailer
+            ? parseTrailerItem(item, channel.name, title)
+            : parseSearchItem(item, channel.name, title)),
     ];
-    final key = 'yt:${channel.handle}:${title.id}:${regionCode ?? ''}';
+    final key =
+        'yt:${trailer ? 'trailer:' : ''}${channel.handle}:${title.id}:'
+        '${regionCode ?? ''}';
     final cached = refresh ? null : await _db.entry(key);
     if (cached != null) {
       final videos = parse(
@@ -113,8 +145,11 @@ class YouTubeSource implements VideoSource {
       'type': 'video',
       'videoEmbeddable': 'true',
       'channelId': channelId,
-      'q': title.anime.title.romaji ?? title.anime.title.preferred,
-      'maxResults': '50',
+      'q': trailer
+          ? '${title.anime.title.romaji ?? title.anime.title.preferred} '
+                'trailer|PV|teaser'
+          : title.anime.title.romaji ?? title.anime.title.preferred,
+      'maxResults': trailer ? '25' : '50',
       'regionCode': ?regionCode,
     });
     final items = (json['items'] as List? ?? const [])
@@ -172,6 +207,33 @@ class YouTubeSource implements VideoSource {
       title: videoTitle,
       channel: channel,
       episode: episodeNumber(videoTitle),
+      thumbnail:
+          ((thumbs?['medium'] ?? thumbs?['default']) as Map?)?['url']
+              as String?,
+    );
+  }
+
+  /// Трейлер из ответа `search.list` (см. [YouTubeMatch.isTrailerFor]).
+  static EmbeddedVideo? parseTrailerItem(
+    Map<String, dynamic> item,
+    String channel,
+    AnimeDetails title,
+  ) {
+    final videoId = (item['id'] as Map?)?['videoId'] as String?;
+    final snippet = item['snippet'] as Map?;
+    final videoTitle = YouTubeMatch.unescape(
+      snippet?['title'] as String? ?? '',
+    );
+    if (videoId == null || !YouTubeMatch.isTrailerFor(videoTitle, title)) {
+      return null;
+    }
+    final thumbs = snippet?['thumbnails'] as Map?;
+    return EmbeddedVideo(
+      sourceId: 'youtube',
+      videoId: videoId,
+      title: videoTitle,
+      channel: channel,
+      isTrailer: true,
       thumbnail:
           ((thumbs?['medium'] ?? thumbs?['default']) as Map?)?['url']
               as String?,

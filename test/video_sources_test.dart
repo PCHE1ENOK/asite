@@ -190,6 +190,86 @@ void main() {
     expect(searches(), empty + 2);
   });
 
+  test('trailer titles: openings, clips and episodes are filtered out', () {
+    final f = frieren();
+    for (final t in [
+      'Sousou no Frieren | Official Trailer',
+      "Frieren: Beyond Journey's End Season 2 - Teaser",
+      'Sousou no Frieren PV2',
+      'Sousou no Frieren - Main Trailer [English Sub]',
+    ]) {
+      expect(YouTubeMatch.isTrailerFor(t, f), isTrue, reason: t);
+    }
+    for (final t in [
+      'Sousou no Frieren Opening | Yuusha',
+      'Sousou no Frieren - Creditless Ending',
+      'Sousou no Frieren Music Video PV',
+      'Sousou no Frieren OP PV',
+      'Sousou no Frieren Episode 3 Preview Trailer',
+      'Sousou no Frieren clip: Himmel',
+      'Sousou no Frieren',
+      'Another Show | Official Trailer',
+    ]) {
+      expect(YouTubeMatch.isTrailerFor(t, f), isFalse, reason: t);
+    }
+  });
+
+  test('trailer: only trailer channels, first real trailer, cached', () async {
+    final asked = <String>[];
+    handler = (uri) {
+      if (uri.path.endsWith('/channels')) {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'UC-${uri.queryParameters['forHandle']}'},
+            ],
+          }),
+          200,
+        );
+      }
+      asked.add(uri.queryParameters['channelId']!);
+      expect(uri.queryParameters['q'], 'Sousou no Frieren trailer|PV|teaser');
+      expect(uri.queryParameters, containsPair('videoEmbeddable', 'true'));
+      return http.Response(
+        jsonEncode({
+          'items': uri.queryParameters['channelId'] == 'UC-@Crunchyroll'
+              ? [
+                  item('op', 'Sousou no Frieren Opening | Yuusha'),
+                  item('mv', 'Sousou no Frieren Music Video'),
+                ]
+              : [
+                  item('tr', 'Sousou no Frieren | Official Trailer'),
+                  item('tr2', 'Sousou no Frieren PV2'),
+                ],
+        }),
+        200,
+      );
+    };
+    final s = source(region: 'RU');
+    final t = (await s.findTrailer(frieren()))!;
+    expect(t.videoId, 'tr');
+    expect(t.isTrailer, isTrue);
+    expect(t.episode, isNull);
+    expect(t.channel, 'Netflix Anime');
+    expect(t.embedUrl.path, '/embed/tr');
+    expect(asked, ['UC-@Crunchyroll', 'UC-@NetflixAnime']);
+    expect(
+      asked.any((c) => c.contains('MuseAsia') || c.contains('AniOne')),
+      isFalse,
+    );
+
+    await s.findTrailer(frieren());
+    expect(asked, hasLength(2), reason: 'cached');
+    // Серии с каналов трейлеров не берутся.
+    expect(await s.find(frieren()), isEmpty);
+  });
+
+  test('no trailer: null, no exception', () async {
+    handler = (_) => http.Response('{"error":{"code":403}}', 403);
+    expect(await source().findTrailer(frieren()), isNull);
+    expect(await source(key: '').findTrailer(frieren()), isNull);
+  });
+
   test('refresh ignores the cache', () async {
     final s = source();
     await s.find(frieren());
@@ -302,6 +382,12 @@ class _Fixed implements VideoSource {
 
   @override
   bool get isConfigured => configured;
+
+  @override
+  Future<EmbeddedVideo?> findTrailer(
+    AnimeDetails title, {
+    bool refresh = false,
+  }) async => null;
 
   @override
   Future<List<EmbeddedVideo>> find(

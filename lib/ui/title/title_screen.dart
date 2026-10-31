@@ -123,10 +123,14 @@ class _TitleScreenState extends State<TitleScreen>
   /// Идёт поиск видео (в том числе «Проверить снова»).
   bool _videosLoading = false;
 
+  /// Официальный трейлер; `null` — кнопки нет (без сообщения).
+  EmbeddedVideo? _trailer;
+
   Future<void> _loadVideos(AnimeDetails d, {bool refresh = false}) async {
     setState(() => _videosLoading = true);
-    final videos = await AppScope.of(context).services.sources
-        .find(d, refresh: refresh);
+    final sources = AppScope.of(context).services.sources;
+    final trailer = sources.findTrailer(d, refresh: refresh);
+    final videos = await sources.find(d, refresh: refresh);
     if (!mounted) return;
     setState(() {
       final before = _visibleTabs;
@@ -134,7 +138,16 @@ class _TitleScreenState extends State<TitleScreen>
       _videosLoading = false;
       _syncTabs(before);
     });
+    final t = await trailer;
+    if (mounted) setState(() => _trailer = t);
   }
+
+  void _playTrailer(AnimeDetails d, EmbeddedVideo trailer) =>
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => YouTubePlayerScreen(video: trailer, details: d),
+        ),
+      );
 
   EmbeddedVideo? _videoFor(int episode) =>
       _videos.where((v) => v.episode == episode).firstOrNull;
@@ -206,6 +219,10 @@ class _TitleScreenState extends State<TitleScreen>
                     details: details,
                     playLabel: _playLabel(details),
                     onPlay: details == null ? null : () => _play(details),
+                    onTrailer: switch ((details, _trailer)) {
+                      (final d?, final tr?) => () => _playTrailer(d, tr),
+                      _ => null,
+                    },
                     width: width,
                     gutter: gutter,
                   ),
@@ -459,12 +476,16 @@ class _Header extends StatelessWidget {
     required this.onPlay,
     required this.width,
     required this.gutter,
+    this.onTrailer,
   });
 
   final Anime anime;
   final AnimeDetails? details;
   final String playLabel;
   final VoidCallback? onPlay;
+
+  /// Трейлер есть — кнопка «Трейлер на YouTube».
+  final VoidCallback? onTrailer;
   final double width;
   final double gutter;
 
@@ -563,6 +584,12 @@ class _Header extends StatelessWidget {
               label: Text(playLabel),
             ),
             StatusButton(mediaId: a.id),
+            if (onTrailer case final onTrailer?)
+              OutlinedButton.icon(
+                onPressed: onTrailer,
+                icon: const Icon(Symbols.movie_rounded, size: 18),
+                label: const Text('Трейлер на YouTube'),
+              ),
             if (d?.siteUrl case final url?)
               OutlinedButton.icon(
                 onPressed: () => launchUrl(

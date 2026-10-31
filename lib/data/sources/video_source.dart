@@ -11,6 +11,7 @@ class EmbeddedVideo {
     required this.channel,
     this.episode,
     this.thumbnail,
+    this.isTrailer = false,
   });
 
   /// Id источника ([VideoSource.id]).
@@ -26,6 +27,9 @@ class EmbeddedVideo {
   /// Номер серии, если удалось определить по названию.
   final int? episode;
   final String? thumbnail;
+
+  /// Трейлер (PV, тизер), а не серия.
+  final bool isTrailer;
 
   /// Страница официального встраиваемого плеера.
   Uri get embedUrl =>
@@ -51,6 +55,12 @@ abstract interface class VideoSource {
   /// API — пустой список, а не исключение. [refresh] — не брать из кэша
   /// («Проверить снова»).
   Future<List<EmbeddedVideo>> find(AnimeDetails title, {bool refresh = false});
+
+  /// Официальный трейлер тайтла или `null` — тоже без исключений.
+  Future<EmbeddedVideo?> findTrailer(
+    AnimeDetails title, {
+    bool refresh = false,
+  });
 }
 
 /// Подключённые источники видео.
@@ -73,5 +83,19 @@ class VideoSources {
       if (found.isNotEmpty) return found;
     }
     return const [];
+  }
+
+  /// Трейлер из первого настроенного источника, который его нашёл.
+  Future<EmbeddedVideo?> findTrailer(
+    AnimeDetails title, {
+    bool refresh = false,
+  }) async {
+    for (final s in sources) {
+      if (!s.isConfigured) continue;
+      if (await s.findTrailer(title, refresh: refresh) case final v?) {
+        return v;
+      }
+    }
+    return null;
   }
 }
