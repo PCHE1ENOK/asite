@@ -34,7 +34,8 @@ class NoSourcesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              details.anime.title.preferred,
+              AppScope.of(context).services.russian.of(details.id).value ??
+                  details.anime.title.preferred,
               style: AppText.labelStrong.copyWith(color: Colors.white),
             ),
             Text(

@@ -193,6 +193,7 @@ Future<void> openNoteEditor(BuildContext context, AnimeDetails details) {
     details: details,
     notes: scope.services.notes,
     profileName: scope.services.profile.name,
+    title: scope.services.russian.of(details.id).value,
     status: entry?.status,
     progress: entry?.progress ?? 0,
   );
@@ -241,6 +242,7 @@ class NoteEditorPanel extends StatefulWidget {
     required this.details,
     required this.notes,
     required this.profileName,
+    this.title,
     this.status,
     this.progress = 0,
   });
@@ -248,6 +250,9 @@ class NoteEditorPanel extends StatefulWidget {
   final AnimeDetails details;
   final NotesRepository notes;
   final String profileName;
+
+  /// Название в шапке (русское, если известно).
+  final String? title;
   final ListStatus? status;
   final int progress;
 
@@ -487,7 +492,8 @@ class _NoteEditorPanelState extends State<NoteEditorPanel> {
                             style: AppText.overline.copyWith(color: t.fg2),
                           ),
                           Text(
-                            widget.details.anime.title.preferred,
+                            widget.title ??
+                                widget.details.anime.title.preferred,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppText.title,

@@ -19,7 +19,8 @@ void main() {
     await openTitle(tester);
 
     expect(find.byType(TitleScreen), findsOneWidget);
-    expect(find.text('進撃の巨人'), findsOneWidget);
+    // Без русского: основное — английское, ниже — ромадзи (дизайн).
+    expect(find.text('Shingeki no Kyojin'), findsOneWidget);
     expect(
       find.text('TV · Весна 2013 · 25 эп. · 24 мин · Wit Studio'),
       findsOneWidget,

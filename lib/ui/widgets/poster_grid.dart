@@ -5,6 +5,7 @@ import '../../data/models/anime.dart';
 import '../paged_anime_controller.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
+import '../russian_titles.dart';
 import 'poster_card.dart';
 import 'state_views.dart';
 
@@ -47,6 +48,7 @@ class _PosterGridState extends State<PosterGrid> {
   /// ленты сетка пересобирается, а уже показанные карточки — нет (тот же
   /// экземпляр виджета Flutter не пересобирает).
   final _cards = Map<Anime, Widget>.identity();
+  int _prefetched = 0;
 
   Widget _card(Anime a) => _cards[a] ??= PosterCard(
     key: ValueKey(a.id),
@@ -63,6 +65,11 @@ class _PosterGridState extends State<PosterGrid> {
     final items = c.items;
     // Новый запрос — старые карточки больше не нужны.
     if (items.isEmpty || _cards.length > items.length) _cards.clear();
+    // Русские названия — одним запросом на страницу, после кадра.
+    if (items.isNotEmpty && items.length != _prefetched) {
+      _prefetched = items.length;
+      prefetchRussianTitles(context, items);
+    }
     final padding = EdgeInsets.symmetric(horizontal: gutter);
 
     final List<Widget> body;

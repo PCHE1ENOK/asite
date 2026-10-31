@@ -20,6 +20,8 @@ import 'data/sources/youtube_source.dart';
 import 'data/sync/sync_service.dart';
 import 'data/translation/mlkit_translation.dart';
 import 'data/translation/translation.dart';
+import 'data/shikimori/russian_text.dart';
+import 'data/shikimori/shikimori_client.dart';
 
 /// Списки и синхронизация одного профиля.
 class ProfileSession {
@@ -51,6 +53,7 @@ class AppServices {
     required this.sources,
     required this.comments,
     required this.translator,
+    required this.russian,
     required this.tokensFor,
     required ProfileSession Function(Profile) sessionFactory,
     required Profile initialProfile,
@@ -81,6 +84,9 @@ class AppServices {
       ]),
       comments: YouTubeCommentsClient(apiKey: AppConfig.youtubeApiKey),
       translator: _translator(preferences),
+      russian: RussianTitles(
+        RussianTextRepository(db: db, client: ShikimoriClient()),
+      ),
       // Этап 4.5: заглушка заменится распознавателем на Chromaprint +
       // AcoustID, звук — из AudioSnippetSource слоя источников.
       music: MusicRecognitionGate(
@@ -128,6 +134,9 @@ class AppServices {
 
   /// Перевод комментариев на русский.
   final CommentTranslator translator;
+
+  /// Русские названия и описания (Shikimori).
+  final RussianTitles russian;
 
   /// Телефон — ML Kit на устройстве; ПК — бесплатный MyMemory
   /// (ML Kit на ПК не работает).

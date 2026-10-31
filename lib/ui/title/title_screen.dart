@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,6 +11,7 @@ import '../../data/anime_repository.dart';
 import '../../data/models/anime.dart';
 import '../../data/models/library_entry.dart';
 import '../../data/sources/video_source.dart';
+import '../../data/shikimori/russian_text.dart';
 import '../app_scope.dart';
 import '../format.dart';
 import '../player/no_sources_screen.dart';
@@ -111,10 +114,32 @@ class _TitleScreenState extends State<TitleScreen>
       final d = await AppScope.of(context).services.anime
           .getDetails(widget.id, forceRefresh: force);
       if (mounted) setState(() => _details = d);
+      if (mounted) unawaited(_loadRussian(d.data));
       if (mounted) await _loadVideos(d.data);
     } on AniListException catch (e) {
       if (mounted) setState(() => _error = e);
     }
+  }
+
+  /// Русское название и описание из Shikimori; [_ruLoaded] — ответ
+  /// получен (или Shikimori недоступен).
+  RussianDetails? _ru;
+  bool _ruLoaded = false;
+
+  Future<void> _loadRussian(AnimeDetails d) async {
+    final russian = AppScope.of(context).services.russian;
+    RussianDetails? r;
+    try {
+      r = await russian.repository.details(d);
+    } on Object {
+      r = null;
+    }
+    if (!mounted) return;
+    russian.put(d.id, r?.title);
+    setState(() {
+      _ru = r;
+      _ruLoaded = true;
+    });
   }
 
   /// Официальные видео из подключённых источников (этап 6).
@@ -253,6 +278,7 @@ class _TitleScreenState extends State<TitleScreen>
                   child: _Header(
                     anime: anime,
                     details: details,
+                    russianTitle: _ru?.title,
                     playLabel: _playLabel(details),
                     onPlay: details == null ? null : () => _play(details),
                     onTrailer: switch ((details, _trailer)) {
@@ -374,7 +400,13 @@ class _TitleScreenState extends State<TitleScreen>
       TitleTab.description => [
         SliverPadding(
           padding: pad,
-          sliver: SliverToBoxAdapter(child: _Description(details: d)),
+          sliver: SliverToBoxAdapter(
+            child: _Description(
+              details: d,
+              russian: _ru?.description,
+              loading: !_ruLoaded,
+            ),
+          ),
         ),
       ],
       TitleTab.stats => [
@@ -554,6 +586,7 @@ class _NoVideoBanner extends StatelessWidget {
 class _Header extends StatelessWidget {
   const _Header({
     required this.anime,
+    this.russianTitle,
     required this.details,
     required this.playLabel,
     required this.onPlay,
@@ -566,6 +599,9 @@ class _Header extends StatelessWidget {
 
   final Anime anime;
   final AnimeDetails? details;
+
+  /// Русское название из Shikimori, если есть.
+  final String? russianTitle;
   final String playLabel;
   final VoidCallback? onPlay;
 
@@ -631,22 +667,33 @@ class _Header extends StatelessWidget {
       ),
     );
 
-    final original = a.title.native ?? a.title.romaji;
+    // Основное — русское, ниже английское; без русского — английское и
+    // ромадзи; без английского — ромадзи и оригинал (design/screens.md).
+    final ti = a.title;
+    final main = russianTitle ?? ti.english ?? ti.romaji ?? ti.native ?? '';
+    final second = russianTitle != null
+        ? ti.english ?? ti.romaji
+        : ti.english != null
+        ? ti.romaji
+        : ti.native;
     final d = details;
     final info = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         SelectableText(
-          a.title.preferred,
+          main,
           style: compact
               ? AppText.title
               : AppText.headline.copyWith(fontSize: 30, height: 1.2),
         ),
-        if (original != null && original != a.title.preferred)
+        if (second != null && second != main)
           Padding(
             padding: const EdgeInsets.only(top: 4),
-            child: Text(original, style: AppText.label.copyWith(color: t.fg2)),
+            child: Tooltip(
+              message: ti.romaji ?? '',
+              child: Text(second, style: AppText.body.copyWith(color: t.fg2)),
+            ),
           ),
         const SizedBox(height: 12),
         Wrap(
@@ -871,9 +918,19 @@ class _EpisodeRow extends StatelessWidget {
 }
 
 class _Description extends StatefulWidget {
-  const _Description({required this.details});
+  const _Description({
+    required this.details,
+    this.russian,
+    this.loading = false,
+  });
 
   final AnimeDetails details;
+
+  /// Русское описание из Shikimori; `null` — нет (показываем английское).
+  final String? russian;
+
+  /// Ещё ждём ответа Shikimori.
+  final bool loading;
 
   @override
   State<_Description> createState() => _DescriptionState();
@@ -930,10 +987,69 @@ class _DescriptionState extends State<_Description> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SelectableText(
-            text == null || text.isEmpty ? 'Описания на AniList нет.' : text,
-            style: AppText.body.copyWith(color: text == null ? t.fg3 : t.fg),
-          ),
+          if (widget.loading)
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Skeleton(height: 14),
+                SizedBox(height: 8),
+                Skeleton(height: 14),
+                SizedBox(height: 8),
+                FractionallySizedBox(
+                  widthFactor: 0.6,
+                  child: Skeleton(height: 14),
+                ),
+              ],
+            )
+          else if (widget.russian case final ru?)
+            SelectableText(ru, style: AppText.body.copyWith(color: t.fg))
+          else if (text != null && text.isNotEmpty) ...[
+            Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: t.surface2,
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
+                  ),
+                  child: Text(
+                    'на английском',
+                    style: AppText.caption.copyWith(color: t.fg2),
+                  ),
+                ),
+                Text(
+                  'Русского описания нет',
+                  style: AppText.caption.copyWith(color: t.fg3),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Semantics(
+              attributedLabel: AttributedString(
+                text,
+                attributes: [
+                  LocaleStringAttribute(
+                    range: TextRange(start: 0, end: text.length),
+                    locale: const Locale('en'),
+                  ),
+                ],
+              ),
+              excludeSemantics: true,
+              child: SelectableText(
+                text,
+                style: AppText.body.copyWith(color: t.fg),
+              ),
+            ),
+          ] else
+            Text(
+              'Описания пока нет',
+              style: AppText.body.copyWith(color: t.fg3),
+            ),
           if (a.genres.isNotEmpty)
             section(
               'Жанры',

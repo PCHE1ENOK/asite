@@ -7,6 +7,7 @@ import '../../data/models/library_entry.dart';
 import '../../data/models/title_note.dart';
 import '../app_scope.dart';
 import '../library_index.dart';
+import '../russian_titles.dart';
 import '../format.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
@@ -210,8 +211,8 @@ class _PosterCardState extends State<PosterCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 8),
-                    Text(
-                      a.title.preferred,
+                    AnimeTitleText(
+                      a,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: AppText.labelStrong.copyWith(color: t.fg),

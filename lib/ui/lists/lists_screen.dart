@@ -21,6 +21,7 @@ import '../widgets/state_views.dart';
 import '../widgets/status_visuals.dart';
 import '../widgets/status_widgets.dart';
 import '../widgets/sync_bar.dart';
+import '../russian_titles.dart';
 
 /// Фильтр «Заметки» над сеткой (design/screens.md §12).
 enum NoteFilter {
@@ -114,6 +115,7 @@ class _ListsScreenState extends State<ListsScreen>
     final map = await AppScope.of(context).services.anime.getSummaries(missing);
     if (!mounted) return;
     setState(() => _summaries.addAll(map));
+    prefetchRussianTitles(context, map.values);
     // Не найденные (нет сети) попробуем при следующем изменении списков.
     _requested = _requested.difference(missing.difference(map.keys.toSet()));
   }
@@ -407,12 +409,20 @@ class _ListRow extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    a?.title.preferred ?? 'Тайтл #${entry.mediaId}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.bodyStrong,
-                  ),
+                  if (a != null)
+                    AnimeTitleText(
+                      a,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.bodyStrong,
+                    )
+                  else
+                    Text(
+                      'Тайтл #${entry.mediaId}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.bodyStrong,
+                    ),
                   Text(
                     note?.summary.isNotEmpty ?? false
                         ? note!.summary.replaceAll('\n', ' ')

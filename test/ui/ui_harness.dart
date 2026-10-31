@@ -16,6 +16,8 @@ import 'package:anime_viewer/data/models/anime.dart';
 import 'package:anime_viewer/data/sources/video_source.dart';
 import 'package:anime_viewer/data/sources/youtube_comments.dart';
 import 'package:anime_viewer/data/translation/translation.dart';
+import 'package:anime_viewer/data/shikimori/russian_text.dart';
+import 'package:anime_viewer/data/shikimori/shikimori_client.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:anime_viewer/main.dart';
 import 'package:anime_viewer/ui/app_scope.dart';
@@ -64,6 +66,18 @@ class UiHarness {
           commentRequests.add(r.url);
           return commentsHandler(r.url);
         }),
+      ),
+      russian: RussianTitles(
+        RussianTextRepository(
+          db: db,
+          client: ShikimoriClient(
+            minInterval: Duration.zero,
+            httpClient: MockClient((r) async {
+              shikiRequests.add(r.url);
+              return shikiHandler(r.url);
+            }),
+          ),
+        ),
       ),
       translator: CommentTranslator(
         detector: const ScriptLanguageDetector(),
@@ -128,6 +142,10 @@ class UiHarness {
   late final AppDatabase db;
   late final FakeAniList fake;
   final tokens = <int, MemoryTokenStore>{};
+
+  /// Ответы Shikimori (по умолчанию русского нет).
+  http.Response Function(Uri) shikiHandler = (_) => http.Response('[]', 200);
+  final shikiRequests = <Uri>[];
 
   /// Ответы `commentThreads.list` для тестов.
   http.Response Function(Uri) commentsHandler = (_) =>
