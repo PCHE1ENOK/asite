@@ -289,11 +289,21 @@ class FakeVideoSource implements VideoSource {
   /// Трейлер тайтла (по умолчанию нет).
   EmbeddedVideo? trailer;
 
+  /// Вызовы [findTrailer]: `true` — с поиском (по нажатию).
+  final trailerCalls = <bool>[];
+
+  /// Трейлер, который находит только поиск по нажатию.
+  EmbeddedVideo? searchedTrailer;
+
   @override
   Future<EmbeddedVideo?> findTrailer(
     AnimeDetails title, {
-    bool refresh = false,
-  }) async => isConfigured ? trailer : null;
+    bool search = false,
+  }) async {
+    trailerCalls.add(search);
+    if (!isConfigured) return null;
+    return trailer ?? (search ? searchedTrailer : null);
+  }
 }
 
 class _DelegatingEngine implements TranslationEngine {

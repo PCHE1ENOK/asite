@@ -11,7 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-AnimeDetails frieren({String format = 'TV'}) => AnimeDetails(
+AnimeDetails frieren({String format = 'TV', Trailer? trailer}) => AnimeDetails(
+  trailer: trailer,
   anime: Anime(
     id: 154587,
     format: format,
@@ -246,7 +247,7 @@ void main() {
       );
     };
     final s = source(region: 'RU');
-    final t = (await s.findTrailer(frieren()))!;
+    final t = (await s.findTrailer(frieren(), search: true))!;
     expect(t.videoId, 'tr');
     expect(t.isTrailer, isTrue);
     expect(t.episode, isNull);
@@ -262,6 +263,120 @@ void main() {
     expect(asked, hasLength(2), reason: 'cached');
     // Серии с каналов трейлеров не берутся.
     expect(await s.find(frieren()), isEmpty);
+  });
+
+  group('AniList trailer', () {
+    late Map<String, dynamic> video;
+    setUp(() {
+      video = {
+        'id': 'al1',
+        'snippet': {
+          'title': 'Sousou no Frieren',
+          'channelId': 'UC-@Crunchyroll',
+          'channelTitle': 'Crunchyroll',
+        },
+        'status': {'embeddable': true},
+        'contentDetails': <String, dynamic>{},
+      };
+      handler = (uri) {
+        if (uri.path.endsWith('/channels')) {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'UC-${uri.queryParameters['forHandle']}'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (uri.path.endsWith('/videos')) {
+          return http.Response.bytes(
+            utf8.encode(
+              jsonEncode({
+                'items': [video],
+              }),
+            ),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [item('s', 'Sousou no Frieren | Official Trailer')],
+          }),
+          200,
+        );
+      };
+    });
+
+    final withTrailer = frieren(
+      trailer: const Trailer(id: 'al1', site: 'youtube'),
+    );
+    int count(String m) => requests.where((u) => u.path.endsWith(m)).length;
+
+    test('official channel: accepted, 1 unit, no search', () async {
+      final t = (await source(region: 'RU').findTrailer(withTrailer))!;
+      expect(t.videoId, 'al1');
+      expect(t.channel, 'Crunchyroll');
+      expect(t.isTrailer, isTrue);
+      expect(count('/videos'), 1);
+      expect(count('/search'), 0);
+    });
+
+    test('other channel without trailer word: rejected by channel', () async {
+      (video['snippet'] as Map)['channelId'] = 'UC-random';
+      expect(await source().findTrailer(withTrailer), isNull);
+      expect(count('/search'), 0, reason: 'no search without a tap');
+    });
+
+    test('other channel, but the video is a trailer of this title', () async {
+      video['snippet'] = {
+        'title': 'Sousou no Frieren | Official Trailer',
+        'channelId': 'UC-studio',
+        'channelTitle': 'TOHO animation',
+      };
+      expect(
+        (await source().findTrailer(withTrailer))!.channel,
+        'TOHO animation',
+      );
+    });
+
+    test('not embeddable, region-blocked or another title: rejected', () async {
+      video['status'] = {'embeddable': false};
+      expect(await source().findTrailer(withTrailer), isNull);
+      video['status'] = {'embeddable': true};
+      video['contentDetails'] = {
+        'regionRestriction': {
+          'blocked': ['RU'],
+        },
+      };
+      final db2 = AppDatabase(NativeDatabase.memory());
+      addTearDown(db2.close);
+      final s = YouTubeSource(
+        apiKey: 'k',
+        db: db2,
+        regionCode: 'RU',
+        httpClient: MockClient((r) async => handler(r.url)),
+      );
+      expect(await s.findTrailer(withTrailer), isNull);
+    });
+
+    test('repeat opens cost nothing; search only on request', () async {
+      final s = source();
+      (video['snippet'] as Map)['channelId'] = 'UC-random';
+      expect(await s.findTrailer(withTrailer), isNull);
+      final before = requests.length;
+      expect(await s.findTrailer(withTrailer), isNull);
+      expect(await s.findTrailer(frieren()), isNull);
+      expect(requests.length, before, reason: 'cached verdict, no search');
+
+      final found = await s.findTrailer(withTrailer, search: true);
+      expect(found!.videoId, 's');
+      expect(count('/search'), 1);
+      // Найденное поиском — из кэша, без новых запросов.
+      final after = requests.length;
+      expect((await s.findTrailer(withTrailer))!.videoId, 's');
+      expect(requests.length, after);
+    });
   });
 
   test('no trailer: null, no exception', () async {
@@ -386,7 +501,7 @@ class _Fixed implements VideoSource {
   @override
   Future<EmbeddedVideo?> findTrailer(
     AnimeDetails title, {
-    bool refresh = false,
+    bool search = false,
   }) async => null;
 
   @override

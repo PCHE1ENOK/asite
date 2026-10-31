@@ -123,13 +123,19 @@ class _TitleScreenState extends State<TitleScreen>
   /// Идёт поиск видео (в том числе «Проверить снова»).
   bool _videosLoading = false;
 
-  /// Официальный трейлер; `null` — кнопки нет (без сообщения).
+  /// Официальный трейлер; `null` — кнопки «Трейлер на YouTube» нет.
   EmbeddedVideo? _trailer;
+
+  /// Поиск трейлера (100 единиц квоты на канал) уже запускали — кнопку
+  /// «Найти трейлер» больше не показываем; ничего не нашлось — без сообщения.
+  bool _trailerSearched = false;
+  bool _trailerSearching = false;
 
   Future<void> _loadVideos(AnimeDetails d, {bool refresh = false}) async {
     setState(() => _videosLoading = true);
     final sources = AppScope.of(context).services.sources;
-    final trailer = sources.findTrailer(d, refresh: refresh);
+    if (refresh) _trailerSearched = true;
+    final trailer = sources.findTrailer(d, search: refresh);
     final videos = await sources.find(d, refresh: refresh);
     if (!mounted) return;
     setState(() {
@@ -140,6 +146,22 @@ class _TitleScreenState extends State<TitleScreen>
     });
     final t = await trailer;
     if (mounted) setState(() => _trailer = t);
+  }
+
+  /// «Найти трейлер»: поиск по официальным каналам — только по нажатию.
+  Future<void> _searchTrailer(AnimeDetails d) async {
+    setState(() {
+      _trailerSearched = true;
+      _trailerSearching = true;
+    });
+    final t = await AppScope.of(context).services.sources
+        .findTrailer(d, search: true);
+    if (mounted) {
+      setState(() {
+        _trailer = t;
+        _trailerSearching = false;
+      });
+    }
   }
 
   void _playTrailer(AnimeDetails d, EmbeddedVideo trailer) =>
@@ -223,6 +245,15 @@ class _TitleScreenState extends State<TitleScreen>
                       (final d?, final tr?) => () => _playTrailer(d, tr),
                       _ => null,
                     },
+                    onFindTrailer:
+                        details == null ||
+                            _trailer != null ||
+                            _trailerSearched ||
+                            _videosLoading ||
+                            !AppScope.of(context).services.sources.anyConfigured
+                        ? null
+                        : () => _searchTrailer(details),
+                    trailerSearching: _trailerSearching,
                     width: width,
                     gutter: gutter,
                   ),
@@ -477,6 +508,8 @@ class _Header extends StatelessWidget {
     required this.width,
     required this.gutter,
     this.onTrailer,
+    this.onFindTrailer,
+    this.trailerSearching = false,
   });
 
   final Anime anime;
@@ -486,6 +519,10 @@ class _Header extends StatelessWidget {
 
   /// Трейлер есть — кнопка «Трейлер на YouTube».
   final VoidCallback? onTrailer;
+
+  /// Трейлера в AniList нет — «Найти трейлер» (поиск по нажатию).
+  final VoidCallback? onFindTrailer;
+  final bool trailerSearching;
   final double width;
   final double gutter;
 
@@ -589,6 +626,14 @@ class _Header extends StatelessWidget {
                 onPressed: onTrailer,
                 icon: const Icon(Symbols.movie_rounded, size: 18),
                 label: const Text('Трейлер на YouTube'),
+              )
+            else if (trailerSearching)
+              const TextButton(onPressed: null, child: Text('Ищем трейлер…'))
+            else if (onFindTrailer case final onFind?)
+              TextButton.icon(
+                onPressed: onFind,
+                icon: const Icon(Symbols.search_rounded, size: 18),
+                label: const Text('Найти трейлер'),
               ),
             if (d?.siteUrl case final url?)
               OutlinedButton.icon(

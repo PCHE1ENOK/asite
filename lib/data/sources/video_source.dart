@@ -57,10 +57,8 @@ abstract interface class VideoSource {
   Future<List<EmbeddedVideo>> find(AnimeDetails title, {bool refresh = false});
 
   /// Официальный трейлер тайтла или `null` — тоже без исключений.
-  Future<EmbeddedVideo?> findTrailer(
-    AnimeDetails title, {
-    bool refresh = false,
-  });
+  /// Дорогой поиск по каналам — только при [search] (по нажатию).
+  Future<EmbeddedVideo?> findTrailer(AnimeDetails title, {bool search = false});
 }
 
 /// Подключённые источники видео.
@@ -88,11 +86,11 @@ class VideoSources {
   /// Трейлер из первого настроенного источника, который его нашёл.
   Future<EmbeddedVideo?> findTrailer(
     AnimeDetails title, {
-    bool refresh = false,
+    bool search = false,
   }) async {
     for (final s in sources) {
       if (!s.isConfigured) continue;
-      if (await s.findTrailer(title, refresh: refresh) case final v?) {
+      if (await s.findTrailer(title, search: search) case final v?) {
         return v;
       }
     }

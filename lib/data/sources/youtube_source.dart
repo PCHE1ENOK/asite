@@ -96,15 +96,24 @@ class YouTubeSource implements VideoSource {
   @override
   Future<EmbeddedVideo?> findTrailer(
     AnimeDetails title, {
-    bool refresh = false,
+    bool search = false,
   }) async {
     if (!isConfigured) return null;
+    // 1. Трейлер, указанный в AniList: проверка — 1 единица квоты.
+    try {
+      if (await _aniListTrailer(title) case final v?) return v;
+    } on Object {
+      // Нет сети или квоты — дальше только кэш поиска.
+    }
+    // 2. Поиск (100 единиц на канал) — только по нажатию; без нажатия —
+    // лишь ранее найденное и ещё свежее.
     for (final channel in trailerChannels) {
       try {
         final found = await _search(
           channel,
           title,
-          refresh: refresh,
+          refresh: search,
+          cacheOnly: !search,
           trailer: true,
         );
         if (found.isNotEmpty) return found.first;
@@ -115,10 +124,81 @@ class YouTubeSource implements VideoSource {
     return null;
   }
 
+  /// Трейлер из AniList, если ролик подходит: встраивается, доступен в
+  /// регионе, в заголовке есть название тайтла, и он либо с официального
+  /// канала трейлеров, либо по заголовку — трейлер
+  /// ([YouTubeMatch.isTrailerFor]). Решение кэшируется как поиск.
+  Future<EmbeddedVideo?> _aniListTrailer(AnimeDetails title) async {
+    final t = title.trailer;
+    if (t == null || t.site.toLowerCase() != 'youtube' || t.id.isEmpty) {
+      return null;
+    }
+    final key = 'yt:anilist-trailer:${t.id}:${title.id}:${regionCode ?? ''}';
+    final cached = await _db.entry(key);
+    if (cached != null) {
+      final j = jsonDecode(cached.payload) as Map<String, dynamic>;
+      final ok = j['ok'] == true;
+      if (_now().difference(cached.updatedAt) < (ok ? ttl : emptyTtl)) {
+        return ok ? _trailerVideo(t.id, j) : null;
+      }
+    }
+    final json = await _get('videos', {
+      'part': 'snippet,status,contentDetails',
+      'id': t.id,
+    });
+    final item = (json['items'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .firstOrNull;
+    final snippet = item?['snippet'] as Map<String, dynamic>?;
+    final videoTitle = YouTubeMatch.unescape(
+      snippet?['title'] as String? ?? '',
+    );
+    final channelId = snippet?['channelId'] as String?;
+    final official = <String, String>{};
+    for (final c in trailerChannels) {
+      final id = await _channelId(c);
+      if (id != null) official[id] = c.name;
+    }
+    final restriction =
+        (item?['contentDetails'] as Map?)?['regionRestriction'] as Map?;
+    final allowed = (restriction?['allowed'] as List?)?.cast<String>();
+    final blocked = (restriction?['blocked'] as List?)?.cast<String>();
+    final region = regionCode;
+    final inRegion =
+        region == null ||
+        ((allowed == null || allowed.contains(region)) &&
+            !(blocked?.contains(region) ?? false));
+    final ok =
+        item != null &&
+        (item['status'] as Map?)?['embeddable'] != false &&
+        inRegion &&
+        YouTubeMatch.matchesTitle(videoTitle, title) &&
+        (official.containsKey(channelId) ||
+            YouTubeMatch.isTrailerFor(videoTitle, title));
+    final verdict = {
+      'ok': ok,
+      'title': videoTitle,
+      'channel':
+          official[channelId] ?? snippet?['channelTitle'] as String? ?? '',
+    };
+    await _db.putEntry(key, jsonEncode(verdict), _now());
+    return ok ? _trailerVideo(t.id, verdict) : null;
+  }
+
+  EmbeddedVideo _trailerVideo(String id, Map<String, dynamic> j) =>
+      EmbeddedVideo(
+        sourceId: 'youtube',
+        videoId: id,
+        title: j['title'] as String? ?? '',
+        channel: j['channel'] as String? ?? '',
+        isTrailer: true,
+      );
+
   Future<List<EmbeddedVideo>> _search(
     OfficialChannel channel,
     AnimeDetails title, {
     required bool refresh,
+    bool cacheOnly = false,
     bool trailer = false,
   }) async {
     List<EmbeddedVideo> parse(List<Map<String, dynamic>> items) => [
@@ -138,6 +218,7 @@ class YouTubeSource implements VideoSource {
       final age = _now().difference(cached.updatedAt);
       if (age < (videos.isEmpty ? emptyTtl : ttl)) return videos;
     }
+    if (cacheOnly) return const [];
     final channelId = await _channelId(channel);
     if (channelId == null) return const [];
     final json = await _get('search', {

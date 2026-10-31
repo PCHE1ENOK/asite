@@ -148,9 +148,41 @@ void main() {
     h.videoSource.isConfigured = true;
     await openAot(tester);
     expect(find.text('Трейлер на YouTube'), findsNothing);
-    expect(find.textContaining('трейлер'), findsNothing, reason: 'no error');
+    expect(h.videoSource.trailerCalls, [false], reason: 'no search on open');
+
+    // Поиск — только по нажатию «Найти трейлер».
+    await tester.tap(find.text('Найти трейлер'));
+    await UiHarness.settle(tester);
+    expect(h.videoSource.trailerCalls, [false, true]);
+    expect(find.text('Трейлер на YouTube'), findsNothing);
+    expect(find.text('Найти трейлер'), findsNothing, reason: 'searched once');
+    expect(find.textContaining('рейлер'), findsNothing, reason: 'no error');
     await h.dispose(tester);
     debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('search on tap finds a trailer', (tester) async {
+    h.videoSource
+      ..isConfigured = true
+      ..searchedTrailer = const EmbeddedVideo(
+        sourceId: 'fake',
+        videoId: 'srch',
+        title: 'Attack on Titan | Official Trailer',
+        channel: 'Crunchyroll',
+        isTrailer: true,
+      );
+    await openAot(tester);
+    await tester.tap(find.text('Найти трейлер'));
+    await UiHarness.settle(tester);
+    expect(find.text('Трейлер на YouTube'), findsOneWidget);
+    await h.dispose(tester);
+  });
+
+  testWidgets('no key: no trailer buttons at all', (tester) async {
+    await openAot(tester);
+    expect(find.text('Найти трейлер'), findsNothing);
+    expect(find.text('Трейлер на YouTube'), findsNothing);
+    await h.dispose(tester);
   });
 
   testWidgets('trailer opens in the embedded YouTube player', (tester) async {

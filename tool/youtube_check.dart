@@ -69,6 +69,11 @@ Future<void> main(List<String> args) async {
     print('  english: ${t.english}');
     print('  native:  ${t.native}');
     print('  синонимы: ${title.synonyms.join(' | ')}');
+    final tr = title.trailer;
+    print(
+      '  трейлер в AniList: '
+      '${tr == null ? 'нет' : '${tr.site} ${tr.id} (https://www.youtube.com/watch?v=${tr.id})'}',
+    );
     q = t.romaji ?? t.preferred;
     print('Приложение ищет на YouTube по строке: «$q»');
     print(
