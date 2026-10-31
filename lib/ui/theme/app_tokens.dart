@@ -142,10 +142,11 @@ class AppTokens extends ThemeExtension<AppTokens> {
   );
 
   /// Цвет оценки AniList (0–100): ≥75 good, 60–74 warn, <60 bad.
-  Color scoreColor(int? score) => switch (score) {
+  /// Цвет оценки 0–10: зелёный от 7,5, жёлтый 6,0–7,4, красный ниже.
+  Color scoreColor(double? score) => switch (score) {
     null => fg3,
-    >= 75 => good,
-    >= 60 => warn,
+    >= 7.5 => good,
+    >= 6.0 => warn,
     _ => bad,
   };
 

@@ -115,7 +115,7 @@ class _ListsScreenState extends State<ListsScreen>
     final map = await AppScope.of(context).services.anime.getSummaries(missing);
     if (!mounted) return;
     setState(() => _summaries.addAll(map));
-    prefetchRussianTitles(context, map.values);
+    prefetchShikimoriData(context, map.values);
     // Не найденные (нет сети) попробуем при следующем изменении списков.
     _requested = _requested.difference(missing.difference(map.keys.toSet()));
   }
@@ -453,7 +453,7 @@ class _ListRow extends StatelessWidget {
               ),
               const SizedBox(width: 12),
             ],
-            ScoreBadge(score: a?.averageScore),
+            if (a != null) AnimeScoreBadge(anime: a),
             const SizedBox(width: 12),
             ListStatusDot(status: entry.status, size: 22),
           ],

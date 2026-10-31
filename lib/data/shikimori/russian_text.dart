@@ -6,17 +6,36 @@ import '../cache/app_database.dart';
 import '../models/anime.dart';
 import 'shikimori_client.dart';
 
-/// Русское название и описание тайтла из Shikimori.
+/// Русское название и оценка тайтла из Shikimori (для списков).
+class ShikiInfo {
+  const ShikiInfo({this.title, this.score});
+
+  final String? title;
+
+  /// Оценка 0–10; `null` — на Shikimori оценки нет.
+  final double? score;
+
+  Map<String, dynamic> toJson() => {'ru': title, 'score': score};
+
+  static ShikiInfo fromJson(Map<String, dynamic> j) => ShikiInfo(
+    title: j['ru'] as String?,
+    score: (j['score'] as num?)?.toDouble(),
+  );
+}
+
+/// Русское название, описание и оценка тайтла из Shikimori.
 class RussianDetails {
-  const RussianDetails({this.title, this.description});
+  const RussianDetails({this.title, this.description, this.score});
 
   final String? title;
   final String? description;
+  final double? score;
 
-  bool get isEmpty => title == null && description == null;
+  bool get isEmpty => title == null && description == null && score == null;
 }
 
-/// Русские названия и описания: AniList их не отдаёт, берём из Shikimori.
+/// Русские названия, описания и оценки: берём из Shikimori (AniList
+/// русского не отдаёт; оценку показываем по Shikimori, если она там есть).
 ///
 /// Сопоставление с AniList — по id MyAnimeList (`idMal`: у Shikimori те же
 /// id), без него — поиском по названию с проверкой года. Кэш — 7 дней в
@@ -34,8 +53,8 @@ class RussianTextRepository {
   final Duration ttl;
   final DateTime Function() _now;
 
-  static String _titleKey(int id) => 'shiki:title:$id';
-  static String _detailsKey(int id) => 'shiki:details:$id';
+  static String _titleKey(int id) => 'shiki:info:$id';
+  static String _detailsKey(int id) => 'shiki:details2:$id';
 
   Future<String?> _fresh(String key) async {
     final e = await db.entry(key);
@@ -43,15 +62,18 @@ class RussianTextRepository {
     return e.payload;
   }
 
-  /// Русские названия для списка тайтлов (каталог, списки, поиск): один
-  /// запрос на 50 тайтлов. В ответе — только найденные.
-  Future<Map<int, String>> titles(List<Anime> items) async {
-    final result = <int, String>{};
+  /// Русские названия и оценки для списка тайтлов (каталог, списки,
+  /// поиск): один запрос на 50 тайтлов. В ответе — только найденные.
+  Future<Map<int, ShikiInfo>> titles(List<Anime> items) async {
+    final result = <int, ShikiInfo>{};
     final need = <Anime>[];
     for (final a in items) {
       final cached = await _fresh(_titleKey(a.id));
       if (cached != null) {
-        if (cached.isNotEmpty) result[a.id] = cached;
+        final info = ShikiInfo.fromJson(
+          jsonDecode(cached) as Map<String, dynamic>,
+        );
+        if (info.title != null || info.score != null) result[a.id] = info;
       } else if (a.idMal != null) {
         need.add(a);
       }
@@ -66,9 +88,12 @@ class RussianTextRepository {
       }
       final byMal = {for (final s in found) s.id: s};
       for (final a in chunk) {
-        final ru = byMal[a.idMal]?.russian ?? '';
-        await db.putEntry(_titleKey(a.id), ru, _now());
-        if (ru.isNotEmpty) result[a.id] = ru;
+        final s = byMal[a.idMal];
+        final info = ShikiInfo(title: s?.russian, score: s?.score);
+        await db.putEntry(_titleKey(a.id), jsonEncode(info.toJson()), _now());
+        if (s != null && (s.russian != null || s.score != null)) {
+          result[a.id] = info;
+        }
       }
     }
     return result;
@@ -83,6 +108,7 @@ class RussianTextRepository {
       return RussianDetails(
         title: j['title'] as String?,
         description: j['description'] as String?,
+        score: (j['score'] as num?)?.toDouble(),
       );
     }
     final ShikiAnime? found;
@@ -95,14 +121,23 @@ class RussianTextRepository {
     final r = RussianDetails(
       title: found?.russian,
       description: found?.description,
+      score: found?.score,
     );
     final now = _now();
     await db.putEntry(
       _detailsKey(d.id),
-      jsonEncode({'title': r.title, 'description': r.description}),
+      jsonEncode({
+        'title': r.title,
+        'description': r.description,
+        'score': r.score,
+      }),
       now,
     );
-    await db.putEntry(_titleKey(d.id), r.title ?? '', now);
+    await db.putEntry(
+      _titleKey(d.id),
+      jsonEncode(ShikiInfo(title: r.title, score: r.score).toJson()),
+      now,
+    );
     return r;
   }
 
@@ -132,25 +167,26 @@ class RussianTextRepository {
       .trim();
 }
 
-/// Русские названия в памяти: у каждого тайтла свой [ValueNotifier], и
-/// при подгрузке пересобирается только его подпись, а не вся сетка.
-class RussianTitles {
-  RussianTitles(this.repository);
+/// Данные Shikimori в памяти (русское название, оценка): у каждого
+/// тайтла свой [ValueNotifier], и при подгрузке пересобираются только его
+/// подпись и бейдж, а не вся сетка.
+class ShikimoriData {
+  ShikimoriData(this.repository);
 
   final RussianTextRepository repository;
-  final _titles = <int, ValueNotifier<String?>>{};
+  final _info = <int, ValueNotifier<ShikiInfo?>>{};
   final _requested = <int>{};
 
-  ValueListenable<String?> of(int id) =>
-      _titles.putIfAbsent(id, () => ValueNotifier(null));
+  ValueListenable<ShikiInfo?> of(int id) =>
+      _info.putIfAbsent(id, () => ValueNotifier(null));
 
-  void put(int id, String? title) {
-    if (title != null && title.isNotEmpty) {
-      (of(id) as ValueNotifier<String?>).value = title;
+  void put(int id, ShikiInfo? info) {
+    if (info != null && (info.title != null || info.score != null)) {
+      (of(id) as ValueNotifier<ShikiInfo?>).value = info;
     }
   }
 
-  /// Подгружает названия для показанных тайтлов (повторно не просит).
+  /// Подгружает данные для показанных тайтлов (повторно не просит).
   Future<void> prefetch(Iterable<Anime> items) async {
     final need = [
       for (final a in items)

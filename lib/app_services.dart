@@ -53,7 +53,7 @@ class AppServices {
     required this.sources,
     required this.comments,
     required this.translator,
-    required this.russian,
+    required this.shiki,
     required this.tokensFor,
     required ProfileSession Function(Profile) sessionFactory,
     required Profile initialProfile,
@@ -84,7 +84,7 @@ class AppServices {
       ]),
       comments: YouTubeCommentsClient(apiKey: AppConfig.youtubeApiKey),
       translator: _translator(preferences),
-      russian: RussianTitles(
+      shiki: ShikimoriData(
         RussianTextRepository(db: db, client: ShikimoriClient()),
       ),
       // Этап 4.5: заглушка заменится распознавателем на Chromaprint +
@@ -136,7 +136,7 @@ class AppServices {
   final CommentTranslator translator;
 
   /// Русские названия и описания (Shikimori).
-  final RussianTitles russian;
+  final ShikimoriData shiki;
 
   /// Телефон — ML Kit на устройстве; ПК — бесплатный MyMemory
   /// (ML Kit на ПК не работает).

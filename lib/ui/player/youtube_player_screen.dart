@@ -245,9 +245,10 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    AppScope.of(context).services.russian
+                    AppScope.of(context).services.shiki
                             .of(details.id)
-                            .value ??
+                            .value
+                            ?.title ??
                         details.anime.title.preferred,
                     style: AppText.labelStrong.copyWith(color: Colors.white),
                   ),

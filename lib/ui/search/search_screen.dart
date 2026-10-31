@@ -431,7 +431,7 @@ class _SuggestionRow extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               if (a.isAdult) ...[const AdultBadge(), const SizedBox(width: 6)],
-              ScoreBadge(score: a.averageScore),
+              AnimeScoreBadge(anime: a),
             ],
           ),
         ),

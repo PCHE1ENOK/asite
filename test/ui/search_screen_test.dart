@@ -88,7 +88,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Рейтинг AniList'), findsOneWidget);
+    expect(find.text('Оценка · AniList'), findsOneWidget);
     expect(h.settings.recentSearches, ['Frieren']);
     await h.dispose(tester);
   });

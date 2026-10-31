@@ -193,7 +193,7 @@ Future<void> openNoteEditor(BuildContext context, AnimeDetails details) {
     details: details,
     notes: scope.services.notes,
     profileName: scope.services.profile.name,
-    title: scope.services.russian.of(details.id).value,
+    title: scope.services.shiki.of(details.id).value?.title,
     status: entry?.status,
     progress: entry?.progress ?? 0,
   );

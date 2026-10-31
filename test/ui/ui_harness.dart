@@ -67,7 +67,7 @@ class UiHarness {
           return commentsHandler(r.url);
         }),
       ),
-      russian: RussianTitles(
+      shiki: ShikimoriData(
         RussianTextRepository(
           db: db,
           client: ShikimoriClient(

@@ -82,4 +82,38 @@ void main() {
     expect(tester.takeException(), isNull);
     await h.dispose(tester);
   });
+
+  testWidgets('score: Shikimori with «Shiki», fallback AniList with «AL»', (
+    tester,
+  ) async {
+    h.shikiHandler = (u) => u.path == '/api/animes'
+        ? json([
+            {'id': 1001, 'russian': 'Атака титанов', 'score': '8.84'},
+            {'id': 1000, 'score': '0.0'},
+          ])
+        : json({'id': 16498, 'score': '8.84'});
+    await h.pump(tester);
+    await UiHarness.settle(tester);
+    // Attack on Titan: Shikimori 8,84 → «8,8 Shiki».
+    expect(find.text('8,8'), findsWidgets);
+    expect(find.text('Shiki'), findsWidgets);
+    // Frieren: на Shikimori 0 → AniList 90 / 10 → «9,0 AL».
+    expect(find.text('9,0'), findsWidgets);
+    expect(find.text('AL'), findsWidgets);
+    expect(find.byTooltip('Оценка 8,8 из 10 · Shikimori'), findsWidgets);
+
+    // Сортировка «по рейтингу» — по-прежнему AniList.
+    await tester.tap(find.text('Популярность'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Рейтинг AniList').last);
+    await UiHarness.settle(tester);
+    expect(h.catalogRequests.last['sort'], ['SCORE_DESC']);
+
+    await tester.tap(find.text('Атака титанов').first);
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('8,8/10', findRichText: true), findsOneWidget);
+    expect(find.text('Оценка · Shikimori'), findsOneWidget);
+    await h.dispose(tester);
+  });
 }

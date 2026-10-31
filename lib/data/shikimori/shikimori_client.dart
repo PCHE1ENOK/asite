@@ -12,6 +12,7 @@ class ShikiAnime {
     this.name,
     this.year,
     this.description,
+    this.score,
   });
 
   final int id;
@@ -26,6 +27,9 @@ class ShikiAnime {
   /// Описание без разметки Shikimori (только в подробностях).
   final String? description;
 
+  /// Оценка 0–10; `null` — нет оценки (Shikimori отдаёт «0.0»).
+  final double? score;
+
   static ShikiAnime? fromJson(Object? j) {
     if (j is! Map) return null;
     final id = j['id'];
@@ -34,12 +38,15 @@ class ShikiAnime {
         v is String && v.trim().isNotEmpty ? v.trim() : null;
     final aired = text(j['aired_on']);
     final raw = text(j['description']);
+    final s = j['score'];
+    final score = s is num ? s.toDouble() : double.tryParse('${s ?? ''}');
     return ShikiAnime(
       id: id,
       russian: text(j['russian']),
       name: text(j['name']),
       year: aired == null ? null : int.tryParse(aired.split('-').first),
       description: raw == null ? null : plainDescription(raw),
+      score: score != null && score > 0 ? score : null,
     );
   }
 

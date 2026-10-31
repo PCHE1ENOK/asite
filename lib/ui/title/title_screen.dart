@@ -11,6 +11,7 @@ import '../../data/anime_repository.dart';
 import '../../data/models/anime.dart';
 import '../../data/models/library_entry.dart';
 import '../../data/sources/video_source.dart';
+import '../../data/models/score.dart';
 import '../../data/shikimori/russian_text.dart';
 import '../app_scope.dart';
 import '../format.dart';
@@ -127,7 +128,7 @@ class _TitleScreenState extends State<TitleScreen>
   bool _ruLoaded = false;
 
   Future<void> _loadRussian(AnimeDetails d) async {
-    final russian = AppScope.of(context).services.russian;
+    final russian = AppScope.of(context).services.shiki;
     RussianDetails? r;
     try {
       r = await russian.repository.details(d);
@@ -135,7 +136,7 @@ class _TitleScreenState extends State<TitleScreen>
       r = null;
     }
     if (!mounted) return;
-    russian.put(d.id, r?.title);
+    russian.put(d.id, ShikiInfo(title: r?.title, score: r?.score));
     setState(() {
       _ru = r;
       _ruLoaded = true;
@@ -795,31 +796,53 @@ class _ScoreBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final score = anime.averageScore;
     final rank = details?.bestRatedRanking;
-    Widget stat(String value, String label, {Color? color}) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(value, style: AppText.scoreLg.copyWith(color: color ?? t.fg)),
-        Text(label, style: AppText.caption.copyWith(color: t.fg2)),
-      ],
-    );
-    return Wrap(
-      spacing: 28,
-      runSpacing: 12,
-      children: [
-        stat(
-          score?.toString() ?? '—',
-          'Рейтинг AniList',
-          color: t.scoreColor(score),
-        ),
-        if (rank != null)
-          stat(
-            '#${rank.rank}',
-            rank.season != null ? 'за сезон' : 'за всё время',
-          ),
-        if (anime.popularity case final p?) stat(Fmt.compact(p), 'в списках'),
-      ],
+    Widget stat(String value, String label, {Color? color, String? unit}) =>
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: value),
+                  if (unit != null)
+                    TextSpan(
+                      text: unit,
+                      style: AppText.label.copyWith(color: t.fg2),
+                    ),
+                ],
+              ),
+              style: AppText.scoreLg.copyWith(color: color ?? t.fg),
+            ),
+            Text(label, style: AppText.caption.copyWith(color: t.fg2)),
+          ],
+        );
+    return ValueListenableBuilder<ShikiInfo?>(
+      valueListenable: AppScope.of(context).services.shiki.of(anime.id),
+      builder: (context, info, _) {
+        final score = Score10.pick(anime, info?.score);
+        return Wrap(
+          spacing: 28,
+          runSpacing: 12,
+          children: [
+            // Без оценки блока нет (design/screens.md).
+            if (score != null)
+              stat(
+                score.text,
+                'Оценка · ${score.source.label}',
+                unit: '/10',
+                color: t.scoreColor(score.value),
+              ),
+            if (rank != null)
+              stat(
+                '#${rank.rank}',
+                rank.season != null ? 'за сезон' : 'за всё время',
+              ),
+            if (anime.popularity case final p?)
+              stat(Fmt.compact(p), 'в списках'),
+          ],
+        );
+      },
     );
   }
 }

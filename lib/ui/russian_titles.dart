@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../data/models/anime.dart';
+import '../data/shikimori/russian_text.dart';
 import 'app_scope.dart';
 
 /// Название тайтла: русское, если Shikimori его знает, иначе AniList.
@@ -21,10 +22,10 @@ class AnimeTitleText extends StatelessWidget {
   final TextOverflow? overflow;
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<String?>(
-    valueListenable: AppScope.of(context).services.russian.of(anime.id),
-    builder: (context, ru, _) => Text(
-      ru ?? anime.title.preferred,
+  Widget build(BuildContext context) => ValueListenableBuilder<ShikiInfo?>(
+    valueListenable: AppScope.of(context).services.shiki.of(anime.id),
+    builder: (context, info, _) => Text(
+      info?.title ?? anime.title.preferred,
       style: style,
       maxLines: maxLines,
       overflow: overflow,
@@ -34,8 +35,8 @@ class AnimeTitleText extends StatelessWidget {
 
 /// Подгружает русские названия для [items] после кадра (каталог, списки,
 /// поиск); ошибки не мешают показу английских.
-void prefetchRussianTitles(BuildContext context, Iterable<Anime> items) {
-  final russian = AppScope.of(context).services.russian;
+void prefetchShikimoriData(BuildContext context, Iterable<Anime> items) {
+  final russian = AppScope.of(context).services.shiki;
   final list = items.toList();
   WidgetsBinding.instance.addPostFrameCallback(
     (_) => unawaited(russian.prefetch(list).catchError((Object _) {})),

@@ -152,7 +152,7 @@ class _PosterCardState extends State<PosterCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ScoreBadge(score: a.averageScore, onPoster: true),
+                  AnimeScoreBadge(anime: a, onPoster: true),
                   if (a.isAdult) ...[
                     const SizedBox(height: 4),
                     const AdultBadge(),

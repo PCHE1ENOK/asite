@@ -68,7 +68,7 @@ class _PosterGridState extends State<PosterGrid> {
     // Русские названия — одним запросом на страницу, после кадра.
     if (items.isNotEmpty && items.length != _prefetched) {
       _prefetched = items.length;
-      prefetchRussianTitles(context, items);
+      prefetchShikimoriData(context, items);
     }
     final padding = EdgeInsets.symmetric(horizontal: gutter);
 

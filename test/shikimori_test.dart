@@ -19,6 +19,10 @@ Anime anime(int id, {int? mal}) => Anime(
 http.Response json(Object body, [int status = 200]) =>
     http.Response.bytes(utf8.encode(jsonEncode(body)), status);
 
+Map<int, String?> titles(Map<int, ShikiInfo> m) => {
+  for (final e in m.entries) e.key: e.value.title,
+};
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late AppDatabase db;
@@ -76,13 +80,13 @@ void main() {
     ]);
     final r = repo();
     final items = [anime(1, mal: 11), anime(2, mal: 12), anime(3)];
-    expect(await r.titles(items), {1: 'Атака титанов'});
+    expect(titles(await r.titles(items)), {1: 'Атака титанов'});
     expect(requests, hasLength(1));
     expect(requests.single.url.queryParameters['ids'], '11,12');
     expect(requests.single.headers['User-Agent'], ShikimoriClient.userAgent);
 
     now = now.add(const Duration(days: 6));
-    expect(await r.titles(items), {1: 'Атака титанов'});
+    expect(titles(await r.titles(items)), {1: 'Атака титанов'});
     expect(requests, hasLength(1), reason: 'cached, incl. «no russian»');
 
     now = now.add(const Duration(days: 2));
@@ -97,7 +101,7 @@ void main() {
     handler = (_) => json([
       {'id': 11, 'russian': 'Атака титанов'},
     ]);
-    expect(await r.titles([anime(1, mal: 11)]), {1: 'Атака титанов'});
+    expect(titles(await r.titles([anime(1, mal: 11)])), {1: 'Атака титанов'});
     expect(await r.details(AnimeDetails(anime: anime(1, mal: 11))), isNotNull);
   });
 
@@ -117,7 +121,9 @@ void main() {
     expect(d.description, 'Эрен живёт за стенами.');
     // Название попало и в кэш списков.
     requests.clear();
-    expect(await repo().titles([anime(1, mal: 16498)]), {1: 'Атака титанов'});
+    expect(titles(await repo().titles([anime(1, mal: 16498)])), {
+      1: 'Атака титанов',
+    });
     expect(requests, isEmpty);
   });
 

@@ -18,7 +18,7 @@ void main() {
     expect(find.byType(PosterCard), findsWidgets);
     expect(find.text("Frieren: Beyond Journey's End"), findsOneWidget);
     expect(find.text('TV · 2023 · 28 эп.'), findsOneWidget);
-    expect(find.text('90'), findsWidgets);
+    expect(find.text('9,0'), findsWidgets);
     expect(h.catalogRequests.first, {
       'sort': ['POPULARITY_DESC'],
       'page': 1,
@@ -103,7 +103,7 @@ void main() {
     await UiHarness.settle(tester);
     await tester.pumpAndSettle();
 
-    expect(find.text('Рейтинг AniList'), findsOneWidget);
+    expect(find.text('Оценка · AniList'), findsOneWidget);
     expect(find.text('#1'), findsOneWidget);
     expect(find.text('за сезон'), findsOneWidget);
     // Навигация остаётся на экране.

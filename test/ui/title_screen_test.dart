@@ -25,7 +25,7 @@ void main() {
       find.text('TV · Весна 2013 · 25 эп. · 24 мин · Wit Studio'),
       findsOneWidget,
     );
-    expect(find.text('85'), findsOneWidget);
+    expect(find.text('8,5/10', findRichText: true), findsOneWidget);
     expect(find.text('#1'), findsOneWidget);
     expect(find.text('950 тыс.'), findsOneWidget);
     await h.dispose(tester);
@@ -77,7 +77,7 @@ void main() {
 
   testWidgets('compact layout renders without overflow', (tester) async {
     await openTitle(tester, size: const Size(390, 844));
-    expect(find.text('Рейтинг AniList'), findsOneWidget);
+    expect(find.text('Оценка · AniList'), findsOneWidget);
     await h.dispose(tester);
   });
 
@@ -93,7 +93,7 @@ void main() {
       findsOneWidget,
     );
     // Шапка из каталога видна и без сети.
-    expect(find.text('Рейтинг AniList'), findsOneWidget);
+    expect(find.text('Оценка · AniList'), findsOneWidget);
     await h.dispose(tester);
   });
 }
