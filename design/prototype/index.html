@@ -142,6 +142,19 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 /* ---------- постеры ---------- */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 28px 20px; }
 @media (min-width: 1700px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); } }
+.pwrap { position: relative; }
+.pwrap > .poster { display: block; }
+.pfav { position: absolute; z-index: 2; right: 8px; top: 38px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--badge-ground); color: #FFFFFFE6; opacity: 0; transition: opacity .15s var(--ease); }
+.pfav svg { width: 16px; height: 16px; }
+.pfav.on { opacity: 1; color: #F27B7B; }
+.card:hover .pfav, .pfav:focus-visible { opacity: 1; }
+@media (hover: none) { .pfav { opacity: .9; } }
+.app.m .pfav { opacity: .9; }
+.pfav.on, .app.m .pfav.on { opacity: 1; }
+.hfav.on { color: var(--bad); }
+.tab-sep { width: 1px; align-self: center; height: 20px; background: var(--border); margin: 0 6px; flex: none; }
+.favic { display: inline-flex; color: var(--bad); }
+.favic svg { width: 16px; height: 16px; }
 .card { display: flex; flex-direction: column; gap: 8px; text-align: left; min-width: 0; border-radius: var(--r-md); }
 .poster { position: relative; aspect-ratio: 2 / 3; max-width: 100%; border-radius: var(--r-md); overflow: hidden; transition: transform .22s var(--ease), box-shadow .22s var(--ease); }
 @media (hover: hover) { .card:hover .poster { transform: scale(1.03); box-shadow: var(--shadow-2); } }
@@ -893,6 +906,7 @@ const I = {
   translate:'M12.9 15.1 10.3 12.6v-.1A17.6 17.6 0 0 0 14 6h3V4h-7V2H8v2H1v2h11.2A15.7 15.7 0 0 1 9 11.4 15.6 15.6 0 0 1 6.7 8H4.7a17.6 17.6 0 0 0 3 4.6L2.6 17.6 4 19l5-5 3.1 3.1zM18.5 10h-2L12 22h2l1.1-3h4.8l1.1 3h2zm-2.6 7 1.6-4.3 1.6 4.3z',
   movie:'M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V4z',
   full_exit:'M5 16h3v3h2v-5H5zm3-8H5v2h5V5H8zm6 11h2v-3h3v-2h-5zm2-11V5h-2v5h5V8z',
+  heart_o:'M16.5 3A6 6 0 0 0 12 5a6 6 0 0 0-4.5-2A5.4 5.4 0 0 0 2 8.5c0 3.8 3.4 6.9 8.6 11.5L12 21.4l1.4-1.4C18.6 15.4 22 12.3 22 8.5A5.4 5.4 0 0 0 16.5 3zm-4.4 15.6-.1.1-.1-.1C7.1 14.2 4 11.4 4 8.5A3.4 3.4 0 0 1 7.5 5c1.5 0 3 1 3.6 2.4h1.9C13.5 6 15 5 16.5 5A3.4 3.4 0 0 1 20 8.5c0 2.9-3.1 5.7-7.9 10.1z',
   heart:'M12 21.4 10.6 20C5.4 15.4 2 12.3 2 8.5A5.4 5.4 0 0 1 7.5 3 6 6 0 0 1 12 5a6 6 0 0 1 4.5-2A5.4 5.4 0 0 1 22 8.5c0 3.8-3.4 6.9-8.6 11.5z',
   plus:'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z', skip:'M4 18l8.5-6L4 6zm9-12v12l8.5-6z',
   cc:'M19 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1zm7 0h-1.5v-.5h-2v3h2V13H18v1a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1z',
@@ -994,6 +1008,17 @@ const NOTES = { yu: {
   5:{ verdict:'recommend', summary:'Лучший сюжет из всего, что смотрел', liked:'', reasons:[], reasonText:'', moments:[], at:'в марте' },
   11:{ verdict:'not', summary:'Сильное начало, дальше потерял интерес', liked:'Первая серия-фильм', reasons:['Затянуто','Слишком мрачно'], reasonText:'После 4-й серии стало про шоу-бизнес, а не про детектив', moments:[], at:'2 недели назад' },
 } };
+// «Понравилось» — отметка сердцем, независимо от статуса; у каждого профиля своя
+const FAVS = { yu: new Set([2, 5, 9]) };
+const favsOf = () => (FAVS[CUR] = FAVS[CUR] || new Set());
+const isFav = a => favsOf().has(a.id);
+function toggleFav(id) {
+  const f = favsOf(), on = !f.has(id), a = DATA.find(x => x.id === id);
+  on ? f.add(id) : f.delete(id);
+  render();
+  toast(on ? `«${a.t}» в «Понравилось»` : `«${a.t}» убран из «Понравилось»`, 'Отменить', () => { on ? f.delete(id) : f.add(id); render(); });
+}
+const favBtn = (a, cls) => `<button class="${cls}${isFav(a) ? ' on' : ''}" type="button" data-fav="${a.id}" aria-pressed="${isFav(a)}" aria-label="${isFav(a) ? 'Убрать из «Понравилось»' : 'Добавить в «Понравилось»'}: ${esc(a.t)}" title="${isFav(a) ? 'Убрать из «Понравилось»' : 'Понравилось'}">${ic(isFav(a) ? 'heart' : 'heart_o')}</button>`;
 const notesOf = () => (NOTES[CUR] = NOTES[CUR] || {});
 const E = { id:null, draft:null, dirty:false, status:'idle', failNext:false, mErr:'' };
 
@@ -1018,10 +1043,10 @@ function card(a, withNote) {
   const nt = withNote && notesOf()[a.id];
   const st = a.st ? `<span class="stdot" style="background:var(${STATUS[a.st].v})" title="${STATUS[a.st].label}">${ic(a.st)}</span>` : '';
   const pr = a.st === 'CURRENT' ? `<span class="prog"><i style="width:${a.pr / a.ep * 100}%"></i></span>` : '';
-  return `<div class="card">
+  return `<div class="card"><div class="pwrap">
     <a href="#title" data-open="${a.id}" class="poster" aria-label="${esc(a.t)}">${art(a)}
       ${scoreBadge(a)}${a.adult ? `<span class="adult" title="Для взрослых"${a.sc == null ? ' style="top:8px"' : ''}>18+</span>` : ''}${st}${pr}
-      <span class="btn btn-filled hover-cta" aria-hidden="true">${ic('play')}Смотреть</span>${nt ? `<span class="vbadge" style="color:${VERD[nt.verdict].badge}" title="Моя заметка: ${VERD[nt.verdict].label}">${ic(VERD[nt.verdict].icon)}</span>` : ''}</a>
+      <span class="btn btn-filled hover-cta" aria-hidden="true">${ic('play')}Смотреть</span>${nt ? `<span class="vbadge" style="color:${VERD[nt.verdict].badge}" title="Моя заметка: ${VERD[nt.verdict].label}">${ic(VERD[nt.verdict].icon)}</span>` : ''}</a>${favBtn(a, 'pfav')}</div>
     <div><div class="name">${esc(a.t)}</div><div class="cap">${a.f} · ${a.y} · ${a.st === 'CURRENT' ? `${a.pr} / ${a.ep}` : a.ep} эп.</div>${nt && nt.summary ? `<div class="nsum" title="${esc(nt.summary)}">${ic('edit')}${esc(nt.summary)}</div>` : ''}</div>
   </div>`;
 }
@@ -1068,7 +1093,8 @@ function viewLists() {
   // Пропорции для полосы — примерные счётчики пользователя
   const counts = CUR === 'yu' ? { CURRENT:4, PLANNING:23, COMPLETED:142, PAUSED:6, DROPPED:9 } : ORDER.reduce((o, k) => (o[k] = DATA.filter(a => a.st === k).length, o), {});
   const tot = ORDER.reduce((s,k) => s + counts[k], 0);
-  const items = DATA.filter(a => a.st === S.tab);
+  const isFavTab = S.tab === 'FAV';
+  const items = isFavTab ? DATA.filter(isFav) : DATA.filter(a => a.st === S.tab);
   const cont = S.tab === 'CURRENT' ? `<div class="overline" style="margin-bottom:12px">Продолжить</div><div class="continue">${items.map(a => `
       <a class="ccard" href="#player" data-open="${a.id}" style="text-decoration:none;color:inherit">
         <div class="frame">${art(a, true)}<span class="prog"><i style="width:${a.id === 1 ? 42 : 18}%"></i></span><span class="play">${ic('play')}</span></div>
@@ -1079,13 +1105,13 @@ function viewLists() {
   const vfilter = `<div class="toolbar vfilter" role="group" aria-label="Фильтр по заметкам"><span class="cap">Заметки:</span>${[['all','Все'],['any','С заметкой'],['recommend','Советую'],['rewatch','Стоит пересмотреть'],['not','Не советую'],['none','Без вердикта']].map(([k,l]) => `<button class="chip" type="button" data-vf="${k}" aria-pressed="${vf === k}">${VERD[k] ? `<span style="color:var(${VERD[k].v});display:inline-flex">${ic(VERD[k].icon)}</span>` : ''}${l}</button>`).join('')}</div>`;
   const body = !items.length ? null : shown.length ? `${vfilter}<div class="grid">${shown.map(x => card(x, true)).join('')}</div>`
     : `${vfilter}<div class="state">${ic('edit')}<h3>Нет тайтлов с таким вердиктом</h3><div>Вердикт ставится в заметке на карточке тайтла.</div><button class="btn btn-outline" type="button" data-vf="all">Показать все</button></div>`;
-  const bodyFinal = body || `<div class="state">${ic(S.tab)}<h3>Пока пусто</h3><div>Здесь появятся тайтлы со статусом «${STATUS[S.tab].label}».</div><a class="btn btn-outline" href="#catalog" style="text-decoration:none">Открыть каталог</a></div>`;
+  const bodyFinal = body || (isFavTab ? `<div class="state">${ic('heart_o')}<h3>Отметьте тайтлы сердцем</h3><div>Нажмите ♡ на постере или на карточке тайтла — он появится здесь, независимо от статуса.</div><a class="btn btn-outline" href="#catalog" style="text-decoration:none">Открыть каталог</a></div>` : '') || `<div class="state">${ic(S.tab)}<h3>Пока пусто</h3><div>Здесь появятся тайтлы со статусом «${STATUS[S.tab].label}».</div><a class="btn btn-outline" href="#catalog" style="text-decoration:none">Открыть каталог</a></div>`;
   return `<div class="page">
     <div class="head"><h1>Мои списки</h1></div>
     ${syncBar()}<div class="cap">Всего ${tot} тайтлов</div>
     ${tot ? a_bar(counts) : `<div class="statusbar" role="img" aria-label="Списки пусты"><i style="flex:1;background:var(--s3);border-radius:4px"></i></div>`}
     <div class="legend">${ORDER.map(k => `<span><span style="color:var(${STATUS[k].v});display:inline-flex">${ic(k)}</span>${STATUS[k].label} <b>${counts[k]}</b></span>`).join('')}</div>
-    <div class="tabs" role="tablist">${ORDER.map(k => `<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${S.tab === k}">${STATUS[k].label}<span class="count">${counts[k]}</span></button>`).join('')}</div>
+    <div class="tabs" role="tablist">${ORDER.map(k => `<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${S.tab === k}">${STATUS[k].label}<span class="count">${counts[k]}</span></button>`).join('')}<span class="tab-sep" aria-hidden="true"></span><button class="tab" role="tab" type="button" data-tab="FAV" aria-selected="${S.tab === 'FAV'}"><span class="favic">${ic('heart')}</span>Понравилось<span class="count">${favsOf().size}</span></button></div>
     ${cont}${bodyFinal}
     <p class="sample">Примерные данные. В прототипе показаны только тайтлы из демо-каталога.</p>
   </div>`;
@@ -1439,7 +1465,7 @@ function viewTitle() {
             <a class="btn btn-filled" href="#player" data-open="${a.id}" style="text-decoration:none">${ic('play')}${a.st === 'CURRENT' ? `Смотреть серию ${nextEp}` : 'Начать просмотр'}</a>
             <button class="btn btn-outline" type="button" data-act="statusMenu" aria-haspopup="menu" aria-expanded="false">${st ? `<span style="color:var(${st.v});display:inline-flex">${ic(a.st)}</span>${st.label}` : `${ic('plus')}Добавить в список`}${ic('chev')}</button>
             ${trailerBtn(a)}
-            <button class="icon-btn" type="button" aria-label="В избранное">${ic('heart')}</button>
+            ${favBtn(a, 'icon-btn hfav')}
             <div class="menu" role="menu" id="statusMenu" hidden style="left:0">${ORDER.map(k => `<button role="menuitemradio" type="button" data-setst="${k}" aria-checked="${a.st === k}"><span style="color:var(${STATUS[k].v});display:inline-flex">${ic(k)}</span>${STATUS[k].label}${a.st === k ? `<span class="chk">${ic('check')}</span>` : ''}</button>`).join('')}${a.st ? `<hr><button role="menuitem" type="button" data-setst="">Удалить из списка</button>` : ''}</div>
           </div>
         </div></div></div>
@@ -1803,6 +1829,7 @@ document.addEventListener('click', e => {
   else if (d.act === 'cMore') { C.loadingMore = true; paintComments(); setTimeout(() => { C.loadingMore = false; C.more = true; paintComments(); }, 700); }
   else if (d.act === 'cRetry') { $('#demoComments').value = 'loading'; paintComments(); setTimeout(() => { $('#demoComments').value = 'ok'; paintComments(); }, 800); }
   else if (d.act === 'ytComments') { P.comOpen = !P.comOpen; render(); }
+  else if (d.fav) { e.preventDefault(); toggleFav(+d.fav); }
   else if (d.vf) { S.verdictFilter = d.vf; render(); }
   else if (d.act === 'nEdit') openEditor(S.titleId);
   else if (d.act === 'nClose') askCloseEditor();
