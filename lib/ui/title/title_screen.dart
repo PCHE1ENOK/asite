@@ -21,6 +21,7 @@ import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/badges.dart';
 import '../widgets/cover_image.dart';
+import '../widgets/favorite_button.dart';
 import '../widgets/poster_card.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/state_views.dart';
@@ -722,6 +723,7 @@ class _Header extends StatelessWidget {
               label: Text(playLabel),
             ),
             StatusButton(mediaId: a.id),
+            FavoriteButton(anime: a),
             if (onTrailer case final onTrailer?)
               OutlinedButton.icon(
                 onPressed: onTrailer,

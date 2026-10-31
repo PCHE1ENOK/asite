@@ -11,6 +11,7 @@ import 'data/github/github_auth.dart';
 import 'data/github/token_store.dart';
 import 'data/library/library_repository.dart';
 import 'data/music/music_recognition.dart';
+import 'data/favorites/favorites_repository.dart';
 import 'data/notes/notes_repository.dart';
 import 'data/profiles/profile_repository.dart';
 import 'data/settings/app_preferences.dart';
@@ -29,6 +30,7 @@ class ProfileSession {
     required this.profile,
     required this.library,
     required this.notes,
+    required this.favorites,
     required this.sync,
   });
 
@@ -37,6 +39,9 @@ class ProfileSession {
 
   /// Личные заметки о тайтлах.
   final NotesRepository notes;
+
+  /// «Понравилось».
+  final FavoritesRepository favorites;
   final SyncService sync;
 }
 
@@ -97,13 +102,16 @@ class AppServices {
       sessionFactory: (profile) {
         final library = LibraryRepository(db, profileId: profile.id);
         final notes = NotesRepository(db, profileId: profile.id);
+        final favorites = FavoritesRepository(db, profileId: profile.id);
         return ProfileSession(
           profile: profile,
           library: library,
           notes: notes,
+          favorites: favorites,
           sync: SyncService(
             library: library,
             notes: notes,
+            favorites: favorites,
             db: db,
             tokens: tokensFor(profile.id),
             profiles: profiles,
@@ -171,6 +179,7 @@ class AppServices {
   Profile get profile => session.value.profile;
   LibraryRepository get library => session.value.library;
   NotesRepository get notes => session.value.notes;
+  FavoritesRepository get favorites => session.value.favorites;
   SyncService get sync => session.value.sync;
 
   /// Переключает профиль: синхронизация старого останавливается, новый
@@ -183,6 +192,8 @@ class AppServices {
     await profiles.setActive(profileId);
     session.value = _sessionFactory(next);
     await old.sync.dispose();
+    // Подписка на базу закрывается после перестроения экранов.
+    Future<void>.delayed(const Duration(seconds: 1), old.favorites.dispose);
     unawaited(session.value.sync.start());
   }
 

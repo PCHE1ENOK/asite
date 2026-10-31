@@ -1,3 +1,4 @@
+import '../models/favorite.dart';
 import '../models/library_entry.dart';
 import '../models/title_note.dart';
 
@@ -48,6 +49,17 @@ MergeResult<TitleNote> mergeNotes(
   remote,
   key: (n) => n.mediaId,
   updatedAt: (n) => n.updatedAt,
+);
+
+/// То же для «Понравилось»: по тайтлу побеждает более свежая отметка.
+MergeResult<Favorite> mergeFavorites(
+  Iterable<Favorite> local,
+  Iterable<Favorite> remote,
+) => mergeRecords(
+  local,
+  remote,
+  key: (f) => f.mediaId,
+  updatedAt: (f) => f.updatedAt,
 );
 
 /// Слияние «последняя запись побеждает» по ключу [key].

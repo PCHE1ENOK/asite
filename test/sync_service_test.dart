@@ -1,3 +1,5 @@
+import 'package:anime_viewer/data/models/favorite.dart';
+import 'package:anime_viewer/data/favorites/favorites_repository.dart';
 import 'package:anime_viewer/data/cache/app_database.dart';
 import 'package:anime_viewer/data/github/gist_client.dart';
 import 'package:anime_viewer/data/github/github_auth.dart';
@@ -342,5 +344,63 @@ void main() {
       github.gists.values.single[LibraryCodec.fileName],
     );
     expect(file.notes.map((n) => n.summary), ['правка', 'новее', 'с телефона']);
+  });
+
+  test('favorites sync in the same Gist file', () async {
+    final fav = FavoritesRepository(db, clock: () => now);
+    await sync.dispose();
+    sync = SyncService(
+      library: library,
+      favorites: fav,
+      db: db,
+      tokens: tokens,
+      profiles: ProfileRepository(db),
+      auth: () => GitHubAuth(
+        clientId: 'client',
+        httpClient: github.client,
+        delay: (_) async {},
+        clock: () => now,
+      ),
+      gistClient: (token) => GistClient(token, httpClient: github.client),
+      clock: () => now,
+    );
+    await sync.start();
+    await fav.set(1, true);
+    await fav.set(2, true);
+    await signIn();
+
+    var file = LibraryCodec.decodeFile(
+      github.gists.values.single[LibraryCodec.fileName],
+    );
+    expect(file.favorites.map((f) => f.mediaId), [1, 2]);
+    expect(await fav.pendingCount(), 0);
+
+    // Другое устройство сняло 2 позже и отметило 3.
+    final gistId = github.gists.keys.single;
+    github.gists[gistId]![LibraryCodec.fileName] = LibraryCodec.encode(
+      const [],
+      favorites: [
+        file.favorites.first,
+        Favorite(
+          mediaId: 2,
+          updatedAt: now.add(const Duration(hours: 1)),
+          deleted: true,
+        ),
+        Favorite(mediaId: 3, updatedAt: now),
+      ],
+    );
+    await sync.syncNow();
+    expect(
+      {for (final f in await fav.allForSync()) f.mediaId: f.deleted},
+      {1: false, 2: true, 3: false},
+    );
+    file = LibraryCodec.decodeFile(
+      github.gists.values.single[LibraryCodec.fileName],
+    );
+    expect(file.favorites.where((f) => !f.deleted).map((f) => f.mediaId), [
+      1,
+      3,
+    ]);
+    await fav.dispose();
   });
 }

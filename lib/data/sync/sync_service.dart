@@ -9,6 +9,8 @@ import '../github/github_exception.dart';
 import '../github/token_store.dart';
 import '../library/library_repository.dart';
 import '../models/title_note.dart';
+import '../favorites/favorites_repository.dart';
+import '../models/favorite.dart';
 import '../notes/notes_repository.dart';
 import '../profiles/profile_repository.dart';
 import 'library_codec.dart';
@@ -95,6 +97,7 @@ class SyncService {
     required this._gistClient,
     required this.profiles,
     this.notes,
+    this.favorites,
     this.debounce = const Duration(seconds: 5),
     DateTime Function()? clock,
   }) : _now = clock ?? DateTime.now;
@@ -113,6 +116,9 @@ class SyncService {
   /// Заметки о тайтлах; синхронизируются в том же файле Gist.
   final NotesRepository? notes;
 
+  /// «Понравилось»; в том же файле Gist.
+  final FavoritesRepository? favorites;
+
   int get profileId => _library.profileId;
 
   String get _gistIdKey =>
@@ -129,8 +135,12 @@ class SyncService {
   bool _rerun = false;
   StreamSubscription<int>? _pendingSub;
   StreamSubscription<int>? _notesPendingSub;
+  StreamSubscription<int>? _favoritesPendingSub;
   int _libraryPending = 0;
   int _notesPending = 0;
+  int _favoritesPending = 0;
+
+  int get _allPending => _libraryPending + _notesPending + _favoritesPending;
   bool _lastHadGist = false;
   int _lastConflicts = 0;
 
@@ -142,13 +152,18 @@ class SyncService {
     _token = await _tokens.read();
     _library.onChanged = _scheduleSync;
     notes?.onChanged = _scheduleSync;
+    favorites?.onChanged = _scheduleSync;
     _pendingSub ??= _library.watchPendingCount().listen((c) {
       _libraryPending = c;
-      _onPendingChanged(_libraryPending + _notesPending);
+      _onPendingChanged(_allPending);
     });
     _notesPendingSub ??= notes?.watchPendingCount().listen((c) {
       _notesPending = c;
-      _onPendingChanged(_libraryPending + _notesPending);
+      _onPendingChanged(_allPending);
+    });
+    _favoritesPendingSub ??= favorites?.watchPendingCount().listen((c) {
+      _favoritesPending = c;
+      _onPendingChanged(_allPending);
     });
     await _publishIdle();
     if (_token != null) await syncNow();
@@ -158,8 +173,10 @@ class SyncService {
     _debounceTimer?.cancel();
     await _pendingSub?.cancel();
     await _notesPendingSub?.cancel();
+    await _favoritesPendingSub?.cancel();
     _library.onChanged = null;
     notes?.onChanged = null;
+    favorites?.onChanged = null;
     state.dispose();
   }
 
@@ -271,6 +288,7 @@ class SyncService {
       final local = await _library.allForSync();
       final merge = mergeLibraries(local, remote);
       final notesMerge = await _mergeNotes(remoteFile.notes);
+      final favMerge = await _mergeFavorites(remoteFile.favorites);
       _lastHadGist = gistId != null;
       _lastConflicts = merge.conflicts;
 
@@ -285,6 +303,7 @@ class SyncService {
       final content = LibraryCodec.encode(
         merge.entries,
         notes: notesMerge?.entries ?? const [],
+        favorites: favMerge?.entries ?? const [],
       );
       if (gistId == null) {
         final id = await client.createGist(
@@ -293,11 +312,14 @@ class SyncService {
           description: LibraryCodec.description,
         );
         await _db.putSetting(_gistIdKey, id);
-      } else if (merge.remoteChanged || (notesMerge?.remoteChanged ?? false)) {
+      } else if (merge.remoteChanged ||
+          (notesMerge?.remoteChanged ?? false) ||
+          (favMerge?.remoteChanged ?? false)) {
         await client.writeFile(gistId, LibraryCodec.fileName, content);
       }
       await _library.markSynced(merge.entries);
       if (notesMerge != null) await notes!.markSynced(notesMerge.entries);
+      if (favMerge != null) await favorites!.markSynced(favMerge.entries);
       await _db.putSetting(_lastSyncedKey, _now().toUtc().toIso8601String());
       await _publishIdle();
     } on GitHubException catch (e) {
@@ -337,8 +359,25 @@ class SyncService {
     return merge;
   }
 
+  /// «Понравилось»: слияние по `updatedAt` на тайтл.
+  Future<MergeResult<Favorite>?> _mergeFavorites(List<Favorite> remote) async {
+    final repo = favorites;
+    if (repo == null) return null;
+    final local = await repo.allForSync();
+    final merge = mergeFavorites(local, remote);
+    final remoteById = {for (final f in remote) f.mediaId: f};
+    await repo.applyMerged(
+      merge.localChanged,
+      snapshot: {for (final f in local) f.mediaId: f},
+      isClean: (f) => remoteById[f.mediaId] == f,
+    );
+    return merge;
+  }
+
   Future<int> _pendingCount() async =>
-      await _library.pendingCount() + (await notes?.pendingCount() ?? 0);
+      await _library.pendingCount() +
+      (await notes?.pendingCount() ?? 0) +
+      (await favorites?.pendingCount() ?? 0);
 
   /// Id Gist (`null`, если его ещё нет) и его содержимое.
   Future<(String?, LibraryFile)> _loadRemote(GistClient client) async {

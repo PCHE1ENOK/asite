@@ -9,6 +9,7 @@ import 'package:anime_viewer/data/github/gist_client.dart';
 import 'package:anime_viewer/data/github/token_store.dart';
 import 'package:anime_viewer/data/library/library_repository.dart';
 import 'package:anime_viewer/data/music/music_recognition.dart';
+import 'package:anime_viewer/data/favorites/favorites_repository.dart';
 import 'package:anime_viewer/data/notes/notes_repository.dart';
 import 'package:anime_viewer/data/profiles/profile_repository.dart';
 import 'package:anime_viewer/data/settings/app_preferences.dart';
@@ -91,13 +92,16 @@ class UiHarness {
       sessionFactory: (profile) {
         final library = LibraryRepository(db, profileId: profile.id);
         final notes = NotesRepository(db, profileId: profile.id);
+        final favorites = FavoritesRepository(db, profileId: profile.id);
         return ProfileSession(
           profile: profile,
           library: library,
           notes: notes,
+          favorites: favorites,
           sync: SyncService(
             library: library,
             notes: notes,
+            favorites: favorites,
             db: db,
             tokens: tokenStore(profile.id),
             profiles: profiles,
@@ -277,6 +281,7 @@ class UiHarness {
 
   Future<void> dispose(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox.shrink());
+    await run(tester, services.favorites.dispose);
     // Подписки drift закрываются по таймеру; ждём их в тестовом времени.
     await tester.pump(const Duration(seconds: 1));
     await run(tester, db.close);

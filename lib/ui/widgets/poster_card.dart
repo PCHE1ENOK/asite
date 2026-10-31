@@ -13,6 +13,7 @@ import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import 'badges.dart';
 import 'cover_image.dart';
+import 'favorite_button.dart';
 import 'skeleton.dart';
 import 'status_widgets.dart';
 import 'verdict_visuals.dart';
@@ -95,6 +96,7 @@ class _PosterCardState extends State<PosterCard> {
         (entry.status == ListStatus.current ||
             entry.status == ListStatus.repeating);
     final total = a.episodes;
+    final phone = MediaQuery.sizeOf(context).width < AppLayout.medium;
 
     final cover = AnimatedScale(
       scale: _hover && !reduceMotion ? 1.03 : 1,
@@ -123,6 +125,17 @@ class _PosterCardState extends State<PosterCard> {
                 top: 8,
                 child: ListStatusDot(status: entry.status),
               ),
+            // Сердце под точкой статуса: отмеченное видно всегда,
+            // неотмеченное — на телефоне всегда, на ПК при наведении и фокусе.
+            Positioned(
+              right: 4,
+              top: entry != null ? 34 : 4,
+              child: FavoriteButton(
+                anime: a,
+                onPoster: true,
+                visibleWhenOff: _hover || _focus || phone,
+              ),
+            ),
             if (watching && total != null && total > 0 && entry.progress > 0)
               Positioned(
                 left: 0,

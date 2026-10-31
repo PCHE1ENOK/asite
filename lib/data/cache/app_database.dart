@@ -67,6 +67,22 @@ class LibraryEntries extends Table {
   Set<Column<Object>> get primaryKey => {profileId, mediaId};
 }
 
+/// Отметки «Понравилось» в профиле; синхронизируются с Gist вместе со
+/// списками (слияние по `updatedAt`).
+@DataClassName('FavoriteRow')
+class Favorites extends Table {
+  IntColumn get profileId => integer().references(Profiles, #id)();
+  IntColumn get mediaId => integer()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  /// Изменение ещё не отправлено в Gist.
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {profileId, mediaId};
+}
+
 /// Личные заметки о тайтлах в профиле; синхронизируются с Gist вместе
 /// со списками.
 @DataClassName('NoteRow')
@@ -104,6 +120,7 @@ class Settings extends Table {
     LibraryEntries,
     Settings,
     Notes,
+    Favorites,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -121,7 +138,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   /// Id профиля «Основной», в который переносятся списки из версии 2.
   static const defaultProfileId = 1;
@@ -144,6 +161,7 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(libraryEntries);
         await m.createTable(settings);
         await m.createTable(notes);
+        await m.createTable(favorites);
         return;
       }
       if (from < 3) {
@@ -191,6 +209,10 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         // Заметки о тайтлах.
         await m.createTable(notes);
+      }
+      if (from < 5) {
+        // «Понравилось».
+        await m.createTable(favorites);
       }
     },
     beforeOpen: (details) => customStatement('PRAGMA foreign_keys = ON'),

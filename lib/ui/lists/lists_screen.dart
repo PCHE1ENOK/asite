@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../data/models/anime.dart';
 import '../../data/models/library_entry.dart';
 import '../../data/models/title_note.dart';
+import '../../data/favorites/favorites_repository.dart';
 import '../widgets/verdict_visuals.dart';
 import '../app_scope.dart';
 import '../format.dart';
@@ -21,6 +22,7 @@ import '../widgets/state_views.dart';
 import '../widgets/status_visuals.dart';
 import '../widgets/status_widgets.dart';
 import '../widgets/sync_bar.dart';
+import '../widgets/favorite_button.dart';
 import '../russian_titles.dart';
 
 /// Фильтр «Заметки» над сеткой (design/screens.md §12).
@@ -74,7 +76,14 @@ class ListsScreen extends StatefulWidget {
 
 class _ListsScreenState extends State<ListsScreen>
     with SingleTickerProviderStateMixin {
-  late final _tabs = TabController(length: statusBarOrder.length, vsync: this);
+  /// Вкладки статусов и после них — «Понравилось».
+  late final _tabs = TabController(
+    length: statusBarOrder.length + 1,
+    vsync: this,
+  );
+  late FavoritesRepository _favorites;
+
+  bool get _favoritesTab => _tabs.index == statusBarOrder.length;
   late LibraryIndex _library;
   final Map<int, Anime> _summaries = {};
   Set<int> _requested = {};
@@ -93,6 +102,8 @@ class _ListsScreenState extends State<ListsScreen>
     if (_initialized) return;
     _initialized = true;
     _library = AppScope.of(context).library..addListener(_loadSummaries);
+    _favorites = AppScope.of(context).services.favorites;
+    _favorites.ids.addListener(_loadSummaries);
     _loadSummaries();
     _notesSub = AppScope.of(context).services.notes
         .watchAll()
@@ -102,6 +113,7 @@ class _ListsScreenState extends State<ListsScreen>
   @override
   void dispose() {
     _library.removeListener(_loadSummaries);
+    _favorites.ids.removeListener(_loadSummaries);
     _notesSub?.cancel();
     _tabs.dispose();
     super.dispose();
@@ -109,7 +121,10 @@ class _ListsScreenState extends State<ListsScreen>
 
   /// Подгружает карточки AniList для новых тайтлов в списках.
   Future<void> _loadSummaries() async {
-    final missing = _library.ids.difference(_requested);
+    final missing = {
+      ..._library.ids,
+      ..._favorites.ids.value,
+    }.difference(_requested);
     if (missing.isEmpty) return;
     _requested = {..._requested, ...missing};
     final map = await AppScope.of(context).services.anime.getSummaries(missing);
@@ -120,22 +135,32 @@ class _ListsScreenState extends State<ListsScreen>
     _requested = _requested.difference(missing.difference(map.keys.toSet()));
   }
 
-  List<LibraryEntry> _entriesFor(ListStatus status) {
-    final list = [
-      for (final e in _library.entries)
-        if (e.status == status ||
-            (status == ListStatus.current && e.status == ListStatus.repeating))
-          e,
-    ];
-    int byTitle(LibraryEntry a, LibraryEntry b) =>
-        (_summaries[a.mediaId]?.title.preferred ?? '').toLowerCase().compareTo(
-          (_summaries[b.mediaId]?.title.preferred ?? '').toLowerCase(),
-        );
+  /// Тайтлы вкладки: статус или «Понравилось» (независимо от статуса).
+  List<_Item> _itemsFor(ListStatus? status) {
+    final list = status == null
+        ? [for (final id in _favorites.ids.value) (id: id, entry: _library[id])]
+        : [
+            for (final e in _library.entries)
+              if (e.status == status ||
+                  (status == ListStatus.current &&
+                      e.status == ListStatus.repeating))
+                (id: e.mediaId, entry: e),
+          ];
+    final epoch = DateTime.fromMillisecondsSinceEpoch(0);
+    int byTitle(_Item a, _Item b) => (_summaries[a.id]?.title.preferred ?? '')
+        .toLowerCase()
+        .compareTo((_summaries[b.id]?.title.preferred ?? '').toLowerCase());
     switch (_sort) {
       case ListsSort.updated:
-        list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+        list.sort(
+          (a, b) => (b.entry?.updatedAt ?? epoch).compareTo(
+            a.entry?.updatedAt ?? epoch,
+          ),
+        );
       case ListsSort.score:
-        list.sort((a, b) => (b.score ?? -1).compareTo(a.score ?? -1));
+        list.sort(
+          (a, b) => (b.entry?.score ?? -1).compareTo(a.entry?.score ?? -1),
+        );
       case ListsSort.title:
         list.sort(byTitle);
     }
@@ -150,17 +175,18 @@ class _ListsScreenState extends State<ListsScreen>
         final gutter = AppLayout.gutter(width);
         final compact = width < AppLayout.medium;
         return ListenableBuilder(
-          listenable: Listenable.merge([_library, _tabs]),
+          listenable: Listenable.merge([_library, _tabs, _favorites.ids]),
           builder: (context, _) {
             final counts = _library.counts;
-            final status = statusBarOrder[_tabs.index];
-            final inTab = _entriesFor(status);
+            final favorites = _favoritesTab;
+            final status = favorites ? null : statusBarOrder[_tabs.index];
+            final inTab = _itemsFor(status);
             final entries = [
               for (final e in inTab)
-                if (_noteFilter.matches(_notes[e.mediaId])) e,
+                if (_noteFilter.matches(_notes[e.id])) e,
             ];
             final withSummary = entries.any(
-              (e) => _notes[e.mediaId]?.summary.isNotEmpty ?? false,
+              (e) => _notes[e.id]?.summary.isNotEmpty ?? false,
             );
             return CustomScrollView(
               slivers: [
@@ -210,6 +236,36 @@ class _ListsScreenState extends State<ListsScreen>
                                   ],
                                 ),
                               ),
+                            // Отдельно от статусов: сердце не статус.
+                            Tab(
+                              child: Container(
+                                padding: const EdgeInsets.only(left: 16),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: context.tokens.border,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Symbols.favorite_rounded,
+                                      size: 16,
+                                      fill: 1,
+                                      color: context.tokens.bad,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text('Понравилось'),
+                                    const SizedBox(width: 6),
+                                    _CountPill(
+                                      count: _favorites.ids.value.length,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -290,11 +346,24 @@ class _ListsScreenState extends State<ListsScreen>
                           setState(() => _noteFilter = NoteFilter.all),
                     ),
                   )
+                else if (entries.isEmpty && status == null)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: EmptyState(
+                      icon: Symbols.favorite_rounded,
+                      text: 'Отметьте тайтлы сердцем',
+                      hint:
+                          'Нажмите ♡ на постере или на карточке тайтла — он '
+                          'появится здесь, независимо от статуса',
+                      actionLabel: 'Открыть каталог',
+                      onAction: widget.onOpenCatalog,
+                    ),
+                  )
                 else if (entries.isEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: EmptyState(
-                      icon: statusIcon(status),
+                      icon: statusIcon(status!),
                       text:
                           'Здесь появятся тайтлы, которые вы отметили «${Fmt.status(status)}»',
                       actionLabel: 'Открыть каталог',
@@ -312,12 +381,12 @@ class _ListsScreenState extends State<ListsScreen>
                         ),
                         itemCount: entries.length,
                         itemBuilder: (context, i) {
-                          final a = _summaries[entries[i].mediaId];
+                          final a = _summaries[entries[i].id];
                           return a == null
                               ? const PosterCardSkeleton()
                               : PosterCard(
                                   anime: a,
-                                  note: _notes[entries[i].mediaId],
+                                  note: _notes[entries[i].id],
                                   onTap: () => widget.onOpenTitle(a),
                                 );
                         },
@@ -330,9 +399,10 @@ class _ListsScreenState extends State<ListsScreen>
                     sliver: SliverList.builder(
                       itemCount: entries.length,
                       itemBuilder: (context, i) => _ListRow(
-                        entry: entries[i],
-                        anime: _summaries[entries[i].mediaId],
-                        note: _notes[entries[i].mediaId],
+                        mediaId: entries[i].id,
+                        entry: entries[i].entry,
+                        anime: _summaries[entries[i].id],
+                        note: _notes[entries[i].id],
                         onTap: widget.onOpenTitle,
                       ),
                     ),
@@ -346,6 +416,9 @@ class _ListsScreenState extends State<ListsScreen>
     );
   }
 }
+
+/// Тайтл во вкладке: id и запись в списках (может не быть у «Понравилось»).
+typedef _Item = ({int id, LibraryEntry? entry});
 
 class _CountPill extends StatelessWidget {
   const _CountPill({required this.count});
@@ -371,13 +444,17 @@ class _CountPill extends StatelessWidget {
 
 class _ListRow extends StatelessWidget {
   const _ListRow({
+    required this.mediaId,
     required this.entry,
     required this.anime,
     required this.note,
     required this.onTap,
   });
 
-  final LibraryEntry entry;
+  final int mediaId;
+
+  /// Запись в списках; у тайтла только с «Понравилось» её нет.
+  final LibraryEntry? entry;
   final Anime? anime;
   final TitleNote? note;
   final ValueChanged<Anime> onTap;
@@ -390,7 +467,7 @@ class _ListRow extends StatelessWidget {
     return InkWell(
       onTap: a == null ? null : () => onTap(a),
       onSecondaryTapUp: (d) =>
-          showStatusContextMenu(context, d.globalPosition, entry.mediaId),
+          showStatusContextMenu(context, d.globalPosition, mediaId),
       child: Container(
         height: 64,
         decoration: BoxDecoration(
@@ -418,7 +495,7 @@ class _ListRow extends StatelessWidget {
                     )
                   else
                     Text(
-                      'Тайтл #${entry.mediaId}',
+                      'Тайтл #$mediaId',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppText.bodyStrong,
@@ -426,7 +503,9 @@ class _ListRow extends StatelessWidget {
                   Text(
                     note?.summary.isNotEmpty ?? false
                         ? note!.summary.replaceAll('\n', ' ')
-                        : 'обновлено ${Fmt.dayMonth(entry.updatedAt)}',
+                        : entry == null
+                        ? 'Понравилось'
+                        : 'обновлено ${Fmt.dayMonth(entry!.updatedAt)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppText.caption.copyWith(color: t.fg2),
@@ -434,10 +513,11 @@ class _ListRow extends StatelessWidget {
                 ],
               ),
             ),
+            if (a != null) FavoriteButton(anime: a),
             SizedBox(
               width: 90,
               child: Text(
-                '${entry.progress} / ${total ?? '?'}',
+                entry == null ? '' : '${entry!.progress} / ${total ?? '?'}',
                 textAlign: TextAlign.right,
                 style: AppText.label.copyWith(fontFeatures: AppText.tabular),
               ),
@@ -455,7 +535,10 @@ class _ListRow extends StatelessWidget {
             ],
             if (a != null) AnimeScoreBadge(anime: a),
             const SizedBox(width: 12),
-            ListStatusDot(status: entry.status, size: 22),
+            if (entry case final e?)
+              ListStatusDot(status: e.status, size: 22)
+            else
+              const SizedBox(width: 22),
           ],
         ),
       ),
