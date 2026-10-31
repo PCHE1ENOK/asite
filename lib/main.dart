@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import 'app_services.dart';
+import 'data/cache/image_disk_cache.dart';
 import 'data/profiles/profile_repository.dart';
 import 'ui/app_scope.dart';
 import 'ui/library_index.dart';
@@ -13,6 +17,12 @@ import 'ui/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Дисковый кэш обложек: до 200 МБ, старые файлы вытесняются.
+  final cacheDir = await getApplicationCacheDirectory();
+  ImageDiskCache.instance = ImageDiskCache(
+    Directory(p.join(cacheDir.path, 'images')),
+  );
+  unawaited(ImageDiskCache.instance!.trim());
   final services = await AppServices.open();
   final settings = AppSettings(
     services.preferences,

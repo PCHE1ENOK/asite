@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../app_services.dart';
 import '../data/settings/app_preferences.dart';
 import 'library_index.dart';
+import 'widgets/cached_image.dart';
 
 /// Источник картинок по URL; в тестах подменяется.
 typedef ImageResolver = ImageProvider Function(String url);
 
-ImageProvider networkImage(String url) => NetworkImage(url);
+/// Картинки приложения — через дисковый кэш.
+ImageProvider networkImage(String url) => DiskCachedImage(url);
 
 /// Настройки, которые влияют на несколько экранов сразу.
 class AppSettings extends ChangeNotifier {

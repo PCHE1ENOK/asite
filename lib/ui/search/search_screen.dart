@@ -399,11 +399,7 @@ class _SuggestionRow extends StatelessWidget {
               SizedBox(
                 width: 32,
                 height: 48,
-                child: NetworkCover(
-                  url: a.coverImage.medium ?? a.coverImage.best,
-                  color: a.coverImage.color,
-                  radius: AppRadius.xs,
-                ),
+                child: NetworkCover(cover: a.coverImage, radius: AppRadius.xs),
               ),
               const SizedBox(width: 12),
               Expanded(

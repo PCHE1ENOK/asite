@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart';
 
+import '../../data/models/anime.dart';
 import '../app_scope.dart';
 import '../theme/app_tokens.dart';
-import 'skeleton.dart';
 
 /// Картинка по URL с заглушкой цвета обложки на время загрузки и при
 /// ошибке.
+///
+/// Для обложки AniList ([cover]) размер выбирается по месту на экране
+/// (medium ≈ 100 px, large ≈ 230 px, extraLarge ≈ 460 px по ширине), а
+/// картинка декодируется сразу в нужном размере — меньше памяти и работы
+/// при прокрутке. Заглушка неподвижная: без мерцания; загруженная из сети
+/// картинка проявляется плавно, из памяти — сразу.
 class NetworkCover extends StatelessWidget {
   const NetworkCover({
     super.key,
-    required this.url,
+    this.url,
+    this.cover,
     this.color,
     this.fit = BoxFit.cover,
     this.radius = AppRadius.md,
   });
 
   final String? url;
+
+  /// Обложка AniList: размер выбирается по ширине на экране.
+  final CoverImage? cover;
 
   /// Средний цвет обложки от AniList (`#rrggbb`).
   final String? color;
@@ -31,35 +41,69 @@ class NetworkCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final tint = parseColor(color);
+    final tint = parseColor(color ?? cover?.color);
     final placeholderColor = tint == null
         ? t.skeleton
         : Color.alphaBlend(tint.withValues(alpha: 0.35), t.skeleton);
-    final placeholder = Skeleton(radius: radius, color: placeholderColor);
+    final placeholder = ColoredBox(color: placeholderColor);
+    final resolver = AppScope.of(context).imageResolver;
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
-    final u = url;
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: u == null
-          ? ColoredBox(color: placeholderColor)
-          : Image(
-              image: AppScope.of(context).imageResolver(u),
-              fit: fit,
-              width: double.infinity,
-              height: double.infinity,
-              gaplessPlayback: true,
-              frameBuilder: (context, child, frame, sync) {
-                if (sync || frame != null) {
-                  return AnimatedOpacity(
-                    opacity: 1,
-                    duration: AppMotion.fast,
-                    child: child,
-                  );
-                }
-                return placeholder;
-              },
-              errorBuilder: (_, _, _) => ColoredBox(color: placeholderColor),
-            ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final px = constraints.hasBoundedWidth
+              ? (constraints.maxWidth * dpr).ceil()
+              : null;
+          final u = url ?? cover?.forWidth(px);
+          if (u == null) return placeholder;
+          final image = px == null || px <= 0
+              ? resolver(u)
+              : ResizeImage(
+                  resolver(u),
+                  width: px,
+                  policy: ResizeImagePolicy.fit,
+                );
+          return Image(
+            image: image,
+            fit: fit,
+            width: double.infinity,
+            height: double.infinity,
+            gaplessPlayback: true,
+            frameBuilder: (context, child, frame, sync) {
+              if (sync || reduceMotion) {
+                return frame == null ? placeholder : child;
+              }
+              if (frame == null) return placeholder;
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  placeholder,
+                  _FadeIn(child: child),
+                ],
+              );
+            },
+            errorBuilder: (_, _, _) => placeholder,
+          );
+        },
+      ),
     );
   }
+}
+
+/// Плавное появление один раз, без повторов при пересборке.
+class _FadeIn extends StatelessWidget {
+  const _FadeIn({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: 0, end: 1),
+    duration: AppMotion.fast,
+    builder: (_, v, child) => Opacity(opacity: v, child: child),
+    child: child,
+  );
 }

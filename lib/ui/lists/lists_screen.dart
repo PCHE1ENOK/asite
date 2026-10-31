@@ -399,11 +399,7 @@ class _ListRow extends StatelessWidget {
             SizedBox(
               width: 36,
               height: 54,
-              child: NetworkCover(
-                url: a?.coverImage.medium ?? a?.coverImage.best,
-                color: a?.coverImage.color,
-                radius: AppRadius.xs,
-              ),
+              child: NetworkCover(cover: a?.coverImage, radius: AppRadius.xs),
             ),
             const SizedBox(width: 12),
             Expanded(

@@ -43,6 +43,15 @@ class CoverImage {
   /// Самый крупный доступный размер.
   String? get best => extraLarge ?? large ?? medium;
 
+  /// Наименьший размер, которого хватает на [px] пикселей по ширине
+  /// (medium ≈ 100, large ≈ 230, extraLarge ≈ 460); неизвестно — лучший.
+  String? forWidth(int? px) {
+    if (px == null) return best;
+    if (px <= 110 && medium != null) return medium;
+    if (px <= 250 && large != null) return large;
+    return best;
+  }
+
   factory CoverImage.fromJson(Map<String, dynamic> json) => CoverImage(
     medium: json['medium'] as String?,
     large: json['large'] as String?,

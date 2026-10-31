@@ -46,7 +46,16 @@ class PillButton extends StatelessWidget {
                   Icon(icon, size: 16, color: fg),
                   const SizedBox(width: 6),
                 ],
-                Text(label, style: AppText.label.copyWith(color: fg)),
+                // Длинная подпись на узком экране — с многоточием, без
+                // переполнения.
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.label.copyWith(color: fg),
+                  ),
+                ),
                 if (trailingIcon != null) ...[
                   const SizedBox(width: 4),
                   Icon(trailingIcon, size: 18, color: fg),

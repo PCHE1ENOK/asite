@@ -552,12 +552,13 @@ class _Header extends StatelessWidget {
                   alignment: Alignment.topCenter,
                   errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 )
-              : a.coverImage.best == null
+              : a.coverImage.forWidth(250) == null
               ? const SizedBox.shrink()
               : ImageFiltered(
                   imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                  // Под сильным размытием большая обложка не нужна.
                   child: Image(
-                    image: resolver(a.coverImage.best!),
+                    image: resolver(a.coverImage.forWidth(250)!),
                     fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => const SizedBox.shrink(),
                   ),
@@ -574,7 +575,7 @@ class _Header extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.md),
           boxShadow: t.shadowE1,
         ),
-        child: NetworkCover(url: a.coverImage.best, color: a.coverImage.color),
+        child: NetworkCover(cover: a.coverImage),
       ),
     );
 
