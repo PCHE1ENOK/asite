@@ -66,26 +66,23 @@ class NetworkCover extends StatelessWidget {
                   width: px,
                   policy: ResizeImagePolicy.fit,
                 );
-          return Image(
-            image: image,
-            fit: fit,
-            width: double.infinity,
-            height: double.infinity,
-            gaplessPlayback: true,
-            frameBuilder: (context, child, frame, sync) {
-              if (sync || reduceMotion) {
-                return frame == null ? placeholder : child;
-              }
-              if (frame == null) return placeholder;
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  placeholder,
-                  _FadeIn(child: child),
-                ],
-              );
-            },
-            errorBuilder: (_, _, _) => placeholder,
+          // Цвет-заглушка — фоном: картинка ложится поверх, без смены
+          // виджетов и мерцания (и прозрачные места не чернеют).
+          return ColoredBox(
+            color: placeholderColor,
+            child: Image(
+              image: image,
+              fit: fit,
+              width: double.infinity,
+              height: double.infinity,
+              gaplessPlayback: true,
+              frameBuilder: (context, child, frame, sync) {
+                if (frame == null) return const SizedBox.expand();
+                if (sync || reduceMotion) return child;
+                return _FadeIn(child: child);
+              },
+              errorBuilder: (_, _, _) => const SizedBox.expand(),
+            ),
           );
         },
       ),
