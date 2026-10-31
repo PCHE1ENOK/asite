@@ -64,9 +64,16 @@ void main() {
 
     send(const PlayerError('153'));
     await tester.pump();
-    expect(find.text('Трейлер не открывается'), findsOneWidget);
-    expect(find.text('Код ошибки YouTube: 153'), findsOneWidget);
+    expect(find.text('Трейлер не открывается в приложении'), findsOneWidget);
+    expect(find.textContaining('Код ошибки YouTube: 153'), findsOneWidget);
     expect(find.textContaining('настройки встраивания'), findsOneWidget);
+    expect(
+      find.text(
+        'Встроенный плеер YouTube не запустился. Откройте трейлер на YouTube '
+        'или попробуйте ещё раз',
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('iframe'), findsNothing);
 
     await tester.tap(find.text('Открыть на YouTube').last);
@@ -76,20 +83,25 @@ void main() {
     await tester.tap(find.text('Повторить'));
     await tester.pump();
     expect(find.textContaining('iframe trlTRL123'), findsOneWidget);
+    expect(find.text('Открываем трейлер…'), findsOneWidget);
     send(const PlayerReady());
+    await tester.pump();
+    expect(find.text('Открываем трейлер…'), findsNothing);
     await tester.pump(playerReadyTimeout * 2);
-    expect(find.text('Трейлер не открывается'), findsNothing);
+    expect(find.text('Трейлер не открывается в приложении'), findsNothing);
     await h.dispose(tester);
   });
 
   testWidgets('no onReady in time: «Плеер YouTube не ответил»', (tester) async {
     await openPlayer(tester);
     await tester.pump(playerReadyTimeout - const Duration(seconds: 1));
-    expect(find.text('Трейлер не открывается'), findsNothing);
+    expect(find.text('Трейлер не открывается в приложении'), findsNothing);
     await tester.pump(const Duration(seconds: 2));
-    expect(find.text('Трейлер не открывается'), findsOneWidget);
-    expect(find.text('Плеер YouTube не ответил'), findsOneWidget);
-    expect(find.text('Код ошибки YouTube: timeout'), findsOneWidget);
+    expect(find.text('Трейлер не открывается в приложении'), findsOneWidget);
+    expect(
+      find.text('Код ошибки YouTube: timeout · Плеер YouTube не ответил'),
+      findsOneWidget,
+    );
     await h.dispose(tester);
   });
 
@@ -97,10 +109,52 @@ void main() {
     final send = await openPlayer(tester);
     send(const PlayerError('150'));
     await tester.pump();
-    expect(
-      find.text('Владелец запретил показ ролика в приложениях'),
-      findsOneWidget,
-    );
+    expect(find.text('Видео недоступно в вашем регионе'), findsOneWidget);
+    expect(find.text('Повторить'), findsNothing);
+    expect(find.text('Открыть на YouTube'), findsWidgets);
+    await h.dispose(tester);
+  });
+
+  testWidgets('trailer player: simplified, no comments', (tester) async {
+    await openPlayer(tester);
+    expect(find.text('Официальный трейлер на YouTube'), findsOneWidget);
+    expect(find.text('Комментарии'), findsNothing);
+    expect(find.textContaining('просмотренной'), findsNothing);
+    await h.dispose(tester);
+  });
+
+  testWidgets('failed trailer: row on the title card, retry reopens', (
+    tester,
+  ) async {
+    late ValueChanged<PlayerEvent> send;
+    YouTubePlayerScreen.debugEmbedBuilder = (id, onEvent) {
+      send = onEvent;
+      return Text('iframe $id');
+    };
+    addTearDown(() => YouTubePlayerScreen.debugEmbedBuilder = null);
+    h.videoSource
+      ..isConfigured = true
+      ..trailer = trailer;
+    await h.pump(tester);
+    await tester.tap(find.text('Attack on Titan').first);
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Трейлер на YouTube'));
+    await tester.pumpAndSettle();
+    send(const PlayerError('153'));
+    await tester.pump();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Трейлер не открывается в приложении'), findsOneWidget);
+    expect(find.text('Трейлер на YouTube'), findsOneWidget, reason: 'stays');
+
+    await tester.tap(find.text('Повторить'));
+    await tester.pumpAndSettle();
+    send(const PlayerReady());
+    await tester.pump();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Трейлер не открывается в приложении'), findsNothing);
     await h.dispose(tester);
   });
 }

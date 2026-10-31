@@ -164,10 +164,24 @@ class _TitleScreenState extends State<TitleScreen>
     }
   }
 
+  /// Трейлер не запустился во встроенном плеере — строка под шапкой.
+  bool _trailerFailed = false;
+
   void _playTrailer(AnimeDetails d, EmbeddedVideo trailer) =>
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => YouTubePlayerScreen(video: trailer, details: d),
+          builder: (_) => YouTubePlayerScreen(
+            video: trailer,
+            details: d,
+            onFailed: (_) {
+              if (mounted) setState(() => _trailerFailed = true);
+            },
+            onStarted: () {
+              if (mounted && _trailerFailed) {
+                setState(() => _trailerFailed = false);
+              }
+            },
+          ),
         ),
       );
 
@@ -267,6 +281,17 @@ class _TitleScreenState extends State<TitleScreen>
                         style: AppText.label.copyWith(
                           color: context.tokens.warn,
                         ),
+                      ),
+                    ),
+                  ),
+                if ((details, _trailer) case (final d?, final tr?)
+                    when _trailerFailed)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 12),
+                      child: _TrailerFailedRow(
+                        onOpen: () => openExternally(context, tr.watchUrl),
+                        onRetry: () => _playTrailer(d, tr),
                       ),
                     ),
                   ),
@@ -430,6 +455,33 @@ class _TitleScreenState extends State<TitleScreen>
 
   Future<void> _toggleEpisode(AnimeDetails d, EpisodeInfo e, bool watched) =>
       toggleEpisodeWatched(context, d, e.number, watched: watched);
+}
+
+/// Трейлер не открылся во встроенном плеере (кнопка трейлера остаётся).
+class _TrailerFailedRow extends StatelessWidget {
+  const _TrailerFailedRow({required this.onOpen, required this.onRetry});
+
+  final VoidCallback onOpen;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Icon(Symbols.cloud_off_rounded, size: 18, color: t.warn),
+        Text(
+          'Трейлер не открывается в приложении',
+          style: AppText.label.copyWith(color: t.fg2),
+        ),
+        TextButton(onPressed: onOpen, child: const Text('Открыть на YouTube')),
+        TextButton(onPressed: onRetry, child: const Text('Повторить')),
+      ],
+    );
+  }
 }
 
 /// Почему у серий нет видео: нет ключа или официального видео не нашлось.

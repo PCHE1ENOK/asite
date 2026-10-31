@@ -29,15 +29,27 @@ class YouTubePlayerScreen extends StatefulWidget {
     required this.video,
     required this.details,
     this.embedBuilder,
+    this.onFailed,
+    this.onStarted,
   });
 
   final EmbeddedVideo video;
   final AnimeDetails details;
 
+  /// Плеер не запустился (для строки «Трейлер не открывается…» на
+  /// карточке тайтла) / запустился.
+  final ValueChanged<PlayerError>? onFailed;
+  final VoidCallback? onStarted;
+
   /// Подмена встроенного плеера в тестах (WebView там не запускается).
   @visibleForTesting
   final Widget Function(String videoId, ValueChanged<PlayerEvent> onEvent)?
   embedBuilder;
+
+  /// То же для плееров, открытых из приложения (не из теста напрямую).
+  @visibleForTesting
+  static Widget Function(String videoId, ValueChanged<PlayerEvent> onEvent)?
+  debugEmbedBuilder;
 
   @override
   State<YouTubePlayerScreen> createState() => _YouTubePlayerScreenState();
@@ -64,12 +76,19 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
   /// Ошибка плеера — вместо чёрного экрана показываем, что случилось.
   PlayerError? _error;
 
+  Widget Function(String, ValueChanged<PlayerEvent>)? get _builder =>
+      widget.embedBuilder ?? YouTubePlayerScreen.debugEmbedBuilder;
+
   /// Новый ключ пересоздаёт плеер («Повторить»).
   int _attempt = 0;
   Timer? _readyTimer;
 
+  /// После «Повторить» — «Открываем трейлер…» / «Запускаем плеер…», пока
+  /// плеер не ответит.
+  bool _restarting = false;
+
   bool get _embedded =>
-      widget.embedBuilder != null ||
+      _builder != null ||
       embedKindFor(defaultTargetPlatform) != EmbedKind.browser;
 
   @override
@@ -93,13 +112,19 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
     switch (e) {
       case PlayerReady():
         _readyTimer?.cancel();
+        if (_restarting) setState(() => _restarting = false);
+        widget.onStarted?.call();
       case PlayerError():
         _readyTimer?.cancel();
         debugPrint(
           'YouTube IFrame API: ошибка ${e.code}, ролик ${widget.video.videoId}'
           '${widget.video.isTrailer ? ' (трейлер)' : ''}, origin $playerOrigin',
         );
-        setState(() => _error = e);
+        setState(() {
+          _error = e;
+          _restarting = false;
+        });
+        widget.onFailed?.call(e);
     }
   }
 
@@ -107,6 +132,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
     setState(() {
       _error = null;
       _attempt++;
+      _restarting = true;
     });
     _armTimer();
   }
@@ -264,21 +290,40 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                   alignment: WrapAlignment.center,
                   children: [
                     if (episode != null) _markButton(context, t, episode),
-                    FilledButton.tonalIcon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _comments ? t.accentSoft : t.surface3,
-                        foregroundColor: Colors.white,
+                    // Трейлер — упрощённый плеер: без серий, «Просмотрено»
+                    // и комментариев (design/screens.md, «Трейлер»).
+                    if (video.isTrailer) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Text(
+                          'Официальный трейлер на YouTube',
+                          style: AppText.label.copyWith(color: Colors.white70),
+                        ),
                       ),
-                      onPressed: () => setState(() => _comments = !_comments),
-                      icon: const Icon(Symbols.forum_rounded),
-                      label: const Text('Комментарии'),
-                    ),
+                      TextButton.icon(
+                        onPressed: () =>
+                            openExternally(context, video.watchUrl),
+                        icon: const Icon(Symbols.open_in_new_rounded),
+                        label: const Text('Открыть на YouTube'),
+                      ),
+                    ] else
+                      FilledButton.tonalIcon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _comments
+                              ? t.accentSoft
+                              : t.surface3,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => setState(() => _comments = !_comments),
+                        icon: const Icon(Symbols.forum_rounded),
+                        label: const Text('Комментарии'),
+                      ),
                   ],
                 ),
               ),
             // Панель комментариев — новая строка под видео, не поверх
             // iframe (design/screens.md §11, §13). В плеере всегда тёмная.
-            if (_comments && !_fullscreen)
+            if (_comments && !_fullscreen && !video.isTrailer)
               Expanded(
                 flex: _commentsShare(context),
                 child: Theme(
@@ -307,7 +352,39 @@ extension on _YouTubePlayerScreenState {
       return _PlayerErrorView(video: video, error: e, onRetry: _retry);
     }
     final key = ValueKey(_attempt);
-    if (widget.embedBuilder case final build?) {
+    final player = _embed(video, key);
+    if (!_restarting) return player;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        player,
+        IgnorePointer(
+          child: ColoredBox(
+            color: Colors.black,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    video.isTrailer ? 'Открываем трейлер…' : 'Запускаем плеер…',
+                    style: AppText.body.copyWith(color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _embed(EmbeddedVideo video, Key key) {
+    if (_builder case final build?) {
       return KeyedSubtree(key: key, child: build(video.videoId, _onEvent));
     }
     return switch (embedKindFor(defaultTargetPlatform)) {
@@ -329,6 +406,8 @@ extension on _YouTubePlayerScreenState {
 }
 
 /// Плеер не открылся: причина, код IFrame API и выход в браузер.
+/// Плеер не открылся: карточка вместо видео (design/screens.md §11 и
+/// «Трейлер»), код IFrame API мелко, выход в браузер.
 class _PlayerErrorView extends StatelessWidget {
   const _PlayerErrorView({
     required this.video,
@@ -341,56 +420,82 @@ class _PlayerErrorView extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Symbols.error_outline_rounded,
-            size: 48,
-            color: Colors.white54,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            video.isTrailer ? 'Трейлер не открывается' : 'Видео не открывается',
-            textAlign: TextAlign.center,
-            style: AppText.title.copyWith(color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            error.reason,
-            textAlign: TextAlign.center,
-            style: AppText.body.copyWith(color: Colors.white70),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Код ошибки YouTube: ${error.code}',
-            style: AppText.caption.copyWith(color: Colors.white54),
-          ),
-          const SizedBox(height: 20),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              FilledButton.icon(
-                onPressed: () => openExternally(context, video.watchUrl),
-                icon: const Icon(Symbols.open_in_new_rounded),
-                label: const Text('Открыть на YouTube'),
-              ),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
-                onPressed: onRetry,
-                child: const Text('Повторить'),
+  Widget build(BuildContext context) {
+    final what = video.isTrailer
+        ? 'трейлер'
+        : video.episode == null
+        ? 'видео'
+        : 'серию ${video.episode}';
+    final (String title, String? body, bool retry) = switch (error.code) {
+      '101' || '150' => ('Видео недоступно в вашем регионе', null, false),
+      '100' => ('Видео удалено с YouTube', null, false),
+      _ => (
+        video.isTrailer
+            ? 'Трейлер не открывается в приложении'
+            : 'Видео не открывается в приложении',
+        'Встроенный плеер YouTube не запустился. Откройте $what на YouTube '
+            'или попробуйте ещё раз',
+        true,
+      ),
+    };
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Symbols.error_outline_rounded,
+              size: 48,
+              color: Colors.white54,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: AppText.title.copyWith(color: Colors.white),
+            ),
+            if (body != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                body,
+                textAlign: TextAlign.center,
+                style: AppText.body.copyWith(color: Colors.white70),
               ),
             ],
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              'Код ошибки YouTube: ${error.code} · ${error.reason}',
+              textAlign: TextAlign.center,
+              style: AppText.caption.copyWith(color: Colors.white54),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                if (error.code != '100')
+                  FilledButton.icon(
+                    onPressed: () => openExternally(context, video.watchUrl),
+                    icon: const Icon(Symbols.open_in_new_rounded),
+                    label: const Text('Открыть на YouTube'),
+                  ),
+                if (retry)
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: onRetry,
+                    child: const Text('Повторить'),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _EmbeddedPlayer extends StatefulWidget {
@@ -447,21 +552,26 @@ class _OpenOnYouTube extends StatelessWidget {
             Icon(Symbols.smart_display_rounded, size: 56, color: t.fg3),
             const SizedBox(height: 16),
             Text(
-              video.title,
+              'Встроенный плеер недоступен',
               textAlign: TextAlign.center,
               style: AppText.title.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 8),
             Text(
-              'Видео откроется в официальном плеере на youtube.com',
+              video.isTrailer
+                  ? 'На этом устройстве нет компонента для встроенного видео. '
+                        'Трейлер можно посмотреть на YouTube в браузере'
+                  : 'На этом устройстве нет компонента для встроенного видео. '
+                        'Серию можно посмотреть на YouTube в браузере — '
+                        'вернитесь сюда, чтобы отметить её просмотренной',
               textAlign: TextAlign.center,
               style: AppText.body.copyWith(color: Colors.white70),
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: () => openExternally(context, video.watchUrl),
-              icon: const Icon(Symbols.play_arrow_rounded, fill: 1),
-              label: const Text('Смотреть на YouTube'),
+              icon: const Icon(Symbols.open_in_new_rounded),
+              label: const Text('Открыть на YouTube'),
             ),
           ],
         ),

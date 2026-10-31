@@ -97,7 +97,7 @@ void main() {
     await tester.pump();
     expect(find.text('Не удалось открыть YouTube'), findsOneWidget);
 
-    await tester.tap(find.text('Смотреть на YouTube'));
+    await tester.tap(find.text('Открыть на YouTube'));
     await tester.pump();
     expect(launcher.launched, hasLength(2));
     await done(tester);

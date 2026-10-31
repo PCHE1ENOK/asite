@@ -74,9 +74,12 @@ YouTube не получил Referer/origin; 101/150 — владелец зап�
 - Страница плеера подключает IFrame API к iframe (`enablejsapi=1`) и
   отправляет `onReady`/`onError` в приложение: WebView2 —
   `chrome.webview.postMessage`, мобильный WebView — JS-канал `AppBridge`.
-- Ошибка или нет `onReady` за 20 с → «Трейлер не открывается» / «Видео
-  не открывается», причина, «Код ошибки YouTube: N», «Открыть на YouTube»
-  и «Повторить». Код пишется в консоль (`debugPrint`).
+- Ошибка или нет `onReady` за 10 с → карточка по дизайну: «Трейлер не
+  открывается в приложении» / «Видео не открывается в приложении»
+  (101/150 — «Видео недоступно в вашем регионе», 100 — «Видео удалено с
+  YouTube»), «Код ошибки YouTube: N» мелко, «Открыть на YouTube» и
+  «Повторить» (→ «Открываем трейлер…»). На карточке тайтла после неудачи —
+  строка «Трейлер не открывается в приложении». Код пишется в консоль.
 - Origin/Referer: страница открывается с `https://player.anime-viewer.pche1enok`
   (WebView2 — виртуальный хост, мобильный WebView — `baseUrl`), iframe с
   `referrerpolicy=strict-origin-when-cross-origin` отдаёт Referer

@@ -37,8 +37,8 @@ const playerOrigin = 'https://$playerHost';
 const playerBridge = 'AppBridge';
 
 /// Сколько ждём `onReady` от плеера, прежде чем считать, что он не
-/// открылся (чёрный экран без событий).
-const playerReadyTimeout = Duration(seconds: 20);
+/// открылся (чёрный экран без событий), design/screens.md §11.
+const playerReadyTimeout = Duration(seconds: 10);
 
 /// Событие плеера из IFrame API.
 sealed class PlayerEvent {

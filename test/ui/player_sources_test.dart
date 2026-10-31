@@ -83,7 +83,7 @@ void main() {
     // WebView2 в тестах недоступен — переход в официальный плеер на
     // youtube.com.
     expect(find.byType(WindowsYouTubePlayer), findsOneWidget);
-    expect(find.text('Смотреть на YouTube'), findsOneWidget);
+    expect(find.text('Встроенный плеер недоступен'), findsOneWidget);
 
     await h.dispose(tester);
     debugDefaultTargetPlatformOverride = null;
