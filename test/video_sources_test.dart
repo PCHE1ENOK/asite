@@ -152,6 +152,55 @@ void main() {
     expect(requests.length, before);
   });
 
+  test('empty results are kept 6 hours, found ones 3 days', () async {
+    var now = DateTime.utc(2026, 10, 31, 8);
+    YouTubeSource at() => YouTubeSource(
+      apiKey: 'k',
+      db: db,
+      clock: () => now,
+      httpClient: MockClient((r) async {
+        requests.add(r.url);
+        return handler(r.url);
+      }),
+    );
+    int searches() => requests.where((u) => u.path.endsWith('/search')).length;
+
+    // Нашлось: через 7 часов — из кэша.
+    expect(await at().find(frieren()), hasLength(3));
+    final found = searches();
+    now = now.add(const Duration(hours: 7));
+    expect(await at().find(frieren()), hasLength(3));
+    expect(searches(), found);
+
+    // Ничего подходящего: через час — из кэша, через 7 часов — заново.
+    final other = AnimeDetails(
+      anime: const Anime(
+        id: 1,
+        format: 'TV',
+        title: AnimeTitle(romaji: 'Dandadan'),
+      ),
+    );
+    expect(await at().find(other), isEmpty);
+    final empty = searches();
+    now = now.add(const Duration(hours: 1));
+    expect(await at().find(other), isEmpty);
+    expect(searches(), empty);
+    now = now.add(const Duration(hours: 6));
+    await at().find(other);
+    expect(searches(), empty + 2);
+  });
+
+  test('refresh ignores the cache', () async {
+    final s = source();
+    await s.find(frieren());
+    final before = requests.where((u) => u.path.endsWith('/search')).length;
+    expect(await s.find(frieren(), refresh: true), hasLength(3));
+    expect(
+      requests.where((u) => u.path.endsWith('/search')).length,
+      before + 2,
+    );
+  });
+
   test(
     'API errors (quota, network) give an empty result, not an exception',
     () async {
@@ -255,7 +304,10 @@ class _Fixed implements VideoSource {
   bool get isConfigured => configured;
 
   @override
-  Future<List<EmbeddedVideo>> find(AnimeDetails title) async {
+  Future<List<EmbeddedVideo>> find(
+    AnimeDetails title, {
+    bool refresh = false,
+  }) async {
     calls++;
     return videos;
   }

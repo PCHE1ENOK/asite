@@ -60,21 +60,30 @@ class NoSourcesScreen extends StatelessWidget {
                 final progress =
                     AppScope.of(context).library[details.id]?.progress ?? 0;
                 final watched = episode <= progress;
+                final configured = AppScope.of(context)
+                    .services
+                    .sources
+                    .anyConfigured;
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Symbols.videocam_off_rounded, size: 48, color: t.fg3),
                     const SizedBox(height: 16),
                     Text(
-                      'Источники видео не подключены',
+                      configured
+                          ? 'Официального бесплатного видео не нашлось'
+                          : 'Нет ключа YouTube',
                       style: AppText.title,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Каталог, списки и прогресс уже работают. Смотреть серии '
-                      'прямо в приложении можно будет после подключения '
-                      'источника видео.',
+                      configured
+                          ? 'Официальные каналы Muse Asia и Ani-One Asia не '
+                                'выложили эту серию или она закрыта в вашем '
+                                'регионе. Каталог, списки и прогресс работают'
+                          : 'Без ключа YouTube Data API официальные видео не '
+                                'ищутся. Каталог, списки и прогресс работают',
                       style: AppText.body.copyWith(color: t.fg2),
                       textAlign: TextAlign.center,
                     ),
@@ -95,6 +104,14 @@ class NoSourcesScreen extends StatelessWidget {
                             : 'Отметить серию $episode просмотренной',
                       ),
                     ),
+                    if (configured) ...[
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        icon: const Icon(Symbols.refresh_rounded),
+                        label: const Text('Проверить снова'),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),

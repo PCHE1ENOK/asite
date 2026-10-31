@@ -16,7 +16,8 @@ export 'youtube_match.dart' show OfficialChannel;
 /// `search.list` по каналу). Воспроизведение — только официальный
 /// встраиваемый плеер YouTube; прямые потоки не используются.
 /// `search.list` стоит 100 единиц квоты из 10 000 в сутки, поэтому
-/// результаты кэшируются на [ttl].
+/// результаты кэшируются на [ttl]; выдача без подходящих роликов — только
+/// на [emptyTtl], чтобы исправленный ключ или новая серия появились скоро.
 class YouTubeSource implements VideoSource {
   YouTubeSource({
     required this.apiKey,
@@ -25,6 +26,7 @@ class YouTubeSource implements VideoSource {
     this.channels = defaultChannels,
     this.regionCode,
     this.ttl = const Duration(days: 3),
+    this.emptyTtl = const Duration(hours: 6),
     DateTime Function()? clock,
   }) : _http = httpClient ?? http.Client(),
        _now = clock ?? DateTime.now;
@@ -38,6 +40,7 @@ class YouTubeSource implements VideoSource {
   /// не попадают в выдачу.
   final String? regionCode;
   final Duration ttl;
+  final Duration emptyTtl;
   final DateTime Function() _now;
 
   /// Каналы, которые выкладывают аниме бесплатно и официально.
@@ -55,12 +58,15 @@ class YouTubeSource implements VideoSource {
   bool get isConfigured => apiKey.isNotEmpty;
 
   @override
-  Future<List<EmbeddedVideo>> find(AnimeDetails title) async {
+  Future<List<EmbeddedVideo>> find(
+    AnimeDetails title, {
+    bool refresh = false,
+  }) async {
     if (!isConfigured) return const [];
     final result = <EmbeddedVideo>[];
     for (final channel in channels) {
       try {
-        result.addAll(await _search(channel, title));
+        result.addAll(await _search(channel, title, refresh: refresh));
       } on Object {
         // Нет сети, квота или ошибка API — этот канал пропускаем.
       }
@@ -85,33 +91,37 @@ class YouTubeSource implements VideoSource {
 
   Future<List<EmbeddedVideo>> _search(
     OfficialChannel channel,
-    AnimeDetails title,
-  ) async {
-    final key = 'yt:${channel.handle}:${title.id}:${regionCode ?? ''}';
-    final cached = await _db.entry(key);
-    List<Map<String, dynamic>> items;
-    if (cached != null && _now().difference(cached.updatedAt) < ttl) {
-      items = (jsonDecode(cached.payload) as List).cast<Map<String, dynamic>>();
-    } else {
-      final channelId = await _channelId(channel);
-      if (channelId == null) return const [];
-      final json = await _get('search', {
-        'part': 'snippet',
-        'type': 'video',
-        'videoEmbeddable': 'true',
-        'channelId': channelId,
-        'q': title.anime.title.romaji ?? title.anime.title.preferred,
-        'maxResults': '50',
-        'regionCode': ?regionCode,
-      });
-      items = (json['items'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      await _db.putEntry(key, jsonEncode(items), _now());
-    }
-    return [
+    AnimeDetails title, {
+    required bool refresh,
+  }) async {
+    List<EmbeddedVideo> parse(List<Map<String, dynamic>> items) => [
       for (final item in items) ?parseSearchItem(item, channel.name, title),
     ];
+    final key = 'yt:${channel.handle}:${title.id}:${regionCode ?? ''}';
+    final cached = refresh ? null : await _db.entry(key);
+    if (cached != null) {
+      final videos = parse(
+        (jsonDecode(cached.payload) as List).cast<Map<String, dynamic>>(),
+      );
+      final age = _now().difference(cached.updatedAt);
+      if (age < (videos.isEmpty ? emptyTtl : ttl)) return videos;
+    }
+    final channelId = await _channelId(channel);
+    if (channelId == null) return const [];
+    final json = await _get('search', {
+      'part': 'snippet',
+      'type': 'video',
+      'videoEmbeddable': 'true',
+      'channelId': channelId,
+      'q': title.anime.title.romaji ?? title.anime.title.preferred,
+      'maxResults': '50',
+      'regionCode': ?regionCode,
+    });
+    final items = (json['items'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList();
+    await _db.putEntry(key, jsonEncode(items), _now());
+    return parse(items);
   }
 
   /// Id канала по @-имени (кэшируется надолго, стоит 1 единицу квоты).

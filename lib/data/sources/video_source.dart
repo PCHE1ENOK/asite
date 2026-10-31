@@ -48,8 +48,9 @@ abstract interface class VideoSource {
   bool get isConfigured;
 
   /// Видео тайтла, по возрастанию номера серии. Без сети или при ошибке
-  /// API — пустой список, а не исключение.
-  Future<List<EmbeddedVideo>> find(AnimeDetails title);
+  /// API — пустой список, а не исключение. [refresh] — не брать из кэша
+  /// («Проверить снова»).
+  Future<List<EmbeddedVideo>> find(AnimeDetails title, {bool refresh = false});
 }
 
 /// Подключённые источники видео.
@@ -62,10 +63,13 @@ class VideoSources {
   bool get anyConfigured => sources.any((s) => s.isConfigured);
 
   /// Видео из первого настроенного источника, который что-то нашёл.
-  Future<List<EmbeddedVideo>> find(AnimeDetails title) async {
+  Future<List<EmbeddedVideo>> find(
+    AnimeDetails title, {
+    bool refresh = false,
+  }) async {
     for (final s in sources) {
       if (!s.isConfigured) continue;
-      final found = await s.find(title);
+      final found = await s.find(title, refresh: refresh);
       if (found.isNotEmpty) return found;
     }
     return const [];

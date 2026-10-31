@@ -275,7 +275,16 @@ class FakeVideoSource implements VideoSource {
   String get name => 'Fake';
 
   @override
-  Future<List<EmbeddedVideo>> find(AnimeDetails title) async => videos;
+  Future<List<EmbeddedVideo>> find(
+    AnimeDetails title, {
+    bool refresh = false,
+  }) async {
+    findCalls.add(refresh);
+    return videos;
+  }
+
+  /// Вызовы [find]: `true` — с «Проверить снова».
+  final findCalls = <bool>[];
 }
 
 class _DelegatingEngine implements TranslationEngine {

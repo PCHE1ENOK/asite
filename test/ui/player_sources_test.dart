@@ -24,7 +24,7 @@ void main() {
   ) async {
     await openAot(tester);
     expect(
-      find.textContaining('Источники видео не подключены. Серии'),
+      find.textContaining('Нет ключа YouTube — официальные видео не ищутся'),
       findsOneWidget,
     );
     expect(find.byTooltip('Смотреть на YouTube'), findsNothing);
@@ -32,7 +32,8 @@ void main() {
     await tester.tap(find.text('Начать просмотр'));
     await tester.pumpAndSettle();
     expect(find.byType(NoSourcesScreen), findsOneWidget);
-    expect(find.text('Источники видео не подключены'), findsOneWidget);
+    expect(find.text('Нет ключа YouTube'), findsOneWidget);
+    expect(find.text('Проверить снова'), findsNothing);
 
     await tester.tap(find.text('Отметить серию 1 просмотренной'));
     await UiHarness.settle(tester);
@@ -65,7 +66,7 @@ void main() {
     await openAot(tester);
 
     expect(
-      find.textContaining('Источники видео не подключены. Серии'),
+      find.textContaining('Нет ключа YouTube — официальные видео не ищутся'),
       findsNothing,
     );
     expect(find.byTooltip('Смотреть на YouTube'), findsOneWidget);
@@ -86,5 +87,57 @@ void main() {
 
     await h.dispose(tester);
     debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('key set, nothing found: says so and checks again', (
+    tester,
+  ) async {
+    h.videoSource.isConfigured = true;
+    await openAot(tester);
+    expect(
+      find.textContaining(
+        'Официального бесплатного видео для этого тайтла не нашлось '
+        '(в вашем регионе)',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Нет ключа YouTube'), findsNothing);
+    expect(h.videoSource.findCalls, [false]);
+
+    // «Проверить снова» в карточке — поиск без кэша.
+    h.videoSource.videos = const [
+      EmbeddedVideo(
+        sourceId: 'fake',
+        videoId: 'abc',
+        title: 'Attack on Titan Episode 1',
+        channel: 'Muse Asia',
+        episode: 1,
+      ),
+    ];
+    await tester.tap(find.text('Проверить снова'));
+    await UiHarness.settle(tester);
+    expect(h.videoSource.findCalls, [false, true]);
+    expect(find.text('Начать просмотр на YouTube'), findsOneWidget);
+    expect(find.textContaining('не нашлось'), findsNothing);
+    await h.dispose(tester);
+  });
+
+  testWidgets('player without video: check again from the player', (
+    tester,
+  ) async {
+    h.videoSource.isConfigured = true;
+    await openAot(tester);
+    await tester.tap(find.text('Начать просмотр'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Официального бесплатного видео не нашлось'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Проверить снова'));
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    expect(find.byType(NoSourcesScreen), findsNothing);
+    expect(h.videoSource.findCalls, [false, true]);
+    await h.dispose(tester);
   });
 }

@@ -120,12 +120,18 @@ class _TitleScreenState extends State<TitleScreen>
   /// Официальные видео из подключённых источников (этап 6).
   List<EmbeddedVideo> _videos = const [];
 
-  Future<void> _loadVideos(AnimeDetails d) async {
-    final videos = await AppScope.of(context).services.sources.find(d);
+  /// Идёт поиск видео (в том числе «Проверить снова»).
+  bool _videosLoading = false;
+
+  Future<void> _loadVideos(AnimeDetails d, {bool refresh = false}) async {
+    setState(() => _videosLoading = true);
+    final videos = await AppScope.of(context).services.sources
+        .find(d, refresh: refresh);
     if (!mounted) return;
     setState(() {
       final before = _visibleTabs;
       _videos = videos;
+      _videosLoading = false;
       _syncTabs(before);
     });
   }
@@ -155,19 +161,24 @@ class _TitleScreenState extends State<TitleScreen>
     return onYouTube ? '$base на YouTube' : base;
   }
 
-  /// Официальное видео серии или экран «Источники видео не подключены».
+  /// Официальное видео серии или экран «нет видео».
   void _play(AnimeDetails d, [int? episode]) {
     final n = episode ?? _nextEpisode(d);
     final video =
         _videoFor(n) ??
         (d.anime.format == 'MOVIE' ? _videos.firstOrNull : null);
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => video != null
-            ? YouTubePlayerScreen(video: video, details: d)
-            : NoSourcesScreen(details: d, episode: n),
-      ),
-    );
+    Navigator.of(context)
+        .push<bool>(
+          MaterialPageRoute<bool>(
+            builder: (_) => video != null
+                ? YouTubePlayerScreen(video: video, details: d)
+                : NoSourcesScreen(details: d, episode: n),
+          ),
+        )
+        .then((retry) {
+          // «Проверить снова» на экране без видео.
+          if (retry == true && mounted) _loadVideos(d, refresh: true);
+        });
   }
 
   @override
@@ -334,33 +345,15 @@ class _TitleScreenState extends State<TitleScreen>
     }
     final duration = d.anime.duration;
     final progress = AppScope.of(context).library[d.id]?.progress ?? 0;
-    final t = context.tokens;
     return [
       if (_videos.isEmpty)
         SliverPadding(
           padding: pad.copyWith(bottom: 12),
           sliver: SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: t.surface1,
-                border: Border.all(color: t.border),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Row(
-                children: [
-                  Icon(Symbols.videocam_off_rounded, color: t.fg3, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Источники видео не подключены. Серии можно отмечать '
-                      'просмотренными вручную, кнопка «Смотреть» откроет '
-                      'плеер с объяснением',
-                      style: AppText.label.copyWith(color: t.fg2),
-                    ),
-                  ),
-                ],
-              ),
+            child: _NoVideoBanner(
+              configured: AppScope.of(context).services.sources.anyConfigured,
+              loading: _videosLoading,
+              onRetry: () => _loadVideos(d, refresh: true),
             ),
           ),
         ),
@@ -389,6 +382,73 @@ class _TitleScreenState extends State<TitleScreen>
 
   Future<void> _toggleEpisode(AnimeDetails d, EpisodeInfo e, bool watched) =>
       toggleEpisodeWatched(context, d, e.number, watched: watched);
+}
+
+/// Почему у серий нет видео: нет ключа или официального видео не нашлось.
+class _NoVideoBanner extends StatelessWidget {
+  const _NoVideoBanner({
+    required this.configured,
+    required this.loading,
+    required this.onRetry,
+  });
+
+  final bool configured;
+  final bool loading;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final String text;
+    if (!configured) {
+      text =
+          'Нет ключа YouTube — официальные видео не ищутся. Серии можно '
+          'отмечать просмотренными вручную';
+    } else if (loading) {
+      text = 'Ищем официальное видео на YouTube…';
+    } else {
+      text =
+          'Официального бесплатного видео для этого тайтла не нашлось '
+          '(в вашем регионе). Серии можно отмечать просмотренными вручную';
+    }
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: t.surface1,
+        border: Border.all(color: t.border),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (configured && loading)
+                const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Icon(Symbols.videocam_off_rounded, color: t.fg3, size: 20),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(text, style: AppText.label.copyWith(color: t.fg2)),
+              ),
+            ],
+          ),
+          if (configured && !loading)
+            TextButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Symbols.refresh_rounded, size: 18),
+              label: const Text('Проверить снова'),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Header extends StatelessWidget {
