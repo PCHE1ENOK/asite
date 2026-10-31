@@ -10,7 +10,7 @@ import 'state_views.dart';
 
 /// Прокручиваемая сетка постеров с догрузкой, скелетонами, пустым
 /// состоянием и ошибкой. Общая для каталога и поиска.
-class PosterGrid extends StatelessWidget {
+class PosterGrid extends StatefulWidget {
   const PosterGrid({
     super.key,
     required this.controller,
@@ -39,9 +39,30 @@ class PosterGrid extends StatelessWidget {
   final int skeletonCount;
 
   @override
+  State<PosterGrid> createState() => _PosterGridState();
+}
+
+class _PosterGridState extends State<PosterGrid> {
+  /// Готовые карточки по тайтлу: при подгрузке страницы и смене состояния
+  /// ленты сетка пересобирается, а уже показанные карточки — нет (тот же
+  /// экземпляр виджета Flutter не пересобирает).
+  final _cards = Map<Anime, Widget>.identity();
+
+  Widget _card(Anime a) => _cards[a] ??= PosterCard(
+    key: ValueKey(a.id),
+    anime: a,
+    onTap: () => widget.onOpenTitle(a),
+  );
+
+  @override
   Widget build(BuildContext context) {
-    final c = controller;
+    final c = widget.controller;
+    final gutter = widget.gutter;
+    final header = widget.header;
+    final errorText = widget.errorText;
     final items = c.items;
+    // Новый запрос — старые карточки больше не нужны.
+    if (items.isEmpty || _cards.length > items.length) _cards.clear();
     final padding = EdgeInsets.symmetric(horizontal: gutter);
 
     final List<Widget> body;
@@ -54,7 +75,7 @@ class PosterGrid extends StatelessWidget {
               gridDelegate: posterGridDelegate(constraints.crossAxisExtent),
               delegate: SliverChildBuilderDelegate(
                 (_, _) => const PosterCardSkeleton(),
-                childCount: skeletonCount,
+                childCount: widget.skeletonCount,
               ),
             ),
           ),
@@ -66,7 +87,7 @@ class PosterGrid extends StatelessWidget {
           hasScrollBody: false,
           child: ErrorState(
             message: errorText,
-            hint: errorHint,
+            hint: widget.errorHint,
             onRetry: c.retry,
           ),
         ),
@@ -77,10 +98,10 @@ class PosterGrid extends StatelessWidget {
           hasScrollBody: false,
           child: EmptyState(
             icon: Symbols.search_off_rounded,
-            text: emptyText,
-            hint: emptyHint,
-            actionLabel: emptyActionLabel,
-            onAction: onEmptyAction,
+            text: widget.emptyText,
+            hint: widget.emptyHint,
+            actionLabel: widget.emptyActionLabel,
+            onAction: widget.onEmptyAction,
           ),
         ),
       ];
@@ -104,12 +125,7 @@ class PosterGrid extends StatelessWidget {
                 delegate: SliverChildBuilderDelegate(
                   (context, i) {
                     if (i >= items.length) return const PosterCardSkeleton();
-                    final a = items[i];
-                    return PosterCard(
-                      key: ValueKey(a.id),
-                      anime: a,
-                      onTap: () => onOpenTitle(a),
-                    );
+                    return _card(items[i]);
                   },
                   childCount:
                       items.length +

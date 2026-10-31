@@ -6,6 +6,7 @@ import '../../data/models/anime.dart';
 import '../../data/models/library_entry.dart';
 import '../../data/models/title_note.dart';
 import '../app_scope.dart';
+import '../library_index.dart';
 import '../format.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
@@ -44,17 +45,50 @@ class _PosterCardState extends State<PosterCard> {
   bool _hover = false;
   bool _focus = false;
 
-  @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: AppScope.of(context).library,
-    builder: (context, _) => _build(context),
-  );
+  /// Списки пользователя: карточка пересобирается, только когда меняется
+  /// запись этого тайтла, а не при любом изменении списков.
+  LibraryIndex? _library;
+  (ListStatus, int)? _seen;
 
-  Widget _build(BuildContext context) {
+  (ListStatus, int)? _snapshot() => switch (_library?[widget.anime.id]) {
+    final e? => (e.status, e.progress),
+    null => null,
+  };
+
+  void _onLibrary() {
+    final now = _snapshot();
+    if (now != _seen) setState(() => _seen = now);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final library = AppScope.of(context).library;
+    if (!identical(library, _library)) {
+      _library?.removeListener(_onLibrary);
+      _library = library..addListener(_onLibrary);
+    }
+    _seen = _snapshot();
+  }
+
+  @override
+  void didUpdateWidget(PosterCard old) {
+    super.didUpdateWidget(old);
+    if (old.anime.id != widget.anime.id) _seen = _snapshot();
+  }
+
+  @override
+  void dispose() {
+    _library?.removeListener(_onLibrary);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = context.tokens;
     final a = widget.anime;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final entry = AppScope.of(context).library[a.id];
+    final entry = _library?[a.id];
     final watching =
         entry != null &&
         (entry.status == ListStatus.current ||
@@ -78,7 +112,7 @@ class _PosterCardState extends State<PosterCard> {
           fit: StackFit.expand,
           children: [
             NetworkCover(
-              url: a.coverImage.best,
+              cover: a.coverImage,
               color: a.coverImage.color,
               radius: AppRadius.md - 2,
             ),

@@ -154,8 +154,13 @@ class UiHarness {
         r['variables'] as Map<String, dynamic>,
   ];
 
+  /// Свой ответ AniList (например, много страниц каталога); `null` —
+  /// обычные ответы.
+  http.Response? Function(Map<String, dynamic> body)? route;
+
   http.Response _route(Map<String, dynamic> body) {
     if (offline) return http.Response('', 503);
+    if (route?.call(body) case final r?) return r;
     final query = body['query'] as String;
     final vars = body['variables'] as Map<String, dynamic>;
     if (query.contains('query Catalog')) {

@@ -131,16 +131,24 @@ class _CatalogScreenState extends State<CatalogScreen> {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final gutter = AppLayout.gutter(width);
+        // Шапка и фильтры не зависят от ленты: при подгрузке страниц
+        // пересобирается только сетка (те же экземпляры шапки).
+        final header = [
+          SliverToBoxAdapter(child: _header(context, width, gutter)),
+          SliverToBoxAdapter(
+            child: ListenableBuilder(
+              listenable: _settings,
+              builder: (context, _) => _filterBar(context, width, gutter),
+            ),
+          ),
+        ];
         return ListenableBuilder(
-          listenable: Listenable.merge([_feed, _settings]),
+          listenable: _feed,
           builder: (context, _) => PosterGrid(
             controller: _feed,
             gutter: gutter,
             onOpenTitle: widget.onOpenTitle,
-            header: [
-              SliverToBoxAdapter(child: _header(context, width, gutter)),
-              SliverToBoxAdapter(child: _filterBar(context, width, gutter)),
-            ],
+            header: header,
             emptyText: 'Ничего не нашлось по этим фильтрам',
             emptyActionLabel: 'Сбросить фильтры',
             onEmptyAction: _resetFilters,
