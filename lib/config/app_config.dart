@@ -19,4 +19,15 @@ abstract final class AppConfig {
   /// Ключ YouTube Data API v3 для поиска официальных видео правообладателей
   /// (этап 6). Без ключа источник YouTube пустой и в сеть не ходит.
   static const youtubeApiKey = String.fromEnvironment('YOUTUBE_API_KEY');
+
+  /// Страница просмотра каталога для друзей (GitHub Pages из `docs/`).
+  /// Данных в ней нет: она читает `share.json` из Gist по `?g=<id>`.
+  static const sharePageUrl = String.fromEnvironment(
+    'SHARE_PAGE_URL',
+    defaultValue: 'https://pche1enok.github.io/asite/friends/',
+  );
+
+  /// Ссылка для друзей на каталог в Gist [gistId].
+  static Uri shareLink(String gistId) =>
+      Uri.parse(sharePageUrl).replace(queryParameters: {'g': gistId});
 }

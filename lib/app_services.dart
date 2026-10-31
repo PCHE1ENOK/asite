@@ -22,6 +22,7 @@ import 'data/sync/sync_service.dart';
 import 'data/translation/mlkit_translation.dart';
 import 'data/translation/translation.dart';
 import 'data/shikimori/russian_text.dart';
+import 'data/share/share_codec.dart';
 import 'data/shikimori/shikimori_client.dart';
 
 /// Списки и синхронизация одного профиля.
@@ -72,9 +73,11 @@ class AppServices {
     final profiles = ProfileRepository(db);
     final preferences = AppPreferences(db);
     TokenStore tokensFor(int id) => SecureTokenStore(profileId: id);
+    final animeRepo = AnimeRepository(client: AniListClient(), db: db);
+    final shikiRepo = RussianTextRepository(db: db, client: ShikimoriClient());
     return AppServices(
       db: db,
-      anime: AnimeRepository(client: AniListClient(), db: db),
+      anime: animeRepo,
       preferences: preferences,
       profiles: profiles,
       tokensFor: tokensFor,
@@ -89,9 +92,7 @@ class AppServices {
       ]),
       comments: YouTubeCommentsClient(apiKey: AppConfig.youtubeApiKey),
       translator: _translator(preferences),
-      shiki: ShikimoriData(
-        RussianTextRepository(db: db, client: ShikimoriClient()),
-      ),
+      shiki: ShikimoriData(shikiRepo),
       // Этап 4.5: заглушка заменится распознавателем на Chromaprint +
       // AcoustID, звук — из AudioSnippetSource слоя источников.
       music: MusicRecognitionGate(
@@ -112,6 +113,29 @@ class AppServices {
             library: library,
             notes: notes,
             favorites: favorites,
+            buildShare: () async {
+              final entries = await library.allForSync();
+              final favs = await favorites.allForSync();
+              final ns = await notes.allForSync();
+              final ids = {
+                for (final e in entries) e.mediaId,
+                for (final f in favs) f.mediaId,
+                for (final n in ns) n.mediaId,
+              };
+              final summaries = await animeRepo.getSummaries(ids);
+              final shiki = await shikiRepo.titles(summaries.values.toList());
+              return ShareCodec.encode(
+                ShareCodec.build(
+                  owner: profile.name,
+                  now: DateTime.now(),
+                  entries: entries,
+                  favorites: favs,
+                  notes: ns,
+                  summaries: summaries,
+                  shikimori: shiki,
+                ),
+              );
+            },
             db: db,
             tokens: tokensFor(profile.id),
             profiles: profiles,

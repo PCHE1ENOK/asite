@@ -47,7 +47,8 @@ class GistClient {
     return utf8.decode(raw.bodyBytes);
   }
 
-  /// Создаёт приватный Gist и возвращает его id.
+  /// Создаёт секретный Gist (`public: false`: не виден в списках и поиске,
+  /// открывается по ссылке) и возвращает его id.
   Future<String> createGist({
     required String fileName,
     required String content,
@@ -65,6 +66,15 @@ class GistClient {
       },
     );
     return json['id'] as String;
+  }
+
+  /// Удаляет Gist; уже удалённый (404) — не ошибка.
+  Future<void> deleteGist(String gistId) async {
+    try {
+      await _request('DELETE', _base.resolve('/gists/$gistId'));
+    } on GitHubException catch (e) {
+      if (e.statusCode != 404) rethrow;
+    }
   }
 
   Future<void> writeFile(String gistId, String fileName, String content) =>

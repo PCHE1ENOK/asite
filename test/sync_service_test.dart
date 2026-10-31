@@ -403,4 +403,89 @@ void main() {
     ]);
     await fav.dispose();
   });
+
+  group('share catalog', () {
+    var builds = 0;
+    SyncService withShare({Duration interval = const Duration(minutes: 5)}) =>
+        SyncService(
+          library: library,
+          db: db,
+          tokens: tokens,
+          profiles: ProfileRepository(db),
+          buildShare: () async => '{"version":1,"build":${++builds}}',
+          shareInterval: interval,
+          auth: () => GitHubAuth(
+            clientId: 'client',
+            httpClient: github.client,
+            delay: (_) async {},
+            clock: () => now,
+          ),
+          gistClient: (token) => GistClient(token, httpClient: github.client),
+          clock: () => now,
+        );
+
+    test('start: separate unlisted Gist with share.json only', () async {
+      await sync.dispose();
+      sync = withShare();
+      await sync.start();
+      await signIn();
+      final syncGist = github.gists.keys.single;
+      final id = await sync.startSharing();
+      expect(id, isNot(syncGist));
+      expect(github.gists[id]!.keys, ['share.json']);
+      expect(github.gists[syncGist]!.keys, [LibraryCodec.fileName]);
+      expect(sync.share.value.gistId, id);
+      // Повторно — та же ссылка.
+      expect(await sync.startSharing(), id);
+    });
+
+    test('updates after changes, not more often than the interval', () async {
+      await sync.dispose();
+      sync = withShare();
+      await sync.start();
+      await signIn();
+      final id = await sync.startSharing();
+      final first = github.gists[id]!['share.json'];
+
+      await library.setStatus(1, ListStatus.current);
+      await sync.syncNow();
+      expect(github.gists[id]!['share.json'], first, reason: 'within 5 min');
+
+      now = now.add(const Duration(minutes: 6));
+      await library.setStatus(2, ListStatus.planning);
+      await sync.syncNow();
+      expect(github.gists[id]!['share.json'], isNot(first));
+      final second = github.gists[id]!['share.json'];
+
+      // Без изменений — не переписываем.
+      now = now.add(const Duration(minutes: 6));
+      await sync.syncNow();
+      expect(github.gists[id]!['share.json'], second);
+    });
+
+    test('stop deletes the Gist; sharing survives a restart', () async {
+      await sync.dispose();
+      sync = withShare();
+      await sync.start();
+      await signIn();
+      final id = await sync.startSharing();
+
+      await sync.dispose();
+      sync = withShare();
+      await sync.start();
+      expect(sync.share.value.gistId, id, reason: 'restored from settings');
+
+      await sync.stopSharing();
+      expect(github.deleted, [id]);
+      expect(github.gists.containsKey(id), isFalse);
+      expect(sync.share.value.isSharing, isFalse);
+    });
+
+    test('signed out: sharing is refused', () async {
+      await sync.dispose();
+      sync = withShare();
+      await sync.start();
+      await expectLater(sync.startSharing(), throwsA(isA<GitHubException>()));
+    });
+  });
 }

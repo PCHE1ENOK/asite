@@ -14,6 +14,7 @@ class FakeGitHub {
   bool offline = false;
   bool revoked = false;
   int writes = 0;
+  final deleted = <String>[];
   int _nextId = 1;
 
   late final client = MockClient(_handle);
@@ -73,6 +74,11 @@ class FakeGitHub {
     if (match != null) {
       final gist = gists[match[1]];
       if (gist == null) return _json({'message': 'Not Found'}, 404);
+      if (r.method == 'DELETE') {
+        gists.remove(match[1]);
+        deleted.add(match[1]!);
+        return http.Response('', 204);
+      }
       if (r.method == 'PATCH') {
         gist.addAll(_files(jsonDecode(r.body) as Map<String, dynamic>));
         writes++;

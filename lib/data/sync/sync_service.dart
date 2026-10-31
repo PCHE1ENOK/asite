@@ -7,12 +7,13 @@ import '../github/gist_client.dart';
 import '../github/github_auth.dart';
 import '../github/github_exception.dart';
 import '../github/token_store.dart';
-import '../library/library_repository.dart';
-import '../models/title_note.dart';
 import '../favorites/favorites_repository.dart';
+import '../library/library_repository.dart';
 import '../models/favorite.dart';
+import '../models/title_note.dart';
 import '../notes/notes_repository.dart';
 import '../profiles/profile_repository.dart';
+import '../share/share_codec.dart';
 import 'library_codec.dart';
 import 'library_merge.dart';
 
@@ -20,6 +21,20 @@ enum SyncStatus { signedOut, synced, pending, syncing, error }
 
 /// Глобальное состояние синхронизации для точки на профиле и `SyncBar`.
 @immutable
+/// Показ каталога друзьям: секретный Gist с `share.json`.
+class ShareState {
+  const ShareState({this.gistId, this.updatedAt, this.error});
+
+  /// `null` — каталог не показывается.
+  final String? gistId;
+  final DateTime? updatedAt;
+
+  /// Последняя ошибка обновления (показ при этом продолжается).
+  final String? error;
+
+  bool get isSharing => gistId != null;
+}
+
 class SyncState {
   const SyncState({
     required this.status,
@@ -98,6 +113,8 @@ class SyncService {
     required this.profiles,
     this.notes,
     this.favorites,
+    this.buildShare,
+    this.shareInterval = const Duration(minutes: 5),
     this.debounce = const Duration(seconds: 5),
     DateTime Function()? clock,
   }) : _now = clock ?? DateTime.now;
@@ -119,6 +136,12 @@ class SyncService {
   /// «Понравилось»; в том же файле Gist.
   final FavoritesRepository? favorites;
 
+  /// Собирает `share.json` (каталог для друзей); `null` — показ недоступен.
+  final Future<String> Function()? buildShare;
+
+  /// `share.json` обновляется не чаще, чем раз в [shareInterval].
+  final Duration shareInterval;
+
   int get profileId => _library.profileId;
 
   String get _gistIdKey =>
@@ -128,6 +151,16 @@ class SyncService {
       ProfileRepository.settingKey(profileId, 'sync_last_synced_at');
 
   final state = ValueNotifier<SyncState>(const SyncState.signedOut());
+
+  /// Показ каталога друзьям.
+  final share = ValueNotifier<ShareState>(const ShareState());
+
+  String get _shareIdKey =>
+      ProfileRepository.settingKey(profileId, 'share_gist_id');
+  String get _shareAtKey =>
+      ProfileRepository.settingKey(profileId, 'share_updated_at');
+  bool _shareDirty = false;
+  Timer? _shareTimer;
 
   String? _token;
   Timer? _debounceTimer;
@@ -165,12 +198,105 @@ class SyncService {
       _favoritesPending = c;
       _onPendingChanged(_allPending);
     });
+    final shareId = await _db.setting(_shareIdKey);
+    if (shareId != null) {
+      share.value = ShareState(
+        gistId: shareId,
+        updatedAt: DateTime.tryParse(await _db.setting(_shareAtKey) ?? ''),
+      );
+    }
     await _publishIdle();
     if (_token != null) await syncNow();
   }
 
+  /// Создаёт секретный Gist с `share.json` и возвращает его id. Ссылку на
+  /// страницу просмотра собирает интерфейс.
+  Future<String> startSharing() async {
+    final token = _token;
+    final build = buildShare;
+    if (token == null || build == null) {
+      throw const GitHubException(
+        GitHubErrorKind.unauthorized,
+        'Войдите через GitHub, чтобы поделиться каталогом',
+      );
+    }
+    if (share.value.gistId case final id?) return id;
+    final client = _gistClient(token);
+    try {
+      final id = await client.createGist(
+        fileName: ShareCodec.fileName,
+        content: await build(),
+        description: ShareCodec.description,
+      );
+      final now = _now().toUtc();
+      await _db.putSetting(_shareIdKey, id);
+      await _db.putSetting(_shareAtKey, now.toIso8601String());
+      _shareDirty = false;
+      share.value = ShareState(gistId: id, updatedAt: now);
+      return id;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// «Прекратить показ»: Gist удаляется, ссылка перестаёт работать.
+  Future<void> stopSharing() async {
+    final id = share.value.gistId;
+    if (id == null) return;
+    _shareTimer?.cancel();
+    final token = _token;
+    if (token != null) {
+      final client = _gistClient(token);
+      try {
+        await client.deleteGist(id);
+      } finally {
+        client.close();
+      }
+    }
+    await _db.putSetting(_shareIdKey, null);
+    await _db.putSetting(_shareAtKey, null);
+    share.value = const ShareState();
+  }
+
+  /// Переписывает `share.json` после изменений, не чаще [shareInterval];
+  /// раньше срока — откладывает до его конца.
+  Future<void> _updateShare() async {
+    final id = share.value.gistId;
+    final token = _token;
+    final build = buildShare;
+    if (id == null || token == null || build == null || !_shareDirty) return;
+    final last = share.value.updatedAt;
+    final wait = last == null
+        ? Duration.zero
+        : shareInterval - _now().toUtc().difference(last);
+    if (wait > Duration.zero) {
+      _shareTimer ??= Timer(wait, () {
+        _shareTimer = null;
+        unawaited(_updateShare());
+      });
+      return;
+    }
+    final client = _gistClient(token);
+    try {
+      await client.writeFile(id, ShareCodec.fileName, await build());
+      final now = _now().toUtc();
+      await _db.putSetting(_shareAtKey, now.toIso8601String());
+      _shareDirty = false;
+      share.value = ShareState(gistId: id, updatedAt: now);
+    } on GitHubException catch (e) {
+      share.value = ShareState(
+        gistId: id,
+        updatedAt: share.value.updatedAt,
+        error: e.message,
+      );
+    } finally {
+      client.close();
+    }
+  }
+
   Future<void> dispose() async {
     _debounceTimer?.cancel();
+    _shareTimer?.cancel();
     await _pendingSub?.cancel();
     await _notesPendingSub?.cancel();
     await _favoritesPendingSub?.cancel();
@@ -178,6 +304,7 @@ class SyncService {
     notes?.onChanged = null;
     favorites?.onChanged = null;
     state.dispose();
+    share.dispose();
   }
 
   /// Шаг 2 входа: получить код устройства.
@@ -322,6 +449,7 @@ class SyncService {
       if (favMerge != null) await favorites!.markSynced(favMerge.entries);
       await _db.putSetting(_lastSyncedKey, _now().toUtc().toIso8601String());
       await _publishIdle();
+      await _updateShare();
     } on GitHubException catch (e) {
       if (e.kind == GitHubErrorKind.unauthorized) {
         await signOut();
@@ -400,6 +528,7 @@ class SyncService {
   }
 
   void _scheduleSync() {
+    _shareDirty = true;
     if (_token == null) return;
     _debounceTimer?.cancel();
     _debounceTimer = Timer(debounce, syncNow);

@@ -15,6 +15,7 @@ import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/badges.dart';
 import 'sync_visuals.dart';
+import 'share_group.dart';
 
 /// Настройки (design/screens.md §7).
 class SettingsScreen extends StatelessWidget {
@@ -355,6 +356,11 @@ class _AccountGroup extends StatelessWidget {
                 },
                 child: const Text('Выйти из GitHub'),
               ),
+            ),
+            ShareGroup(
+              sync: sync,
+              row: ({required title, subtitle, required trailing}) =>
+                  _Row(title: title, subtitle: subtitle, trailing: trailing),
             ),
           ],
         );
