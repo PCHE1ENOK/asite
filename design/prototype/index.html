@@ -309,7 +309,9 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .player.yt.has-eps { grid-template-columns: minmax(0, 1fr) min(380px, 45%); }
 .player.yt .eppanel { position: static; grid-column: 2; grid-row: 2 / 4; width: auto; min-height: 0; }
 .yt-top, .yt-bar { display: flex; align-items: center; gap: 8px; padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); background: #0B0C10; color: #FFFFFF; flex-wrap: wrap; }
-.yt-top { border-bottom: 1px solid #FFFFFF14; }
+.yt-top { border-bottom: 1px solid #FFFFFF14; flex-wrap: nowrap; }
+.yt-top .pl-title { flex: 1 1 auto; min-width: 0; }
+.yt-top .grow { display: none; }
 .yt-bar { border-top: 1px solid #FFFFFF14; min-height: 56px; }
 .yt-top .grow, .yt-bar .grow { flex: 1; }
 .yt-bar .src { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #FFFFFFB8; }
@@ -586,6 +588,12 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .player.yt.has-com { grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 42%); }
 .player.yt.has-com.has-eps .eppanel { grid-row: 2 / 5; }
 .app.m .player.yt.has-com { grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 50%); }
+.en-title { font-size: 15px; color: var(--fg2); }
+.lang-note { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.trl-fail { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 16px; padding: 8px 8px 8px 12px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--s1); color: var(--fg); font-size: 14px; }
+.trl-fail > svg { width: 18px; height: 18px; color: var(--bad); }
+.trl-fail > span { flex: 1 1 200px; font-weight: 500; }
+.trl-fail .btn { height: 36px; }
 .sample { font-size: 12px; color: var(--fg3); margin-top: 40px; }
 
 /* ---------- телефон ---------- */
@@ -814,6 +822,7 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
         <option value="ytmissing">YouTube: нет видео для серии</option>
         <option value="ytblocked">YouTube: недоступно в регионе</option>
         <option value="ytnoembed">YouTube: без встроенного плеера</option>
+        <option value="ytblack">YouTube: не запускается (чёрный экран)</option>
       </select></span>
       <span class="pf"><label for="demoComments">Комментарии:</label>
       <select id="demoComments" aria-label="Состояние комментариев">
@@ -829,6 +838,7 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
         <option value="search-found">поиск: найдёт</option>
         <option value="anilist">есть в AniList</option>
         <option value="nokey">нет ключа</option>
+        <option value="broken">есть, но не открывается</option>
       </select></span>
       <span class="pf"><label for="demoPlatform">Платформа:</label>
       <select id="demoPlatform" aria-label="Платформа">
@@ -926,6 +936,14 @@ const DATA = [
   {id:18, t:'Унесённые призраками', o:'Sen to Chihiro no Kamikakushi', f:'Фильм', y:2001, s:'Лето', ep:1, d:125, sc:86, pop:690, g:['Приключения','Фэнтези'], h:170},
 ];
 const HAS_YT = new Set([1, 2, 9]);
+// Английские названия (AniList title.english); русское — основное, английское — строкой ниже
+const EN_TITLE = {"1": "Dan Da Dan", "2": "Frieren: Beyond Journey's End", "3": "The Apothecary Diaries", "4": "Solo Leveling", "5": "Fullmetal Alchemist: Brotherhood", "6": "Chainsaw Man", "7": "Your Name.", "8": "Cowboy Bebop", "9": "SPY x FAMILY", "10": "Kaiju No. 8", "11": "[Oshi No Ko]", "12": "BLUELOCK", "13": "Sword Art Online", "14": "Tokyo Revengers", "15": "Neon Genesis Evangelion", "16": "Vinland Saga", "17": "EX-ARM", "18": "Spirited Away", "19": "Placeholder title"};
+// Описания: русское, если есть; иначе — английское с пометкой «на английском» (тексты примерные)
+const DESC = {
+  1:{ ru:'Момо Аясэ верит в призраков, но не в пришельцев. Её одноклассник Окарун — наоборот. Чтобы доказать свою правоту, каждый отправляется туда, где «водится» чужое, и оба сталкиваются с тем, во что не верили.' },
+  10:{ en:'Kafka Hibino cleans up the remains of giant monsters, but still dreams of joining the Defense Force. A sudden transformation gives him a second chance — and a secret he has to keep.' },
+  12:{ en:'Three hundred young strikers are locked in a training facility with one goal: to create the most selfish forward in the world. Only one of them will become the striker of the national team.' },
+};
 const GENRES = ['Экшен','Приключения','Драма','Комедия','Фэнтези','Фантастика','Мистика','Романтика','Спорт','Повседневность'];
 const DAN_EPS = ['Так начинается любовь, да?','Это же пришелец, верно?!','Битва бабули с бабулей!','Надрать зад Турбо-бабке','Ну и где твои шарики?!','Появляется опасная женщина','К миру добрее','Странное у меня предчувствие','Слияние! Серпо, Дуверский демон, Несси!','Видели когда-нибудь увечья скота?','Первая любовь','Пойдём в проклятый дом'];
 // Абстрактный источник: названия студий условные
@@ -1261,11 +1279,15 @@ function downloadPack(id) {
 function paintComments() { document.querySelectorAll('.comments-wrap, .ytcom').forEach(w => { w.innerHTML = commentsView(); }); }
 
 /* ---------- Трейлер на карточке: AniList → по нажатию поиск по официальным каналам ---------- */
-const TRL = { searched:{}, found:{}, searching:null };
+const TRL = { searched:{}, found:{}, searching:null, fail:{} };
+function trailerFailNote(a) {
+  if (!TRL.fail[a.id]) return '';
+  return `<div class="trl-fail" role="alert">${ic('cloud_off')}<span>Трейлер не открывается в приложении</span><a class="btn btn-text" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-text" type="button" data-act="openTrailer">Повторить</button></div>`;
+}
 function trailerBtn(a) {
   const d = $('#demoTrailer').value;
-  const found = d === 'anilist' || TRL.found[a.id];
-  if (found) return `<a class="btn btn-outline" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('movie')}Трейлер на YouTube</a>`;
+  const found = d === 'anilist' || d === 'broken' || TRL.found[a.id];
+  if (found) return `<button class="btn btn-outline" type="button" data-act="openTrailer">${ic('movie')}Трейлер на YouTube</button>`;
   if (TRL.searching === a.id) return `<button class="btn btn-text" type="button" disabled aria-busy="true"><span class="spin sm"></span>Ищем трейлер…</button>`;
   if (d === 'nokey' || TRL.searched[a.id]) return '';
   return `<button class="btn btn-text" type="button" data-act="findTrailer" title="Поиск по официальным каналам — расходует квоту YouTube, поэтому только по нажатию">${ic('search')}Найти трейлер</button>`;
@@ -1377,8 +1399,11 @@ function viewTitle() {
       return `<a class="ep${cur ? ' cur' : ''}" href="#player" data-open="${a.id}" style="text-decoration:none;color:inherit">
         <span class="n">${n}</span><span class="t"><div>${esc(name(n))}</div>${cur ? `<div class="bar"><i style="width:42%"></i></div>` : ''}</span>
         <span class="cap num">${a.d} мин</span><span class="ok" title="${done ? 'Просмотрено' : ''}">${done ? ic('check') : ''}</span></a>`; }).join('')}</div>`;
-  if (S.titleTab === 'about') body = `<div class="prose"><p>Момо Аясэ верит в призраков, но не в пришельцев. Её одноклассник Окарун — наоборот. Чтобы доказать свою правоту, каждый отправляется туда, где «водится» чужое, и оба сталкиваются с тем, во что не верили.</p></div>
-    <div class="genres" style="margin-top:12px">${a.g.map(g => `<span class="tag">${g}</span>`).join('')}<span class="tag">Сверхъестественное · 92%</span><span class="tag">Пришельцы · 88%</span></div>`;
+  if (S.titleTab === 'about') { const D = DESC[a.id] || {};
+    body = D.ru ? `<div class="prose" lang="ru"><p>${esc(D.ru)}</p></div>`
+      : D.en ? `<div class="prose"><div class="lang-note"><span class="tag">на английском</span><span class="cap">Русского описания на AniList нет</span></div><p lang="en">${esc(D.en)}</p></div>`
+      : `<div class="state small">${ic('edit')}<h3>Описания пока нет</h3><div>На AniList у этого тайтла нет описания.</div></div>`;
+    body += `<div class="genres" style="margin-top:12px">${a.g.map(g => `<span class="tag">${g}</span>`).join('')}${a.id === 1 ? '<span class="tag">Сверхъестественное · 92%</span><span class="tag">Пришельцы · 88%</span>' : ''}</div>`; }
   if (S.titleTab === 'stats') {
     const tot = ORDER.reduce((s,k) => s + SDIST[k], 0);
     body = `<div class="cols"><section><h3>Оценки пользователей AniList</h3><div class="cap" style="margin:4px 0 12px">Число пользователей по баллам 10–100</div>${histogram()}</section>
@@ -1393,7 +1418,7 @@ function viewTitle() {
     <div class="hero"><div class="banner" style="background:linear-gradient(120deg, hsl(${a.h} 50% 30%), hsl(${a.h+60} 55% 18%))"></div>
       <div class="hero-row"><div class="poster">${art(a, true)}</div>
         <div class="hero-info">
-          <div><h1>${esc(a.t)}</h1><div class="meta">${esc(a.o)}</div></div>
+          <div><h1 lang="ru">${esc(a.t)}</h1>${EN_TITLE[a.id] && EN_TITLE[a.id] !== a.t ? `<div class="meta en-title" lang="en" title="Ромадзи: ${esc(a.o)}">${esc(EN_TITLE[a.id])}</div>` : `<div class="meta">${esc(a.o)}</div>`}</div>
           <div class="meta">${a.adult ? '<span class="tag adult-tag">18+</span> ' : ''}${a.f} · ${a.s} ${a.y} · ${a.ep} эп. · ${a.d} мин${a.studio ? ' · ' + a.studio : ''}</div>
           <div class="scoreblock">
             <div><div class="bignum" style="color:var(--${scoreCls(a.sc)})">${a.sc}</div><div class="cap">Рейтинг AniList</div></div>
@@ -1408,6 +1433,7 @@ function viewTitle() {
             <div class="menu" role="menu" id="statusMenu" hidden style="left:0">${ORDER.map(k => `<button role="menuitemradio" type="button" data-setst="${k}" aria-checked="${a.st === k}"><span style="color:var(${STATUS[k].v});display:inline-flex">${ic(k)}</span>${STATUS[k].label}${a.st === k ? `<span class="chk">${ic('check')}</span>` : ''}</button>`).join('')}${a.st ? `<hr><button role="menuitem" type="button" data-setst="">Удалить из списка</button>` : ''}</div>
           </div>
         </div></div></div>
+    ${trailerFailNote(a)}
     ${noteBlock(a)}
     <div class="tabs" role="tablist">${Object.entries(tabs).map(([k,v]) => `<button class="tab" role="tab" type="button" data-ttab="${k}" aria-selected="${S.titleTab === k}">${v}</button>`).join('')}</div>
     ${body}
@@ -1420,6 +1446,7 @@ const P = { dur:1440, t:70, buf:300, playing:true, opA:50, opB:140, ui:true, fs:
 function fmtT(s) { s = Math.max(0, Math.round(s)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
 function viewPlayer() {
   const a = DATA.find(x => x.id === S.titleId) || DATA[0];
+  if (P.trailer) return viewTrailer(a);
   if ($('#demoPlayer').value.startsWith('yt')) return viewPlayerYT(a);
   const n = curEp(a);
   const epName = a.id === 1 ? DAN_EPS[n-1] : `Серия ${n}`;
@@ -1470,12 +1497,28 @@ function viewPlayer() {
 /* ---------- режим «официальное видео YouTube» ----------
    Встроенный плеер YouTube нельзя перекрывать своими контролами: наши панели стоят над и под видео, а не поверх. */
 const YT_OK = st => st === 'ytmissing' ? [1, 2, 3] : null; // null — видео есть у всех серий
+function viewTrailer(a) {
+  const broken = $('#demoTrailer').value === 'broken', loading = P.trailerLoading;
+  if (broken && !loading) TRL.fail[a.id] = true;
+  const stage = loading ? `<div class="pl-state" role="status"><span class="spin" aria-hidden="true"></span><div class="sub">Открываем трейлер…</div></div>`
+    : broken ? `<div class="pl-state card" role="alert">${ic('cloud_off')}<div class="big">Трейлер не открывается в приложении</div><div class="sub">Встроенный плеер YouTube не запустился. Откройте трейлер на YouTube или попробуйте ещё раз.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="trailerRetry">Повторить</button></div></div>`
+    : `<div class="yt-embed" role="img" aria-label="Встроенный плеер YouTube: трейлер ${esc(a.t)}"><div class="yt-ph"><span class="yt-play">${ic('play')}</span><span>Встроенный плеер YouTube · трейлер</span></div></div>`;
+  return `<div class="player yt" id="player">
+    <div class="yt-top"><a class="pl-btn" href="#title" aria-label="Назад к тайтлу">${ic('back')}</a>
+      <div class="pl-title"><div>${esc(a.t)}</div><div>Трейлер · официальный канал правообладателя</div></div><span class="grow"></span>
+      <button class="pl-btn" type="button" id="fsBtn" aria-pressed="${P.fs}" aria-label="${P.fs ? 'Выйти из полноэкранного режима' : 'Полный экран'}">${ic(P.fs ? 'full_exit' : 'full')}</button></div>
+    <div class="yt-stage">${stage}</div>
+    <div class="yt-bar"><span class="src">${ic('movie')}Официальный трейлер на YouTube</span><span class="grow"></span><a class="btn btn-text" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a></div>
+  </div>`;
+}
 function viewPlayerYT(a) {
   const st = $('#demoPlayer').value;
+  if (P.trailer) return viewTrailer(a);
   const n = curEp(a);
   const epName = epTitle(a, 0, n), ok = YT_OK(st), has = !ok || ok.includes(n);
   let stage;
-  if (st === 'ytnoembed') stage = `<div class="pl-state card">${ic('ext')}<div class="big">Встроенный плеер недоступен</div><div class="sub">На этом устройстве нет компонента для встроенного видео. Серию можно посмотреть на YouTube в браузере — вернитесь сюда, чтобы отметить её просмотренной.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="markEp">${ic('check')}Отметить серию ${n} просмотренной</button></div></div>`;
+  if (st === 'ytblack') stage = `<div class="pl-state card" role="alert">${ic('cloud_off')}<div class="big">Видео не открывается в приложении</div><div class="sub">Встроенный плеер YouTube не запустился. Откройте серию ${n} на YouTube или попробуйте ещё раз.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="ytRetry">Повторить</button></div></div>`;
+  else if (st === 'ytnoembed') stage = `<div class="pl-state card">${ic('ext')}<div class="big">Встроенный плеер недоступен</div><div class="sub">На этом устройстве нет компонента для встроенного видео. Серию можно посмотреть на YouTube в браузере — вернитесь сюда, чтобы отметить её просмотренной.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="markEp">${ic('check')}Отметить серию ${n} просмотренной</button></div></div>`;
   else if (st === 'ytblocked') stage = `<div class="pl-state card">${ic('cloud_off')}<div class="big">Видео недоступно в вашем регионе</div><div class="sub">Правообладатель ограничил показ серии ${n} для вашей страны. Попробуйте открыть её на YouTube или выберите другую серию.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="ytEps">Другие серии</button></div><div class="ecode">Ответ встроенного плеера: ошибка 150 (встраивание запрещено)</div></div>`;
   else if (!has) stage = `<div class="pl-state card">${ic('cc')}<div class="big">Официального видео для серии ${n} нет</div><div class="sub">Правообладатель выложил на YouTube только серии ${ok.join(', ')}. Остальные можно отмечать просмотренными вручную.</div><div class="acts"><button class="btn btn-filled" type="button" data-act="ytEps">Открыть доступные серии</button><button class="btn btn-outline" type="button" data-act="markEp">${ic('check')}Отметить серию ${n} просмотренной</button></div></div>`;
   else stage = `<div class="yt-embed" role="img" aria-label="Встроенный плеер YouTube: ${esc(a.t)}, серия ${n}"><div class="yt-ph"><span class="yt-play">${ic('play')}</span><span>Встроенный плеер YouTube</span><small>Свои кнопки, субтитры и качество — внутри плеера. Мы ничего поверх не рисуем.</small></div></div>`;
@@ -1694,6 +1737,7 @@ function render() {
   if (r !== 'player') $('#main').scrollTop = 0;
   if (r === 'search') { paintSearch(); const i = $('#sq'); if (i) i.focus(); }
   if (E.id && r !== 'title' && r !== 'lists') closeEditor();
+  if (r !== 'player') { P.trailer = false; P.trailerLoading = false; }
   if (r !== 'player') { clearTimeout(P.musT); P.mus = null; P.ep = null; P.t = Math.min(P.t, 70); }
   if (r === 'player') syncPlayerUi();
   if (r === 'player') { P.timer = setInterval(playerTick, 1000); playerPaint(); showUi(); }
@@ -1740,6 +1784,9 @@ document.addEventListener('click', e => {
   else if (d.act === 'trNo') { delete TR.st[TR.pending]; TR.pending = null; paintComments(); }
   else if (d.trorig) { TR.showOrig.has(d.trorig) ? TR.showOrig.delete(d.trorig) : TR.showOrig.add(d.trorig); paintComments(); }
   else if (d.trpack) downloadPack(d.trpack);
+  else if (d.act === 'openTrailer') { P.trailer = true; P.trailerLoading = true; if (route() === 'player') render(); else location.hash = 'player'; setTimeout(() => { P.trailerLoading = false; if (route() === 'player' && P.trailer) render(); }, 900); }
+  else if (d.act === 'trailerRetry') { P.trailerLoading = true; render(); setTimeout(() => { P.trailerLoading = false; if (route() === 'player' && P.trailer) render(); }, 900); }
+  else if (d.act === 'ytRetry') { const pl = $('#player'); if (pl) pl.querySelector('.yt-stage').innerHTML = '<div class="pl-state" role="status"><span class="spin" aria-hidden="true"></span><div class="sub">Запускаем плеер…</div></div>'; setTimeout(() => { if (route() === 'player') render(); }, 900); }
   else if (d.act === 'findTrailer') { const id = S.titleId; TRL.searching = id; render(); setTimeout(() => { TRL.searching = null; TRL.searched[id] = true; if ($('#demoTrailer').value === 'search-found') TRL.found[id] = true; if (route() === 'title') render(); }, 1200); }
   else if (d.csort) { C.sort = d.csort; paintComments(); }
   else if (d.cmore) { C.open.has(d.cmore) ? C.open.delete(d.cmore) : C.open.add(d.cmore); paintComments(); }
@@ -1826,7 +1873,7 @@ document.addEventListener('click', e => { if (!e.target.closest('#pmenu') && !e.
 document.addEventListener('change', e => {
   if (e.target.id === 'sort') { S.sort = e.target.value; render(); }
   if (e.target.id === 'demoPlatform') render();
-  if (e.target.id === 'demoTrailer') { TRL.searched = {}; TRL.found = {}; TRL.searching = null; if (route() === 'title') render(); else location.hash = 'title'; }
+  if (e.target.id === 'demoTrailer') { TRL.searched = {}; TRL.found = {}; TRL.searching = null; TRL.fail = {}; if (route() === 'title') render(); else location.hash = 'title'; }
   if (e.target.id === 'trDemo') { C.trDemo = e.target.value; TR.st = {}; TR.showOrig.clear(); TR.pack = {}; TR.pending = null; paintComments(); }
   if (e.target.id === 'demoComments') { C.more = false; paintComments(); }
   if (e.target.id === 'nFail') E.failNext = e.target.checked;
