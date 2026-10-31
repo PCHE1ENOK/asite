@@ -150,6 +150,8 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .art .glyph { position: absolute; right: -6%; bottom: -8%; font: 600 120px/1 var(--f-display); color: #FFFFFF26; }
 .art .ttl { position: absolute; left: 10px; right: 10px; bottom: 12px; font: 600 13px/16px var(--f-display); color: #FFFFFFE6; text-wrap: balance; }
 .score { position: absolute; left: 8px; top: 8px; height: 22px; padding: 0 7px; border-radius: var(--r-xs); background: var(--badge-ground); font: 600 12px/22px var(--f-text); font-variant-numeric: tabular-nums; display: flex; gap: 4px; align-items: center; }
+.score small { font-size: 10px; font-weight: 500; color: #FFFFFFB3; letter-spacing: .02em; }
+.of10 { font-size: 14px; color: var(--fg3); margin-left: 2px; }
 .score i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .score.good { color: #4CC38A; } .score.warn { color: #E3A73B; } .score.bad { color: #F27B7B; }
 .stdot { position: absolute; right: 8px; top: 8px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: #FFFFFF; box-shadow: 0 0 0 2px #0E101699; }
@@ -932,7 +934,7 @@ const DATA = [
   {id:15, t:'Евангелион', o:'Shin Seiki Evangelion', f:'TV', y:1995, s:'Осень', ep:26, d:24, sc:83, pop:700, g:['Фантастика','Драма'], h:270, st:'PLANNING'},
   {id:16, t:'Сага о Винланде', o:'Vinland Saga', f:'TV', y:2019, s:'Лето', ep:24, d:24, sc:87, pop:560, g:['Экшен','Приключения','Драма'], h:200},
   {id:17, t:'Ex-Arm', o:'EX-ARM', f:'TV', y:2021, s:'Зима', ep:12, d:24, sc:23, pop:60, g:['Экшен','Фантастика'], h:180},
-  {id:19, t:'Пример тайтла 18+', o:'Placeholder', f:'OVA', y:2024, s:'Лето', ep:2, d:28, sc:61, pop:40, g:['Романтика'], h:350, adult:true},
+  {id:19, t:'Пример тайтла 18+', o:'Placeholder', f:'OVA', y:2024, s:'Лето', ep:2, d:28, sc:null, pop:40, g:['Романтика'], h:350, adult:true},
   {id:18, t:'Унесённые призраками', o:'Sen to Chihiro no Kamikakushi', f:'Фильм', y:2001, s:'Лето', ep:1, d:125, sc:86, pop:690, g:['Приключения','Фэнтези'], h:170},
 ];
 const HAS_YT = new Set([1, 2, 9]);
@@ -1000,7 +1002,15 @@ try { const t = localStorage.getItem('ai-theme'); if (t) { S.theme = t; document
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const scoreCls = v => v == null ? '' : v >= 75 ? 'good' : v >= 60 ? 'warn' : 'bad';
+// Оценка по шкале 0–10 с одним знаком. Источник: Shikimori (если есть) или AniList (averageScore / 10).
+// Внутри прототипа a.sc хранится в 0–100, сортировка не меняется.
+const SHIKI = new Set([3, 11, 14, 16]);
+const score10 = a => a.sc == null ? null : Math.round(a.sc) / 10;
+const scoreTxt = a => a.sc == null ? '' : score10(a).toFixed(1).replace('.', ',');
+const scoreSrc = a => SHIKI.has(a.id) ? 'Shikimori' : 'AniList';
+const scoreSrcShort = a => SHIKI.has(a.id) ? 'Shiki' : 'AL';
+const scoreCls = v => v == null ? '' : v >= 7.5 ? 'good' : v >= 6 ? 'warn' : 'bad';
+const scoreBadge = (a, extra = '') => a.sc == null ? '' : `<span class="score ${scoreCls(score10(a))}" ${extra} title="Оценка ${scoreTxt(a)} из 10 · ${scoreSrc(a)}"><i></i><span class="num">${scoreTxt(a)}</span><small>${scoreSrcShort(a)}</small></span>`;
 const art = (a, big) => `<div class="art" style="background:radial-gradient(70% 50% at 70% 20%, hsl(${a.h+30} 70% 62% / .55), transparent 70%), linear-gradient(165deg, hsl(${a.h} 52% 42%), hsl(${a.h+40} 58% 16%))"><span class="glyph">${esc(a.t[0])}</span>${big ? '' : `<span class="ttl">${esc(a.t)}</span>`}</div>`;
 const fmtK = n => n.toLocaleString('ru-RU');
 
@@ -1010,7 +1020,7 @@ function card(a, withNote) {
   const pr = a.st === 'CURRENT' ? `<span class="prog"><i style="width:${a.pr / a.ep * 100}%"></i></span>` : '';
   return `<div class="card">
     <a href="#title" data-open="${a.id}" class="poster" aria-label="${esc(a.t)}">${art(a)}
-      <span class="score ${scoreCls(a.sc)}" title="Рейтинг AniList"><i></i>${a.sc}</span>${a.adult ? '<span class="adult" title="Для взрослых">18+</span>' : ''}${st}${pr}
+      ${scoreBadge(a)}${a.adult ? `<span class="adult" title="Для взрослых"${a.sc == null ? ' style="top:8px"' : ''}>18+</span>` : ''}${st}${pr}
       <span class="btn btn-filled hover-cta" aria-hidden="true">${ic('play')}Смотреть</span>${nt ? `<span class="vbadge" style="color:${VERD[nt.verdict].badge}" title="Моя заметка: ${VERD[nt.verdict].label}">${ic(VERD[nt.verdict].icon)}</span>` : ''}</a>
     <div><div class="name">${esc(a.t)}</div><div class="cap">${a.f} · ${a.y} · ${a.st === 'CURRENT' ? `${a.pr} / ${a.ep}` : a.ep} эп.</div>${nt && nt.summary ? `<div class="nsum" title="${esc(nt.summary)}">${ic('edit')}${esc(nt.summary)}</div>` : ''}</div>
   </div>`;
@@ -1020,7 +1030,7 @@ function card(a, withNote) {
 function viewCatalog() {
   const demo = $('#demoState').value;
   let list = DATA.filter(a => (S.format === 'all' || a.f === S.format) && [...S.genres].every(g => a.g.includes(g)) && !(S.hideMine && a.st) && (S.adult || !a.adult));
-  const sorters = { pop:(a,b)=>b.pop-a.pop, score:(a,b)=>b.sc-a.sc, new:(a,b)=>b.y-a.y, az:(a,b)=>a.t.localeCompare(b.t,'ru') };
+  const sorters = { pop:(a,b)=>b.pop-a.pop, score:(a,b)=>(b.sc ?? -1)-(a.sc ?? -1), new:(a,b)=>b.y-a.y, az:(a,b)=>a.t.localeCompare(b.t,'ru') };
   list.sort(sorters[S.sort]);
   if (demo === 'empty') list = [];
   let body;
@@ -1042,13 +1052,13 @@ function viewCatalog() {
       <div class="right"><label class="cap" for="sort">Сортировка</label>
         <select class="select" id="sort">
           <option value="pop"${S.sort==='pop'?' selected':''}>Популярность</option>
-          <option value="score"${S.sort==='score'?' selected':''}>Рейтинг AniList</option>
+          <option value="score"${S.sort==='score'?' selected':''}>По оценке</option>
           <option value="new"${S.sort==='new'?' selected':''}>Новые</option>
           <option value="az"${S.sort==='az'?' selected':''}>По алфавиту</option>
         </select></div>
     </div>
     ${body}
-    <p class="sample">Примерные данные. Рейтинг — averageScore AniList: зелёный от 75, жёлтый 60–74, красный ниже 60.</p>
+    <p class="sample">Примерные данные. Оценка 0–10: Shikimori, а если её нет — AniList (averageScore / 10). Зелёный от 7,5, жёлтый 6,0–7,4, красный ниже 6,0; без оценки бейджа нет.</p>
   </div>`;
 }
 
@@ -1155,7 +1165,7 @@ function paintSearch(loading) {
   if (loading || demo === 'loading') { box.innerHTML = `<div class="grid" aria-busy="true">${Array.from({length:6}, () => `<div class="card"><div class="poster skel"></div><div class="skel" style="height:14px;width:80%"></div></div>`).join('')}</div>`; return; }
   const res = demo === 'empty' ? [] : DATA.filter(a => (S.adult || !a.adult) && (a.t + ' ' + a.o).toLowerCase().includes(q.toLowerCase()));
   if (!res.length) { box.innerHTML = `<div class="state">${ic('empty')}<h3>Ничего не нашлось по «${esc(q)}»</h3><div>Проверьте написание или попробуйте английское название.</div></div>`; return; }
-  box.innerHTML = `${q.length >= 2 ? `<div class="suggest"><div>${res.slice(0,3).map(a => `<a class="sline" href="#title" data-open="${a.id}"><span class="mini">${art(a, true)}</span><span><div>${hl(a.t, q)}</div><div class="cap">${hl(a.o, q)} · ${a.f} · ${a.y}</div></span><span class="score ${scoreCls(a.sc)}" style="position:static;margin-left:auto"><i></i>${a.sc}</span></a>`).join('')}</div></div>` : ''}
+  box.innerHTML = `${q.length >= 2 ? `<div class="suggest"><div>${res.slice(0,3).map(a => `<a class="sline" href="#title" data-open="${a.id}"><span class="mini">${art(a, true)}</span><span><div>${hl(a.t, q)}</div><div class="cap">${hl(a.o, q)} · ${a.f} · ${a.y}</div></span>${scoreBadge(a, 'style="position:static;margin-left:auto"')}</a>`).join('')}</div></div>` : ''}
     <div class="overline" style="margin-bottom:12px">Результаты · ${res.length}</div><div class="grid">${res.map(card).join('')}</div>`;
 }
 document.addEventListener('input', e => { if (E.id) editorInput(e.target.id, e.target.value); });
@@ -1421,7 +1431,7 @@ function viewTitle() {
           <div><h1 lang="ru">${esc(a.t)}</h1>${EN_TITLE[a.id] && EN_TITLE[a.id] !== a.t ? `<div class="meta en-title" lang="en" title="Ромадзи: ${esc(a.o)}">${esc(EN_TITLE[a.id])}</div>` : `<div class="meta">${esc(a.o)}</div>`}</div>
           <div class="meta">${a.adult ? '<span class="tag adult-tag">18+</span> ' : ''}${a.f} · ${a.s} ${a.y} · ${a.ep} эп. · ${a.d} мин${a.studio ? ' · ' + a.studio : ''}</div>
           <div class="scoreblock">
-            <div><div class="bignum" style="color:var(--${scoreCls(a.sc)})">${a.sc}</div><div class="cap">Рейтинг AniList</div></div>
+            ${a.sc == null ? '' : `<div><div class="bignum num" style="color:var(--${scoreCls(score10(a))})">${scoreTxt(a)}<small class="of10">/10</small></div><div class="cap">Оценка · <span class="src">${scoreSrc(a)}</span></div></div>`}
             <div><div class="bignum" style="font-size:20px">#12</div><div class="cap">за сезон</div></div>
             <div><div class="bignum" style="font-size:20px">${a.pop} тыс.</div><div class="cap">в списках</div></div>
           </div>

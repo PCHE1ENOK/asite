@@ -18,7 +18,7 @@
 ## Список
 
 - **PosterCard** — обложка 2:3 (`AspectRatio`), радиус md (`ClipRRect`), ScoreBadge, ListStatusDot, полоса прогресса 3px. Под обложкой заголовок 2 строки (`maxLines: 2, overflow: ellipsis`), caption. Размеры задаёт сетка (`SliverGrid` с `SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 220, childAspectRatio: ...)`).
-- **ScoreBadge** — `averageScore` целым числом; текст цвета good/warn/bad, фон тот же цвет 12% поверх затемнения `#000000A0` на постере (на постере всегда тёмная подложка, чтобы читалось на любой обложке). Нет оценки — «—» `fg3`. Высота 22, радиус xs, `tabularFigures`.
+- **ScoreBadge** — оценка 0–10 с одним знаком («8,5») + короткая подпись источника (AL / Shiki, 10 px). Цвет числа good/warn/bad по порогам 7,5 / 6,0 на тёмной подложке `#0E1016CC` (читается на любой обложке). Нет оценки — бейджа нет. Высота 22, радиус xs, `tabularFigures`.
 - **AdultBadge** — «18+», высота 20, радиус xs, фон `#B9302F`, белый текст 11/600 (контраст 5.9:1, одинаково в обеих темах). На постере под ScoreBadge, на карточке тайтла — первым в строке мета.
 - **SyncBar** — полоса на `surface1` с рамкой `border`, радиус md: иконка состояния, текст (жирное начало + пояснение), справа одна кнопка (outline или tonal). `Semantics(liveRegion: true)`.
 - **SyncDot** — точка 10 на пункте профиля в навигации, обводка 2px цвета фона.
