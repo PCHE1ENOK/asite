@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>Каталог друга · Anilist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=Unbounded:wght@600&display=swap">
+<style>
+/* Страница просмотра каталога для друзей. Один файл, без внешних скриптов.
+   Данные: share.json из публичного Gist (?g=<id>). Токены — design/tokens.json (тёмная тема по умолчанию, светлая по системе). */
+:root {
+  color-scheme: dark;
+  --bg:#0E1016; --s1:#161923; --s2:#1E2230; --s3:#272C3D; --border:#2C3144; --border-strong:#3B4159;
+  --fg:#ECEEF5; --fg2:#A7ADC0; --fg3:#878EA4; --accent:#8399FF; --on-accent:#0E1016; --accent-soft:#8399FF26;
+  --good:#4CC38A; --warn:#E3A73B; --bad:#F27B7B;
+  --st-current:#3987E5; --st-planning:#D95926; --st-completed:#199E70; --st-paused:#C98500; --st-dropped:#D55181;
+  --skel:#1E2230; --skel-shine:#272C3D; --badge-ground:#0E1016CC; --shadow:0 16px 48px #000000A0;
+  --f-display:"Unbounded","Segoe UI",system-ui,sans-serif; --f-text:"Golos Text","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  color-scheme: light;
+  --bg:#F4F5F9; --s1:#FFFFFF; --s2:#E9EBF2; --s3:#DEE1EA; --border:#D9DCE6; --border-strong:#BFC3D1;
+  --fg:#141722; --fg2:#474D62; --fg3:#646A80; --accent:#3150C9; --on-accent:#FFFFFF; --accent-soft:#3150C91F;
+  --good:#126F48; --warn:#94580A; --bad:#B9302F;
+  --st-current:#2A78D6; --st-planning:#EB6834; --st-completed:#1BAF7A; --st-paused:#EDA100; --st-dropped:#E87BA4;
+  --skel:#E9EBF2; --skel-shine:#F4F5F9; --shadow:0 16px 48px #1417222E;
+} }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg:#F4F5F9; --s1:#FFFFFF; --s2:#E9EBF2; --s3:#DEE1EA; --border:#D9DCE6; --border-strong:#BFC3D1;
+  --fg:#141722; --fg2:#474D62; --fg3:#646A80; --accent:#3150C9; --on-accent:#FFFFFF; --accent-soft:#3150C91F;
+  --good:#126F48; --warn:#94580A; --bad:#B9302F;
+  --st-current:#2A78D6; --st-planning:#EB6834; --st-completed:#1BAF7A; --st-paused:#EDA100; --st-dropped:#E87BA4;
+  --skel:#E9EBF2; --skel-shine:#F4F5F9; --shadow:0 16px 48px #1417222E;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 15px/22px var(--f-text); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
+.num { font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: max(16px, env(safe-area-inset-top, 0px)) 48px; }
+h1 { font: 600 24px/30px var(--f-display); margin: 0; letter-spacing: -.3px; text-wrap: balance; }
+h2 { font: 600 18px/24px var(--f-display); margin: 0; }
+.cap { font-size: 13px; line-height: 18px; color: var(--fg2); }
+.muted { color: var(--fg3); }
+
+/* шапка */
+.top { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+.top .who { display: grid; gap: 4px; min-width: 0; }
+.brand { font: 600 11px/14px var(--f-text); letter-spacing: .08em; text-transform: uppercase; color: var(--fg3); }
+.iconbtn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--fg2); }
+.iconbtn:hover { background: var(--s2); color: var(--fg); }
+
+/* вкладки и инструменты */
+.tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 12px 0; padding-right: 16px; -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: none; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--s1); display: inline-flex; gap: 6px; align-items: center; font-size: 14px; font-weight: 500; color: var(--fg2); }
+.tab[aria-selected="true"] { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.tab .c { font-size: 12px; padding: 0 6px; border-radius: 999px; background: var(--s2); color: var(--fg2); }
+.tab[aria-selected="true"] .c { background: var(--accent); color: var(--on-accent); }
+.tab svg { width: 16px; height: 16px; }
+.tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-bottom: 16px; }
+.search { display: flex; gap: 8px; align-items: center; height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--s1); color: var(--fg3); }
+.search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; color: var(--fg); font-size: 16px; -webkit-appearance: none; appearance: none; }
+select { height: 44px; border: 1px solid var(--border); border-radius: 10px; background: var(--s1); padding: 0 10px; font-size: 16px; }
+
+/* список: телефон — строки, ПК — сетка */
+.list { display: grid; gap: 8px; }
+.row { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: start; text-align: left; padding: 8px; border-radius: 12px; background: var(--s1); border: 1px solid var(--border); width: 100%; }
+.row:active { background: var(--s2); }
+.cover { position: relative; width: 64px; aspect-ratio: 2 / 3; border-radius: 8px; overflow: hidden; background: var(--s3); }
+.cover img, .cover .ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cover .ph { display: grid; place-items: center; font: 600 22px var(--f-display); color: #FFFFFFB3; }
+.info { display: grid; gap: 4px; min-width: 0; }
+.name { font-weight: 600; line-height: 20px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 13px; color: var(--fg2); }
+.score { font-weight: 600; font-variant-numeric: tabular-nums; }
+.score.good { color: var(--good); } .score.warn { color: var(--warn); } .score.bad { color: var(--bad); }
+.score small { font-weight: 500; color: var(--fg3); margin-left: 3px; font-size: 11px; }
+.st { display: inline-flex; gap: 4px; align-items: center; }
+.st i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.heart { color: var(--bad); display: inline-flex; }
+.heart svg { width: 16px; height: 16px; }
+.adult { font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 4px; background: #B9302F; color: #FFFFFF; line-height: 18px; }
+.sum { font-size: 13px; line-height: 18px; color: var(--fg2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.verdict { display: inline-flex; gap: 4px; align-items: center; font-weight: 600; font-size: 13px; }
+.verdict svg { width: 15px; height: 15px; }
+@media (min-width: 720px) {
+  .list { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .row { grid-template-columns: 80px minmax(0, 1fr); }
+  .cover { width: 80px; }
+  .row:hover { border-color: var(--border-strong); }
+  h1 { font-size: 30px; line-height: 36px; }
+}
+
+/* карточка тайтла: шит снизу на телефоне, окно на ПК */
+.sheet-wrap { position: fixed; inset: 0; z-index: 20; background: #00000099; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; background: var(--s1); border-radius: 20px 20px 0 0; padding: 8px 16px max(20px, env(safe-area-inset-bottom, 0px)); box-shadow: var(--shadow); }
+.sheet::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--border-strong); margin: 4px auto 12px; }
+@media (min-width: 720px) { .sheet-wrap { align-items: center; } .sheet { width: min(560px, calc(100% - 32px)); border-radius: 20px; padding: 20px 24px 24px; } .sheet::before { display: none; } }
+.d-head { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 14px; align-items: start; }
+.d-head .cover { width: 96px; }
+.d-head h2 { text-wrap: balance; }
+.d-en { font-size: 13px; color: var(--fg2); margin-top: 2px; }
+.d-score { font: 600 22px/26px var(--f-display); font-variant-numeric: tabular-nums; margin-top: 8px; }
+.d-score small { font: 500 13px var(--f-text); color: var(--fg3); }
+.d-sec { display: grid; gap: 8px; margin-top: 18px; }
+.d-sec h3 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--fg3); }
+.d-sec p { margin: 0; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--s2); color: var(--fg2); }
+.moments { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.moments li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 6px 10px; border-radius: 8px; background: var(--s2); font-size: 14px; }
+.moments b { color: var(--accent); font-size: 12px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.btn { height: 44px; padding: 0 16px; border-radius: 10px; display: inline-flex; gap: 8px; align-items: center; justify-content: center; font-weight: 600; text-decoration: none; }
+.btn-filled { background: var(--accent); color: var(--on-accent); }
+.btn-outline { border: 1px solid var(--border-strong); color: var(--fg); }
+
+/* состояния */
+.state { display: grid; justify-items: center; gap: 10px; text-align: center; padding: 48px 16px; color: var(--fg2); }
+.state svg { width: 44px; height: 44px; color: var(--fg3); }
+.state h2 { color: var(--fg); }
+.paste { display: grid; gap: 12px; max-width: 480px; margin: 12vh auto 0; }
+.paste input { height: 48px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--s1); padding: 0 14px; font-size: 16px; color: var(--fg); }
+.paste .err { color: var(--bad); font-size: 14px; }
+.skel { background: linear-gradient(100deg, var(--skel) 30%, var(--skel-shine) 50%, var(--skel) 70%); background-size: 300% 100%; animation: shine 1.2s linear infinite; border-radius: 6px; }
+@keyframes shine { from { background-position: 100% 0; } to { background-position: -50% 0; } }
+.foot { margin-top: 28px; font-size: 12px; line-height: 18px; color: var(--fg3); }
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app" aria-live="polite"></div>
+<script>
+'use strict';
+/* ---------- иконки (Material Symbols Rounded, упрощённые) ---------- */
+const P = {
+  CURRENT:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 14.5v-9l6 4.5z',
+  PLANNING:'M17 3H7a2 2 0 0 0-2 2v16l7-3 7 3V5a2 2 0 0 0-2-2z',
+  COMPLETED:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 15-5-5 1.4-1.4 3.6 3.6 7.6-7.6L19 8z',
+  PAUSED:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM11 16H9V8h2zm4 0h-2V8h2z',
+  DROPPED:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm5 13.6L15.6 17 12 13.4 8.4 17 7 15.6 10.6 12 7 8.4 8.4 7l3.6 3.6L15.6 7 17 8.4 13.4 12z',
+  FAV:'M12 21.4 10.6 20C5.4 15.4 2 12.3 2 8.5A5.4 5.4 0 0 1 7.5 3 6 6 0 0 1 12 5a6 6 0 0 1 4.5-2A5.4 5.4 0 0 1 22 8.5c0 3.8-3.4 6.9-8.6 11.5z',
+  NOTES:'M3 17.2V21h3.8l11-11-3.8-3.8zM20.7 7a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.8 3.8z',
+  search:'M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z',
+  link:'M3.9 12A3.1 3.1 0 0 1 7 8.9h4V7H7a5 5 0 0 0 0 10h4v-1.9H7A3.1 3.1 0 0 1 3.9 12zM8 13h8v-2H8zm9-6h-4v1.9h4a3.1 3.1 0 0 1 0 6.2h-4V17h4a5 5 0 0 0 0-10z',
+  off:'M19.4 10A7.5 7.5 0 0 0 7.6 5.5l12 12A5 5 0 0 0 19.4 10zM3 5.3 5.8 8A6 6 0 0 0 6 20h11.7l2 2 1.3-1.3L4.3 4z',
+  movie:'M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V4z',
+  close:'M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z',
+  theme:'M12 3a9 9 0 1 0 9 9c0-.5 0-.9-.1-1.4A5.4 5.4 0 0 1 12 3.1z',
+  rw:'M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z', up:'M2 21h4V9H2zm20-11a2 2 0 0 0-2-2h-6.3l1-4.6v-.3c0-.4-.2-.8-.4-1.1L13.2 1 6.6 7.6c-.4.4-.6.9-.6 1.4v10a2 2 0 0 0 2 2h9c.8 0 1.5-.5 1.8-1.2l3-7.1c.1-.2.2-.5.2-.7z',
+  down:'M15 3H6c-.8 0-1.5.5-1.8 1.2l-3 7.1c-.1.2-.2.5-.2.7v2a2 2 0 0 0 2 2h6.3l-1 4.6v.3c0 .4.2.8.4 1.1l1.1 1L16.4 16c.4-.4.6-.9.6-1.4V5a2 2 0 0 0-2-2zm4 0v12h4V3z', dash:'M5 11h14v2H5z',
+};
+const svg = (k, cls) => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); if (cls) s.setAttribute('class', cls); const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', P[k]); s.appendChild(p); return s; };
+/* Все тексты из share.json вставляются только через textContent — HTML из чужих данных не интерпретируется. */
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) { if (v == null || v === false) continue; if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? '' : v); }
+  for (const c of kids.flat()) if (c != null && c !== false) e.append(c instanceof Node ? c : String(c));
+  return e;
+}
+
+/* ---------- справочники ---------- */
+const TABS = [
+  ['CURRENT', 'Смотрю', '--st-current'], ['COMPLETED', 'Просмотрено', '--st-completed'], ['PLANNING', 'В планах', '--st-planning'],
+  ['FAV', 'Понравилось', '--bad'], ['PAUSED', 'Отложено', '--st-paused'], ['DROPPED', 'Брошено', '--st-dropped'], ['NOTES', 'Заметки', '--accent'],
+];
+const STATUS = { CURRENT:'Смотрю', REPEATING:'Пересматривает', COMPLETED:'Просмотрено', PLANNING:'В планах', PAUSED:'Отложено', DROPPED:'Брошено' };
+const STATUS_V = { CURRENT:'--st-current', REPEATING:'--st-current', COMPLETED:'--st-completed', PLANNING:'--st-planning', PAUSED:'--st-paused', DROPPED:'--st-dropped' };
+const VERD = { rewatch:['Стоит пересмотреть', 'rw', '--accent'], recommend:['Советует', 'up', '--good'], not:['Не советует', 'down', '--bad'], none:['Без вердикта', 'dash', '--fg3'] };
+const SRC = { shikimori:['Shikimori', 'Shiki'], anilist:['AniList', 'AL'] };
+const scoreCls = v => v >= 7.5 ? 'good' : v >= 6 ? 'warn' : 'bad';
+const fmtScore = v => v.toFixed(1).replace('.', ',');
+const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? b : c; };
+const fmtDate = iso => { const d = new Date(iso); if (isNaN(d)) return ''; return d.toLocaleString('ru-RU', { day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' }); };
+const safeYouTube = u => { try { const x = new URL(u); return /^(www\.|m\.)?youtube\.com$|^youtu\.be$/.test(x.hostname) && x.protocol === 'https:' ? x.href : null; } catch (e) { return null; } };
+const safeImg = u => { try { const x = new URL(u); return x.protocol === 'https:' ? x.href : null; } catch (e) { return null; } };
+
+/* ---------- данные ---------- */
+// Проверка формата share.json (v1). Неизвестные поля игнорируются; битые записи пропускаются.
+function normalize(j) {
+  if (!j || typeof j !== 'object' || !Array.isArray(j.titles)) throw new Error('format');
+  const titles = j.titles.filter(t => t && typeof t === 'object' && t.title).map(t => ({
+    id: t.id, ru: t.title.ru || '', en: t.title.en || '', romaji: t.title.romaji || '',
+    cover: safeImg(t.cover), color: typeof t.coverColor === 'string' && /^#[0-9a-f]{6}$/i.test(t.coverColor) ? t.coverColor : null,
+    format: t.format || '', year: t.year || '', episodes: t.episodes || null, progress: t.progress || 0,
+    score: t.score && typeof t.score.value === 'number' ? { value: t.score.value, source: SRC[t.score.source] ? t.score.source : 'anilist' } : null,
+    status: STATUS[t.status] ? t.status : null, favorite: !!t.favorite, adult: !!t.adult,
+    updatedAt: t.updatedAt || '', trailer: safeYouTube(t.trailer),
+    note: t.note && typeof t.note === 'object' ? { verdict: VERD[t.note.verdict] ? t.note.verdict : 'none', summary: t.note.summary || '', liked: t.note.liked || '',
+      dropReasons: Array.isArray(t.note.dropReasons) ? t.note.dropReasons.slice(0, 12) : [], dropText: t.note.dropText || '',
+      moments: Array.isArray(t.note.moments) ? t.note.moments.filter(m => m && m.text).slice(0, 50) : [] } : null,
+  }));
+  return { owner: typeof j.owner === 'string' ? j.owner.slice(0, 40) : '', updatedAt: j.updatedAt || '', titles };
+}
+const GIST_ID = /^[0-9a-f]{20,40}$/i;
+function gistIdFrom(s) { s = (s || '').trim(); const m = s.match(/([0-9a-f]{20,40})(?:[/?#]|$)/i); return m ? m[1] : null; }
+// Загрузка: GitHub API (CORS открыт, 60 запросов в час с одного адреса без входа), файл share.json из Gist.
+async function load(id) {
+  const r = await fetch(`https://api.github.com/gists/${id}`, { headers: { Accept: 'application/vnd.github+json' } });
+  if (r.status === 404) throw Object.assign(new Error('notfound'), { kind: 'notfound' });
+  if (r.status === 403 || r.status === 429) throw Object.assign(new Error('rate'), { kind: 'rate' });
+  if (!r.ok) throw Object.assign(new Error('net'), { kind: 'net' });
+  const g = await r.json(), f = g.files && g.files['share.json'];
+  if (!f) throw Object.assign(new Error('format'), { kind: 'format' });
+  const text = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
+  return normalize(JSON.parse(text));
+}
+
+/* ---------- состояние страницы ---------- */
+const S = { data: null, tab: 'CURRENT', q: '', sort: 'score', open: null };
+const app = document.getElementById('app');
+const params = new URLSearchParams(location.search);
+
+function header(d) {
+  const themeBtn = el('button', { class:'iconbtn', type:'button', 'aria-label':'Сменить тему', title:'Сменить тему', onclick: toggleTheme }, svg('theme'));
+  return el('header', { class:'top' },
+    el('div', { class:'who' }, el('span', { class:'brand', text:'Anilist · каталог' }), el('h1', { text: d && d.owner ? `Каталог · ${d.owner}` : 'Каталог друга' }),
+      d && d.updatedAt ? el('span', { class:'cap', text:`Обновлено ${fmtDate(d.updatedAt)}` }) : null),
+    themeBtn);
+}
+function inTab(t, tab) { return tab === 'FAV' ? t.favorite : tab === 'NOTES' ? !!(t.note && (t.note.summary || t.note.liked || t.note.moments.length || t.note.verdict !== 'none')) : tab === 'CURRENT' ? t.status === 'CURRENT' || t.status === 'REPEATING' : t.status === tab; }
+const titleOf = t => t.ru || t.en || t.romaji || 'Без названия';
+
+function cover(t, size) {
+  const c = el('div', { class:'cover', style: t.color ? `background:${t.color}` : null });
+  const ph = el('span', { class:'ph', text: titleOf(t).slice(0, 1).toUpperCase() });
+  c.append(ph);
+  if (t.cover) { const img = el('img', { src: t.cover, alt:'', loading:'lazy', referrerpolicy:'no-referrer', decoding:'async' }); img.addEventListener('error', () => img.remove()); c.append(img); }
+  return c;
+}
+function scoreEl(t, long) {
+  if (!t.score) return null;
+  const [full, short] = SRC[t.score.source];
+  return el('span', { class:`score ${scoreCls(t.score.value)}`, title:`Оценка ${fmtScore(t.score.value)} из 10 · ${full}` }, fmtScore(t.score.value), el('small', { text: long ? full : short }));
+}
+function statusEl(t) { return t.status ? el('span', { class:'st' }, el('i', { style:`background:var(${STATUS_V[t.status]})` }), t.status === 'CURRENT' && t.episodes ? `${STATUS[t.status]} · ${t.progress} / ${t.episodes}` : STATUS[t.status]) : null; }
+function verdictEl(n) { const [label, icon, v] = VERD[n.verdict]; return el('span', { class:'verdict', style:`color:var(${v})` }, svg(icon), label); }
+
+function row(t) {
+  const n = t.note;
+  return el('button', { class:'row', type:'button', 'aria-label': titleOf(t), onclick: () => openCard(t) },
+    cover(t),
+    el('span', { class:'info' },
+      el('span', { class:'name', text: titleOf(t) }),
+      el('span', { class:'meta' }, scoreEl(t), statusEl(t), t.favorite ? el('span', { class:'heart', title:'Понравилось' }, svg('FAV')) : null, t.adult ? el('span', { class:'adult', text:'18+' }) : null),
+      n && n.verdict !== 'none' ? verdictEl(n) : null,
+      n && n.summary ? el('span', { class:'sum', text: n.summary }) : null));
+}
+
+function render() {
+  const d = S.data;
+  app.replaceChildren(header(d));
+  if (!d.titles.length) { app.append(el('div', { class:'state' }, svg('PLANNING'), el('h2', { text:'Каталог пока пуст' }), el('div', { text:'Владелец ещё ничего не добавил в списки.' }))); return; }
+  const counts = Object.fromEntries(TABS.map(([k]) => [k, d.titles.filter(t => inTab(t, k)).length]));
+  const tabs = el('nav', { class:'tabs', role:'tablist', 'aria-label':'Списки' }, TABS.map(([k, label, v]) => el('button', { class:'tab', role:'tab', type:'button', 'aria-selected': String(S.tab === k), onclick: () => { S.tab = k; render(); } },
+    el('span', { style:`color:var(${v});display:inline-flex` }, svg(k)), label, el('span', { class:'c num', text: String(counts[k]) }))));
+  const search = el('label', { class:'search' }, svg('search'), el('input', { id:'q', type:'search', placeholder:'Поиск по названию', 'aria-label':'Поиск по названию', value: S.q, oninput: e => { S.q = e.target.value; renderList(); } }));
+  const sort = el('select', { id:'sort', 'aria-label':'Сортировка', onchange: e => { S.sort = e.target.value; renderList(); } },
+    el('option', { value:'score', selected: S.sort === 'score', text:'По оценке' }), el('option', { value:'date', selected: S.sort === 'date', text:'По дате' }));
+  app.append(tabs, el('div', { class:'tools' }, search, sort), el('div', { id:'list' }),
+    el('p', { class:'foot', text:'Только просмотр. Данные — из публичной ссылки владельца каталога; заметки и списки видит любой, у кого есть эта ссылка. Оценки — Shikimori или AniList.' }));
+  renderList();
+}
+function renderList() {
+  const d = S.data, q = S.q.trim().toLowerCase();
+  let items = d.titles.filter(t => inTab(t, S.tab)).filter(t => !q || [t.ru, t.en, t.romaji].some(x => x && x.toLowerCase().includes(q)));
+  items.sort(S.sort === 'score' ? (a, b) => (b.score ? b.score.value : -1) - (a.score ? a.score.value : -1) : (a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+  const box = document.getElementById('list');
+  if (!items.length) {
+    box.replaceChildren(q ? el('div', { class:'state' }, svg('search'), el('h2', { text:`Ничего не нашлось по «${S.q.trim()}»` }), el('div', { text:'Проверьте написание или поищите в другой вкладке.' }))
+      : el('div', { class:'state' }, svg(S.tab), el('h2', { text:'В этой вкладке пусто' }), el('div', { text: S.tab === 'NOTES' ? 'Владелец пока не писал заметок.' : 'Здесь появятся тайтлы, когда владелец их отметит.' })));
+    return;
+  }
+  box.replaceChildren(el('div', { class:'list' }, items.map(row)));
+}
+
+function openCard(t) {
+  const n = t.note, close = () => { wrap.remove(); document.removeEventListener('keydown', esc); last && last.focus(); };
+  const last = document.activeElement;
+  const esc = e => { if (e.key === 'Escape') close(); };
+  const sec = (title, ...kids) => el('section', { class:'d-sec' }, el('h3', { text:title }), ...kids);
+  const sheet = el('div', { class:'sheet', role:'dialog', 'aria-modal':'true', 'aria-label': titleOf(t) },
+    el('div', { class:'d-head' }, cover(t),
+      el('div', {}, el('h2', { text: titleOf(t) }), t.en && t.en !== titleOf(t) ? el('div', { class:'d-en', lang:'en', text: t.en }) : null,
+        el('div', { class:'cap', text:[t.format, t.year, t.episodes ? `${t.episodes} эп.` : ''].filter(Boolean).join(' · ') }),
+        t.score ? el('div', { class:`d-score score ${scoreCls(t.score.value)}` }, fmtScore(t.score.value), el('small', { text:` / 10 · ${SRC[t.score.source][0]}` })) : null),
+      el('button', { class:'iconbtn', type:'button', 'aria-label':'Закрыть', onclick: close }, svg('close'))),
+    el('div', { class:'meta', style:'margin-top:12px' }, statusEl(t), t.favorite ? el('span', { class:'st' }, el('span', { class:'heart' }, svg('FAV')), 'Понравилось') : null, t.adult ? el('span', { class:'adult', text:'18+' }) : null),
+    n ? [
+      sec('Заметка', n.verdict !== 'none' ? verdictEl(n) : null, n.summary ? el('p', { text: n.summary }) : null),
+      n.dropReasons.length || n.dropText ? sec('Почему бросил', n.dropReasons.length ? el('div', { class:'chips' }, n.dropReasons.map(r => el('span', { class:'chip', text: String(r) }))) : null, n.dropText ? el('p', { text: n.dropText }) : null) : null,
+      n.liked ? sec('Что понравилось', el('p', { text: n.liked })) : null,
+      n.moments.length ? sec('Запомнившиеся моменты', el('ul', { class:'moments' }, n.moments.map(m => el('li', {}, el('b', { text:`Серия ${m.episode || '?'}${m.time ? ' · ' + m.time : ''}` }), el('span', { text: m.text }))))) : null,
+    ] : null,
+    t.trailer ? el('div', { style:'margin-top:18px' }, el('a', { class:'btn btn-outline', href: t.trailer, target:'_blank', rel:'noopener noreferrer' }, svg('movie'), 'Трейлер на YouTube')) : null);
+  const wrap = el('div', { class:'sheet-wrap', onclick: e => { if (e.target === wrap) close(); } }, sheet);
+  document.body.append(wrap); document.addEventListener('keydown', esc);
+  sheet.querySelector('.iconbtn').focus();
+}
+
+/* ---------- экраны состояний ---------- */
+function showLoading() {
+  app.replaceChildren(header(null), el('div', { class:'list', 'aria-busy':'true' }, Array.from({ length: 6 }, () => el('div', { class:'row' }, el('div', { class:'cover skel' }), el('div', { class:'info' }, el('div', { class:'skel', style:'height:14px;width:80%' }), el('div', { class:'skel', style:'height:12px;width:50%' }), el('div', { class:'skel', style:'height:12px;width:65%' }))))));
+}
+function showError(kind) {
+  const T = {
+    notfound: ['Ссылка недействительна', 'Каталог по этой ссылке не найден: его удалили или ссылка скопирована не полностью. Попросите друга прислать новую.'],
+    rate: ['Слишком много запросов', 'GitHub временно ограничил загрузку с этого адреса. Попробуйте через час.'],
+    format: ['Каталог не читается', 'Файл каталога повреждён или из более новой версии приложения. Попросите друга обновить ссылку.'],
+    net: ['Не удалось загрузить каталог', 'Проверьте подключение к интернету.'],
+  }[kind] || ['Не удалось загрузить каталог', 'Проверьте подключение к интернету.'];
+  app.replaceChildren(header(null), el('div', { class:'state', role:'alert' }, svg(kind === 'notfound' ? 'link' : 'off'), el('h2', { text: T[0] }), el('div', { text: T[1] }),
+    kind === 'net' || kind === 'rate' ? el('button', { class:'btn btn-filled', type:'button', onclick: start }, 'Повторить') : null,
+    kind === 'notfound' || kind === 'format' ? el('button', { class:'btn btn-outline', type:'button', onclick: showPaste }, 'Вставить другую ссылку') : null));
+}
+function showPaste(errText) {
+  const input = el('input', { id:'link', type:'text', inputmode:'url', autocapitalize:'off', spellcheck:'false', placeholder:'https://gist.github.com/…', 'aria-label':'Ссылка на каталог', autocomplete:'off' });
+  const go = () => { const id = gistIdFrom(input.value); if (!id) { showPaste('Это не похоже на ссылку на каталог. Нужна ссылка вида https://gist.github.com/…'); return; } const u = new URL(location.href); u.search = '?g=' + id; u.hash = ''; location.href = u.href; };
+  app.replaceChildren(header(null), el('form', { class:'paste', onsubmit: e => { e.preventDefault(); go(); } },
+    el('h2', { text:'Вставьте ссылку на каталог' }),
+    el('div', { class:'cap', text:'Ссылку присылает друг из приложения: «Поделиться каталогом». Регистрация и установка не нужны.' }),
+    input, typeof errText === 'string' ? el('div', { class:'err', role:'alert', text: errText }) : null,
+    el('button', { class:'btn btn-filled', type:'submit' }, 'Открыть каталог'),
+    DEMO_ALLOWED ? el('a', { class:'cap', href:'#demo', text:'Посмотреть пример' }) : null));
+}
+function toggleTheme() {
+  const r = document.documentElement, cur = r.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'), nx = cur === 'dark' ? 'light' : 'dark';
+  r.dataset.theme = nx; try { localStorage.setItem('friends-theme', nx); } catch (e) {}
+}
+try { const t = localStorage.getItem('friends-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+
+/* ---------- демо (только для просмотра дизайна; вызывается якорем #demo…) ---------- */
+const DEMO_ALLOWED = true;
+const DEMO = { version:1, owner:'Юки', updatedAt:'2026-10-31T12:30:00+03:00', titles:[
+  { id:1, title:{ ru:'Дандадан', en:'Dan Da Dan' }, coverColor:'#7A2E4A', format:'TV', year:2024, episodes:12, score:{ value:8.4, source:'anilist' }, status:'CURRENT', progress:5, favorite:true, updatedAt:'2026-10-31T10:00:00Z', trailer:'https://www.youtube.com/', note:{ verdict:'recommend', summary:'Безумно и смешно, опенинг — огонь', liked:'Темп, монтаж, химия героев', moments:[{ episode:1, time:'05:12', text:'Первая встреча героев' }, { episode:4, time:'17:40', text:'Погоня Турбо-бабки' }] } },
+  { id:3, title:{ ru:'Монолог фармацевта', en:'The Apothecary Diaries' }, coverColor:'#7A5A1E', format:'TV', year:2023, episodes:24, score:{ value:8.8, source:'shikimori' }, status:'CURRENT', progress:17, updatedAt:'2026-10-29T18:00:00Z' },
+  { id:2, title:{ ru:'Провожающая в последний путь Фрирен', en:"Frieren: Beyond Journey's End" }, coverColor:'#1E6A55', format:'TV', year:2023, episodes:28, score:{ value:9.1, source:'anilist' }, status:'COMPLETED', favorite:true, updatedAt:'2026-10-20T10:00:00Z', note:{ verdict:'rewatch', summary:'Тихая и тёплая, пересмотреть зимой', liked:'Музыка и паузы', moments:[{ episode:1, time:'18:20', text:'Метеоритный дождь' }] } },
+  { id:5, title:{ ru:'Стальной алхимик: Братство', en:'Fullmetal Alchemist: Brotherhood' }, coverColor:'#7A3A1E', format:'TV', year:2009, episodes:64, score:{ value:9.0, source:'anilist' }, status:'COMPLETED', favorite:true, updatedAt:'2026-03-02T10:00:00Z', note:{ verdict:'recommend', summary:'Лучший сюжет из всего, что смотрел' } },
+  { id:9, title:{ ru:'Шпион × Семья', en:'SPY x FAMILY' }, coverColor:'#6A2A4A', format:'TV', year:2022, episodes:25, score:{ value:8.5, source:'anilist' }, status:'COMPLETED', updatedAt:'2026-05-10T10:00:00Z' },
+  { id:4, title:{ ru:'Поднятие уровня в одиночку', en:'Solo Leveling' }, coverColor:'#2A2A6A', format:'TV', year:2024, episodes:12, score:{ value:8.2, source:'anilist' }, status:'PLANNING', updatedAt:'2026-10-25T10:00:00Z' },
+  { id:15, title:{ ru:'Евангелион', en:'Neon Genesis Evangelion' }, coverColor:'#4A2A6A', format:'TV', year:1995, episodes:26, score:{ value:8.3, source:'anilist' }, status:'PLANNING', updatedAt:'2026-09-01T10:00:00Z' },
+  { id:6, title:{ ru:'Человек-бензопила', en:'Chainsaw Man' }, coverColor:'#6A2A1E', format:'TV', year:2022, episodes:12, score:{ value:8.5, source:'anilist' }, status:'PAUSED', progress:7, updatedAt:'2026-08-01T10:00:00Z' },
+  { id:11, title:{ ru:'Звёздное дитя', en:'[Oshi No Ko]' }, coverColor:'#5A1E5A', format:'TV', year:2023, episodes:11, score:{ value:8.3, source:'shikimori' }, status:'DROPPED', updatedAt:'2026-07-01T10:00:00Z', note:{ verdict:'not', summary:'Сильное начало, дальше потерял интерес', dropReasons:['Затянуто', 'Слишком мрачно'], dropText:'После 4-й серии стало про шоу-бизнес, а не про детектив' } },
+  { id:19, title:{ ru:'Пример тайтла 18+', en:'Placeholder title' }, coverColor:'#5A2A3A', format:'OVA', year:2024, episodes:2, score:null, status:'PLANNING', adult:true, updatedAt:'2026-10-30T10:00:00Z' },
+] };
+
+async function start() {
+  const h = location.hash.slice(1);
+  if (DEMO_ALLOWED && h.startsWith('demo')) {
+    const v = h.slice(5);
+    if (v === 'loading') { showLoading(); return; }
+    if (v === 'notfound' || v === 'net' || v === 'rate' || v === 'format') { showError(v); return; }
+    if (v === 'paste') { showPaste(); return; }
+    S.data = normalize(v === 'empty' ? { owner:'Юки', updatedAt: DEMO.updatedAt, titles:[] } : DEMO);
+    if (v === 'fav') S.tab = 'FAV'; if (v === 'notes') S.tab = 'NOTES'; if (v === 'dropped') S.tab = 'DROPPED';
+    render(); if (v === 'card') openCard(S.data.titles[0]); if (v === 'carddrop') openCard(S.data.titles.find(t => t.status === 'DROPPED'));
+    return;
+  }
+  const raw = params.get('g'), id = raw && gistIdFrom(raw);
+  if (!raw) { showPaste(); return; }
+  if (!id || !GIST_ID.test(id)) { showError('notfound'); return; }
+  showLoading();
+  try { S.data = await load(id); render(); }
+  catch (e) { showError(e.kind || (e instanceof SyntaxError || e.message === 'format' ? 'format' : 'net')); }
+}
+window.addEventListener('hashchange', start);
+start();
+</script>
+</body>
+</html>
