@@ -20,11 +20,11 @@ class ScoreBadge extends StatelessWidget {
     final sc = score;
     if (sc == null) return const SizedBox.shrink();
     final t = context.tokens;
-    // На постере фон всегда тёмный, поэтому берём цвета тёмной темы.
-    final palette = onPoster ? AppTokens.dark : t;
-    final color = palette.scoreColor(sc.value);
+    // На постере — подложка badgeGround темы (светлая в светлой, тёмная в
+    // тёмной), цвет числа — good/warn/bad той же темы.
+    final color = t.scoreColor(sc.value);
     final bg = onPoster
-        ? AppTokens.posterBadgeBg
+        ? t.badgeGround
         : Color.alphaBlend(color.withValues(alpha: 0.12), t.surface2);
     final label = 'Оценка ${sc.text} из 10 · ${sc.source.label}';
     return Tooltip(
@@ -47,10 +47,7 @@ class ScoreBadge extends StatelessWidget {
               const SizedBox(width: 3),
               Text(
                 sc.source.short,
-                style: AppText.badge.copyWith(
-                  fontSize: 10,
-                  color: onPoster ? const Color(0xB3FFFFFF) : palette.fg2,
-                ),
+                style: AppText.badge.copyWith(fontSize: 10, color: t.fg2),
               ),
             ],
           ),

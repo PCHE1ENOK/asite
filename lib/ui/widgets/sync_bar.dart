@@ -46,6 +46,8 @@ class SyncBar extends StatelessWidget {
               color: t.surface1,
               border: Border.all(color: t.border),
               borderRadius: BorderRadius.circular(AppRadius.md),
+              // Карточка: тень e1 в светлой теме (в тёмной её нет).
+              boxShadow: t.shadowE1,
             ),
             child: Row(
               children: [

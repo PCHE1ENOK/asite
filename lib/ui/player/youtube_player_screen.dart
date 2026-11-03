@@ -161,7 +161,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
           return FilledButton.tonalIcon(
             style: FilledButton.styleFrom(
               backgroundColor: t.surface3,
-              foregroundColor: Colors.white,
+              foregroundColor: t.fg,
             ),
             onPressed: watched
                 ? null
@@ -234,13 +234,15 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
   }
 
   Widget _buildScaffold(BuildContext context, AppTokens t, int? episode) {
+    // Панели над и под видео — в теме приложения; чёрная только область
+    // видео (design/screens.md §0 «Плеер», §11). В полном экране — всё чёрное.
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _fullscreen ? Colors.black : t.bg,
       appBar: _fullscreen
           ? null
           : AppBar(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
+              backgroundColor: t.surface1,
+              foregroundColor: t.fg,
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -250,7 +252,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                             .value
                             ?.title ??
                         details.anime.title.preferred,
-                    style: AppText.labelStrong.copyWith(color: Colors.white),
+                    style: AppText.labelStrong.copyWith(color: t.fg),
                   ),
                   Text(
                     [
@@ -259,20 +261,20 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                           ? 'Трейлер · ${video.channel}'
                           : 'Официальное видео · ${video.channel}',
                     ].join(' · '),
-                    style: AppText.caption.copyWith(color: Colors.white70),
+                    style: AppText.caption.copyWith(color: t.fg2),
                   ),
                 ],
               ),
               actions: [
                 IconButton(
                   tooltip: 'Открыть на YouTube',
-                  color: Colors.white,
+                  color: t.fg,
                   onPressed: () => openExternally(context, video.watchUrl),
                   icon: const Icon(Symbols.open_in_new_rounded),
                 ),
                 IconButton(
                   tooltip: 'Полный экран',
-                  color: Colors.white,
+                  color: t.fg,
                   onPressed: () => _setFullscreen(true),
                   icon: const Icon(Symbols.fullscreen_rounded),
                 ),
@@ -283,7 +285,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
           children: [
             Expanded(
               flex: 100 - _commentsShare(context),
-              child: _player(video),
+              child: ColoredBox(color: Colors.black, child: _player(video)),
             ),
             if (!_fullscreen)
               Padding(
@@ -301,7 +303,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Text(
                           'Официальный трейлер на YouTube',
-                          style: AppText.label.copyWith(color: Colors.white70),
+                          style: AppText.label.copyWith(color: t.fg2),
                         ),
                       ),
                       TextButton.icon(
@@ -316,7 +318,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                           backgroundColor: _comments
                               ? t.accentSoft
                               : t.surface3,
-                          foregroundColor: Colors.white,
+                          foregroundColor: t.fg,
                         ),
                         onPressed: () => setState(() => _comments = !_comments),
                         icon: const Icon(Symbols.forum_rounded),
@@ -326,20 +328,15 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                 ),
               ),
             // Панель комментариев — новая строка под видео, не поверх
-            // iframe (design/screens.md §11, §13). В плеере всегда тёмная.
+            // iframe (design/screens.md §11, §13), в теме приложения.
             if (_comments && !_fullscreen && !video.isTrailer)
               Expanded(
                 flex: _commentsShare(context),
-                child: Theme(
-                  data: AppTheme.build(Brightness.dark),
-                  child: Builder(
-                    builder: (context) => ColoredBox(
-                      color: context.tokens.surface1,
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
-                        child: CommentsTab(videos: [video]),
-                      ),
-                    ),
+                child: ColoredBox(
+                  color: t.surface1,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: CommentsTab(videos: [video]),
                   ),
                 ),
               ),

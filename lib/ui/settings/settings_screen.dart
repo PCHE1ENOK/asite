@@ -149,6 +149,8 @@ class _Group extends StatelessWidget {
               color: t.surface1,
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(color: t.border),
+              // Карточка: тень e1 в светлой теме (в тёмной её нет).
+              boxShadow: t.shadowE1,
             ),
             child: Column(
               children: [

@@ -37,6 +37,7 @@ const paletteFields = [
   'scrim',
   'skeleton',
   'skeletonShine',
+  'badgeGround',
 ];
 
 /// Цвета аватаров профилей, пока их нет в tokens.json (`color.<тема>.avatars`):
@@ -63,12 +64,19 @@ String color(String hex) {
   return 'Color(0x$argb)';
 }
 
-/// «0 1 2 #00000066» → BoxShadow.
-String shadow(String spec) {
-  final p = spec.trim().split(RegExp(r'\s+'));
-  if (p.length != 4) throw FormatException('Тень $spec');
-  return 'BoxShadow(color: ${color(p[3])}, '
-      'offset: Offset(${p[0]}, ${p[1]}), blurRadius: ${p[2]})';
+/// «0 1 2 #00000066», несколько через запятую или «none» → список BoxShadow.
+String shadows(String spec) {
+  if (spec.trim() == 'none') return '[]';
+  final items = <String>[];
+  for (final one in spec.split(',')) {
+    final p = one.trim().split(RegExp(r'\s+'));
+    if (p.length != 4) throw FormatException('Тень $spec');
+    items.add(
+      'BoxShadow(color: ${color(p[3])}, '
+      'offset: Offset(${p[0]}, ${p[1]}), blurRadius: ${p[2]})',
+    );
+  }
+  return '[${items.join(', ')}]';
 }
 
 String generate(Map<String, dynamic> json) {
@@ -89,6 +97,9 @@ String generate(Map<String, dynamic> json) {
     final el = elevation[mode] as Map<String, dynamic>;
     final avatars =
         (pal['avatars'] as List?)?.cast<String>() ?? fallbackAvatars;
+    final banner =
+        (json['layout'] as Map<String, dynamic>)['titleBanner']
+            as Map<String, dynamic>;
     out
       ..writeln()
       ..writeln('const _$mode = AppTokens(');
@@ -107,8 +118,9 @@ String generate(Map<String, dynamic> json) {
     }
     out
       ..writeln('  },')
-      ..writeln('  shadowE1: [${shadow(el['e1'] as String)}],')
-      ..writeln('  shadowE2: [${shadow(el['e2'] as String)}],')
+      ..writeln('  shadowE1: ${shadows(el['e1'] as String)},')
+      ..writeln('  shadowE2: ${shadows(el['e2'] as String)},')
+      ..writeln('  titleBanner: ${banner[mode]},')
       ..writeln('  avatars: [')
       ..writeAll([for (final a in avatars) '    ${color(a)},\n'])
       ..writeln('  ],')

@@ -29,10 +29,12 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.scrim,
     required this.skeleton,
     required this.skeletonShine,
+    required this.badgeGround,
     required this.status,
     required this.shadowE1,
     required this.shadowE2,
     required this.avatars,
+    required this.titleBanner,
   });
 
   final Color bg;
@@ -57,6 +59,13 @@ class AppTokens extends ThemeExtension<AppTokens> {
   final Color skeleton;
   final Color skeletonShine;
 
+  /// Подложка плашек на постере (оценка, статус, сердце, вердикт): светлая
+  /// в светлой теме, тёмная в тёмной; текст на ней — good/warn/bad темы.
+  final Color badgeGround;
+
+  /// Высота баннера карточки тайтла.
+  final double titleBanner;
+
   /// Цвета статусов списка (`REPEATING` — как `CURRENT`).
   final Map<ListStatus, Color> status;
   final List<BoxShadow> shadowE1;
@@ -72,9 +81,6 @@ class AppTokens extends ThemeExtension<AppTokens> {
 
   /// Текст и значки на цветах аватаров (в обеих темах).
   static const onAvatar = Color(0xFFFFFFFF);
-
-  /// Тёмная подложка бейджей на постере.
-  static const posterBadgeBg = Color(0xA0000000);
 
   /// Палитры из `design/tokens.json` (файл `app_tokens.g.dart` создаёт
   /// `dart run tool/gen_tokens.dart`).

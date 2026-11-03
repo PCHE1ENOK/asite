@@ -551,6 +551,8 @@ class _NoVideoBanner extends StatelessWidget {
         color: t.surface1,
         border: Border.all(color: t.border),
         borderRadius: BorderRadius.circular(AppRadius.md),
+        // Карточка: тень e1 в светлой теме (в тёмной её нет).
+        boxShadow: t.shadowE1,
       ),
       child: Wrap(
         spacing: 12,
@@ -625,7 +627,13 @@ class _Header extends StatelessWidget {
     final banner = a.bannerImage;
     final resolver = AppScope.of(context).imageResolver;
 
-    final background = Positioned.fill(
+    // Баннер: высота из токенов (светлая тема — короче, чтобы название
+    // стояло на чистом фоне).
+    final background = Positioned(
+      left: 0,
+      top: 0,
+      right: 0,
+      height: t.titleBanner,
       child: ClipRect(
         child: ShaderMask(
           shaderCallback: (rect) => LinearGradient(

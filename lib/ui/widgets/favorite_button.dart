@@ -53,12 +53,12 @@ class FavoriteButton extends StatelessWidget {
         final on = ids.contains(anime.id);
         if (!on && !visibleWhenOff) return const SizedBox.shrink();
         final t = context.tokens;
-        final red = (onPoster ? AppTokens.dark : t).bad;
+        final red = t.bad;
         final icon = Icon(
           Symbols.favorite_rounded,
           fill: on ? 1 : 0,
           size: onPoster ? 16 : 22,
-          color: on ? red : (onPoster ? Colors.white : t.fg),
+          color: on ? red : t.fg,
         );
         final label = on ? 'Убрать из «Понравилось»' : 'В «Понравилось»';
         if (!onPoster) {
@@ -77,7 +77,7 @@ class FavoriteButton extends StatelessWidget {
           child: Tooltip(
             message: label,
             child: Material(
-              color: AppTokens.posterBadgeBg,
+              color: t.badgeGround,
               shape: const CircleBorder(),
               child: InkWell(
                 customBorder: const CircleBorder(),

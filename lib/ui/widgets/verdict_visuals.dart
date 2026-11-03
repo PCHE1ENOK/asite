@@ -39,8 +39,9 @@ class VerdictBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // На постере подложка всегда тёмная — цвета тёмной темы.
-    final v = verdictVisual(verdict, AppTokens.dark);
+    // Подложка badgeGround темы, цвет значка — из той же темы.
+    final t = context.tokens;
+    final v = verdictVisual(verdict, t);
     return Semantics(
       label: 'Заметка: ${v.label}',
       excludeSemantics: true,
@@ -50,7 +51,7 @@ class VerdictBadge extends StatelessWidget {
         decoration: BoxDecoration(
           color: Color.alphaBlend(
             v.color.withValues(alpha: 0.12),
-            AppTokens.posterBadgeBg,
+            t.badgeGround,
           ),
           borderRadius: BorderRadius.circular(AppRadius.xs),
         ),
