@@ -7,15 +7,6 @@ import '../format.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 
-/// Цвета аватаров профилей (5 вариантов).
-const profileColors = [
-  Color(0xFF6F86F2),
-  Color(0xFF199E70),
-  Color(0xFFC98500),
-  Color(0xFFD55181),
-  Color(0xFF3987E5),
-];
-
 /// Круглый аватар: первая буква имени на цвете профиля.
 class ProfileAvatar extends StatelessWidget {
   const ProfileAvatar({super.key, required this.profile, this.size = 36});
@@ -29,13 +20,14 @@ class ProfileAvatar extends StatelessWidget {
     height: size,
     alignment: Alignment.center,
     decoration: BoxDecoration(
-      color: profileColors[profile.color % profileColors.length],
+      // Цвет аватара — из токенов темы (design/tokens.json).
+      color: context.tokens.avatar(profile.color),
       shape: BoxShape.circle,
     ),
     child: Text(
       profile.name.characters.first.toUpperCase(),
       style: AppText.labelStrong.copyWith(
-        color: Colors.white,
+        color: AppTokens.onAvatar,
         fontSize: size * 0.42,
         height: 1,
       ),
@@ -113,7 +105,7 @@ class _AddProfileDialogState extends State<_AddProfileDialog> {
             const SizedBox(height: 8),
             Row(
               children: [
-                for (var i = 0; i < profileColors.length; i++)
+                for (var i = 0; i < t.avatars.length; i++)
                   Padding(
                     padding: const EdgeInsets.only(right: 10),
                     child: Semantics(
@@ -127,7 +119,7 @@ class _AddProfileDialogState extends State<_AddProfileDialog> {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: profileColors[i],
+                            color: t.avatars[i],
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: i == _color ? t.fg : Colors.transparent,
@@ -138,7 +130,7 @@ class _AddProfileDialogState extends State<_AddProfileDialog> {
                               ? const Icon(
                                   Symbols.check_rounded,
                                   size: 18,
-                                  color: Colors.white,
+                                  color: AppTokens.onAvatar,
                                 )
                               : null,
                         ),
