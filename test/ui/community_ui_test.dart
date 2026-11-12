@@ -60,15 +60,22 @@ void main() {
     expect(find.text('Обзоры'), findsOneWidget);
     expect(find.text('Смешные моменты'), findsOneWidget);
     expect(find.text('В этом разделе пока ничего нет'), findsOneWidget);
-    final q = h.communityRequests.single.queryParameters;
+    expect(h.communityRequests, hasLength(2));
+    final q = h.communityRequests.first.queryParameters;
     expect(q['safeSearch'], 'strict');
     expect(q['q'], 'Attack on Titan AMV');
+    // Русского названия у тайтла в тесте нет — русский запрос по английскому.
+    expect(
+      h.communityRequests.last.queryParameters['q'],
+      'Attack on Titan AMV',
+    );
+    expect(h.communityRequests.last.queryParameters['relevanceLanguage'], 'ru');
 
     await tester.tap(find.text('Обзоры'));
     await UiHarness.settle(tester);
     expect(
       h.communityRequests.last.queryParameters['q'],
-      'Attack on Titan review',
+      'Attack on Titan обзор',
     );
     expect(find.text('В этом разделе пока ничего нет'), findsOneWidget);
     await h.dispose(tester);
@@ -110,6 +117,8 @@ void main() {
     await openTab(tester);
     expect(find.text('Лучший AMV'), findsOneWidget);
     expect(find.text('Фанат'), findsOneWidget);
+    // Найден обоими запросами — показан один раз, с меткой языка.
+    expect(find.text('RU'), findsOneWidget);
     await tester.tap(find.text('Лучший AMV'));
     await UiHarness.settle(tester);
     expect(find.text('iframe v1'), findsOneWidget);

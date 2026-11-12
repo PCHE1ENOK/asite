@@ -433,10 +433,14 @@ class _TitleScreenState extends State<TitleScreen>
         SliverPadding(
           padding: pad,
           sliver: SliverToBoxAdapter(
-            child: CommunityTab(
-              key: ValueKey(d.id),
-              title: d.anime.title.preferred,
-            ),
+            // Русский запрос — по русскому названию, поэтому ждём Shikimori.
+            child: _ruLoaded
+                ? CommunityTab(
+                    key: ValueKey(d.id),
+                    title: d.anime.title.preferred,
+                    ruTitle: _ru?.title,
+                  )
+                : const Skeleton(height: 48),
           ),
         ),
       ],

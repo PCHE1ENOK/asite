@@ -16,10 +16,13 @@ import '../widgets/state_views.dart';
 /// этом тайтле — эдиты, обзоры, смешные моменты. Только просмотр во
 /// встроенном плеере YouTube, без комментариев.
 class CommunityTab extends StatefulWidget {
-  const CommunityTab({super.key, required this.title});
+  const CommunityTab({super.key, required this.title, this.ruTitle});
 
-  /// Название тайтла для поиска.
+  /// Название тайтла для английского поиска.
   final String title;
+
+  /// Русское название для русского поиска (нет — [title]).
+  final String? ruTitle;
 
   @override
   State<CommunityTab> createState() => _CommunityTabState();
@@ -64,6 +67,7 @@ class _CommunityTabState extends State<CommunityTab> {
     final r = await scope.services.community.find(
       _section,
       title: widget.title,
+      ruTitle: widget.ruTitle,
       showAdult: scope.settings.showAdult,
     );
     if (mounted && generation == _generation) setState(() => _result = r);
@@ -80,8 +84,8 @@ class _CommunityTabState extends State<CommunityTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Ролики зрителей с YouTube. Безопасный поиск, только '
-          'встраиваемые ролики',
+          'Ролики зрителей с YouTube на русском и английском. Безопасный '
+          'поиск, только встраиваемые ролики',
           style: AppText.label.copyWith(color: t.fg2),
         ),
         const SizedBox(height: 12),
@@ -157,7 +161,12 @@ class _VideoCard extends StatelessWidget {
     final t = context.tokens;
     return Semantics(
       button: true,
-      label: '${video.title}, ${video.channel}',
+      label: [
+        video.title,
+        video.channel,
+        if (video.language == 'RU') 'на русском',
+        if (video.language == 'ENG') 'на английском',
+      ].join(', '),
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
@@ -183,11 +192,22 @@ class _VideoCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              video.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppText.labelStrong.copyWith(color: t.fg),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (video.language case final lang?) ...[
+                  _LanguageBadge(lang),
+                  const SizedBox(width: 6),
+                ],
+                Expanded(
+                  child: Text(
+                    video.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.labelStrong.copyWith(color: t.fg),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 2),
             Text(
@@ -197,6 +217,35 @@ class _VideoCard extends StatelessWidget {
               style: AppText.caption.copyWith(color: t.fg2),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Метка языка ролика «RU» / «ENG».
+class _LanguageBadge extends StatelessWidget {
+  const _LanguageBadge(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      margin: const EdgeInsets.only(top: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: t.surface3,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: t.border),
+      ),
+      child: Text(
+        label,
+        style: AppText.caption.copyWith(
+          color: t.fg2,
+          fontWeight: FontWeight.w600,
+          height: 1.3,
         ),
       ),
     );
