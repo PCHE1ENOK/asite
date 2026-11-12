@@ -14,6 +14,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/filter_controls.dart';
 import '../widgets/poster_grid.dart';
 import 'catalog_filters.dart';
+import '../widgets/toast.dart';
 
 /// Каталог: фильтры, сортировка и сетка постеров (design/screens.md §1).
 class CatalogScreen extends StatefulWidget {
@@ -99,11 +100,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
     if (until != null && until != _shownRateLimit && mounted) {
       _shownRateLimit = until;
       final seconds = until.difference(DateTime.now()).inSeconds.clamp(1, 999);
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(
-          content: Text('AniList просит подождать. Повторим через $seconds с'),
-        ),
-      );
+      ScaffoldMessenger.maybeOf(context)
+          ?.showToast('AniList просит подождать. Повторим через $seconds с');
     }
   }
 

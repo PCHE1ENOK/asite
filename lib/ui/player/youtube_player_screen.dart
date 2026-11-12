@@ -16,6 +16,7 @@ import '../theme/app_tokens.dart';
 import '../title/episode_actions.dart';
 import 'windows_youtube_player.dart';
 import 'youtube_embed.dart';
+import '../widgets/toast.dart';
 
 /// Официальное видео правообладателя во встроенном плеере YouTube.
 ///
@@ -66,9 +67,7 @@ Future<void> openExternally(BuildContext context, Uri url) async {
     ok = false;
   }
   if (!ok) {
-    messenger?.showSnackBar(
-      const SnackBar(content: Text('Не удалось открыть YouTube')),
-    );
+    messenger?.showToast('Не удалось открыть YouTube');
   }
 }
 

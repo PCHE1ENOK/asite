@@ -16,6 +16,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/badges.dart';
 import 'sync_visuals.dart';
 import 'share_group.dart';
+import '../widgets/toast.dart';
 
 /// Настройки (design/screens.md §7).
 class SettingsScreen extends StatelessWidget {
@@ -347,12 +348,8 @@ class _AccountGroup extends StatelessWidget {
                 onPressed: () async {
                   await sync.signOut();
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Вы вышли из GitHub. Списки остались на устройстве',
-                        ),
-                      ),
+                    ScaffoldMessenger.of(context).showToast(
+                      'Вы вышли из GitHub. Списки остались на устройстве',
                     );
                   }
                 },
@@ -480,9 +477,7 @@ class _VersionRow extends StatelessWidget {
                 ? null
                 : () {
                     Clipboard.setData(ClipboardData(text: text));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Скопировано')),
-                    );
+                    ScaffoldMessenger.of(context).showToast('Скопировано');
                   },
             icon: const Icon(Symbols.content_copy_rounded, size: 18),
             label: const Text('Скопировать'),

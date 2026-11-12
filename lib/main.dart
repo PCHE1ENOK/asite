@@ -14,6 +14,7 @@ import 'ui/login_flow.dart';
 import 'ui/profiles/profile_widgets.dart';
 import 'ui/shell/app_shell.dart';
 import 'ui/theme/app_theme.dart';
+import 'ui/widgets/toast.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -97,9 +98,7 @@ class _AnimeViewerAppState extends State<AnimeViewerApp> {
     _splashTimer = Timer(switchSplash, () {
       if (!mounted) return;
       setState(() => _switchingTo = null);
-      _messenger.currentState
-        ?..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('Профиль «${profile.name}»')));
+      _messenger.currentState?.showToast('Профиль «${profile.name}»');
     });
   }
 

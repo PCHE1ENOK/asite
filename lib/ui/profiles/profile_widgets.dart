@@ -6,6 +6,7 @@ import '../app_scope.dart';
 import '../format.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/toast.dart';
 
 /// Круглый аватар: первая буква имени на цвете профиля.
 class ProfileAvatar extends StatelessWidget {
@@ -218,19 +219,13 @@ Future<void> confirmDeleteProfile(BuildContext context, Profile p) async {
   if (ok != true) return;
   try {
     await services.deleteProfile(p.id);
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            p.githubLogin != null
-                ? 'Профиль удалён с устройства. Gist на GitHub не тронут'
-                : 'Профиль удалён с устройства',
-          ),
-        ),
-      );
+    messenger.showToast(
+      p.githubLogin != null
+          ? 'Профиль удалён с устройства. Gist на GitHub не тронут'
+          : 'Профиль удалён с устройства',
+    );
   } on ProfileException catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    messenger.showToast(e.message);
   }
 }
 

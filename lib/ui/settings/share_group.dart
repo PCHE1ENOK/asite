@@ -8,6 +8,7 @@ import '../../data/sync/sync_service.dart';
 import '../format.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/toast.dart';
 
 /// Что видит друг по ссылке — в каждом диалоге, до и после публикации.
 const shareWarning =
@@ -97,9 +98,7 @@ class ShareGroup extends StatelessWidget {
       final id = await sync.startSharing();
       if (context.mounted) await showShareLink(context, id);
     } on GitHubException catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Не удалось поделиться: ${e.message}')),
-      );
+      messenger.showToast('Не удалось поделиться: ${e.message}');
     }
   }
 
@@ -129,13 +128,9 @@ class ShareGroup extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await sync.stopSharing();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Показ прекращён, ссылка удалена')),
-      );
+      messenger.showToast('Показ прекращён, ссылка удалена');
     } on GitHubException catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Не удалось удалить ссылку: ${e.message}')),
-      );
+      messenger.showToast('Не удалось удалить ссылку: ${e.message}');
     }
   }
 }
@@ -168,9 +163,7 @@ Future<void> showShareLink(BuildContext context, String gistId) {
         FilledButton.icon(
           onPressed: () {
             Clipboard.setData(ClipboardData(text: link));
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Ссылка скопирована')));
+            ScaffoldMessenger.of(context).showToast('Ссылка скопирована');
           },
           icon: const Icon(Symbols.content_copy_rounded, size: 18),
           label: const Text('Скопировать'),

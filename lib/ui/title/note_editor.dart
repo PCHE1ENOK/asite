@@ -16,6 +16,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/filter_controls.dart';
 import '../widgets/verdict_visuals.dart';
 import 'episode_list.dart';
+import '../widgets/toast.dart';
 
 /// Блок «Моя заметка» на карточке тайтла — между шапкой и вкладками
 /// (design/screens.md §12).
@@ -377,9 +378,8 @@ class _NoteEditorPanelState extends State<NoteEditorPanel> {
     }
   }
 
-  static void _toast(ScaffoldMessengerState? m, String text) => m
-    ?..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(text)));
+  static void _toast(ScaffoldMessengerState? m, String text) =>
+      m?.showToast(text);
 
   Future<void> _askClose() async {
     if (_state == _SaveState.saving) return;

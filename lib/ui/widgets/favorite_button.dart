@@ -4,6 +4,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../data/models/anime.dart';
 import '../app_scope.dart';
 import '../theme/app_tokens.dart';
+import 'toast.dart';
 
 /// Переключает «Понравилось» с тостом и «Отменить» (design/screens.md §15).
 Future<void> toggleFavorite(BuildContext context, Anime anime) async {
@@ -13,19 +14,11 @@ Future<void> toggleFavorite(BuildContext context, Anime anime) async {
   final title =
       scope.services.shiki.of(anime.id).value?.title ?? anime.title.preferred;
   final now = await favorites.toggle(anime.id);
-  messenger
-    ?..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: Text(
-          now ? '«$title» в «Понравилось»' : '«$title» убран из «Понравилось»',
-        ),
-        action: SnackBarAction(
-          label: 'Отменить',
-          onPressed: () => favorites.set(anime.id, !now),
-        ),
-      ),
-    );
+  messenger?.showToast(
+    now ? '«$title» в «Понравилось»' : '«$title» убран из «Понравилось»',
+    actionLabel: 'Отменить',
+    onAction: () => favorites.set(anime.id, !now),
+  );
 }
 
 /// Сердце «Понравилось». [onPoster] — круглая кнопка 28 на тёмной подложке;
