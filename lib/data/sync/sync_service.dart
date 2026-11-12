@@ -116,6 +116,7 @@ class SyncService {
     this.buildShare,
     this.shareInterval = const Duration(minutes: 5),
     this.debounce = const Duration(seconds: 5),
+    this.tokenSignIn = false,
     DateTime Function()? clock,
   }) : _now = clock ?? DateTime.now;
 
@@ -126,6 +127,9 @@ class SyncService {
   final GistClient Function(String token) _gistClient;
   final Duration debounce;
   final DateTime Function() _now;
+
+  /// Вход вставленным токеном ([signInWithToken]) — веб-версия.
+  final bool tokenSignIn;
 
   /// Профили: привязка логина GitHub к профилю списков.
   final ProfileRepository profiles;
@@ -177,8 +181,9 @@ class SyncService {
   bool _lastHadGist = false;
   int _lastConflicts = 0;
 
-  /// Можно ли войти: задан ли Client ID OAuth-приложения.
-  bool get canSignIn => _auth() != null;
+  /// Можно ли войти: задан ли Client ID OAuth-приложения (или вход по
+  /// токену в веб-версии).
+  bool get canSignIn => tokenSignIn || _auth() != null;
 
   /// Загружает токен, подписывается на изменения и синхронизирует.
   Future<void> start() async {
@@ -333,7 +338,61 @@ class SyncService {
     } finally {
       client.close();
     }
+    return _finishSignIn(token, login);
+  }
 
+  /// Вход вставленным токеном (веб-версия: Device Flow в браузере
+  /// закрыт CORS). Нужен classic-токен только с правом `gist`:
+  /// fine-grained токены с Gist не работают, лишние права не принимаются —
+  /// токен хранится в браузере.
+  Future<SignInResult> signInWithToken(String raw) async {
+    final token = raw.trim();
+    if (token.isEmpty) {
+      throw const GitHubException(
+        GitHubErrorKind.other,
+        'Вставьте токен GitHub',
+      );
+    }
+    if (token.startsWith('github_pat_')) {
+      throw const GitHubException(
+        GitHubErrorKind.other,
+        'Это fine-grained токен — он не умеет работать с Gist. Нужен '
+        'classic-токен с правом gist',
+      );
+    }
+    final client = _gistClient(token);
+    final ({String login, Set<String>? scopes}) user;
+    try {
+      user = await client.currentUser();
+    } on GitHubException catch (e) {
+      if (e.kind != GitHubErrorKind.unauthorized) rethrow;
+      throw const GitHubException(
+        GitHubErrorKind.unauthorized,
+        'GitHub не принял токен: он неверный, отозван или истёк',
+      );
+    } finally {
+      client.close();
+    }
+    if (user.scopes case final scopes?) {
+      if (!scopes.contains('gist')) {
+        throw const GitHubException(
+          GitHubErrorKind.other,
+          'У токена нет права gist. Создайте токен с отмеченным gist',
+        );
+      }
+      final extra = scopes.difference({'gist'});
+      if (extra.isNotEmpty) {
+        throw GitHubException(
+          GitHubErrorKind.other,
+          'У токена лишние права (${(extra.toList()..sort()).join(', ')}). '
+          'Он хранится в браузере, поэтому нужен токен только с правом gist',
+        );
+      }
+    }
+    return _finishSignIn(token, user.login);
+  }
+
+  Future<SignInResult> _finishSignIn(String token, String login) async {
     // Один аккаунт GitHub — один профиль: иначе списки разных людей
     // смешаются. Токен не сохраняем, списки профиля не трогаем.
     try {

@@ -488,4 +488,69 @@ void main() {
       await expectLater(sync.startSharing(), throwsA(isA<GitHubException>()));
     });
   });
+
+  group('sign-in with a pasted token (web)', () {
+    setUp(() => github.token = 'ghp_web');
+
+    test('classic token with only gist: signs in, token stored', () async {
+      await sync.start();
+      await library.setStatus(1, ListStatus.current);
+      final result = await sync.signInWithToken('  ghp_web \n');
+      expect(result.login, 'octocat');
+      expect(result.gistCreated, isTrue);
+      expect(tokens.token, 'ghp_web');
+      expect(sync.state.value.status, SyncStatus.synced);
+      expect(gistEntries().single.mediaId, 1);
+
+      await sync.signOut();
+      expect(tokens.token, isNull, reason: '«Выйти» стирает токен');
+    });
+
+    Future<GitHubException> failure(String token) async {
+      try {
+        await sync.signInWithToken(token);
+      } on GitHubException catch (e) {
+        return e;
+      }
+      fail('signInWithToken should throw');
+    }
+
+    test('wrong, empty and fine-grained tokens rejected', () async {
+      await sync.start();
+      expect((await failure('')).message, 'Вставьте токен GitHub');
+      expect((await failure('github_pat_abc')).message, contains('classic'));
+      final wrong = await failure('ghp_wrong');
+      expect(wrong.kind, GitHubErrorKind.unauthorized);
+      expect(wrong.message, contains('не принял'));
+      expect(tokens.token, isNull);
+      expect(github.gists, isEmpty);
+    });
+
+    test('scopes: gist required, extra rights refused', () async {
+      await sync.start();
+      github.scopes = 'repo';
+      expect((await failure('ghp_web')).message, contains('нет права gist'));
+      github.scopes = 'gist, repo, user';
+      expect((await failure('ghp_web')).message, contains('repo, user'));
+      expect(tokens.token, isNull);
+      expect(github.gists, isEmpty);
+      // Заголовка нет (браузер не дал прочитать) — проверяет сам Gist.
+      github.scopes = null;
+      expect((await sync.signInWithToken('ghp_web')).login, 'octocat');
+    });
+
+    test('token sign-in available without a Client ID', () {
+      final web = SyncService(
+        library: library,
+        db: db,
+        tokens: tokens,
+        profiles: ProfileRepository(db),
+        auth: () => null,
+        gistClient: (token) => GistClient(token, httpClient: github.client),
+        tokenSignIn: true,
+      );
+      expect(web.canSignIn, isTrue);
+      expect(makeSync().canSignIn, isTrue);
+    });
+  });
 }

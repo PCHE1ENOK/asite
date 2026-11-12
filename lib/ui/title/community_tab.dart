@@ -3,6 +3,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../data/sources/community_videos.dart';
 import '../../data/sources/video_source.dart';
+import '../../platform/platform.dart' as platform;
 import '../app_scope.dart';
 import '../player/youtube_player_screen.dart';
 import '../theme/app_theme.dart';
@@ -113,9 +114,10 @@ class _CommunityTabState extends State<CommunityTab> {
 
   Widget _body() => switch (_result) {
     null => _grid(6, (_) => const _VideoCardSkeleton()),
-    CommunityNotConfigured() => const EmptyState(
+    CommunityNotConfigured() => EmptyState(
       icon: Symbols.videocam_off_rounded,
       text: 'Нет ключа YouTube — ролики сообщества не загружаются',
+      hint: platform.isWeb ? 'Укажите свой ключ в «Настройки → YouTube»' : null,
     ),
     CommunityQuotaExceeded() => const EmptyState(
       icon: Symbols.hourglass_empty_rounded,

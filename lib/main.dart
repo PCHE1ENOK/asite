@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'app_services.dart';
 import 'data/profiles/profile_repository.dart';
-import 'platform/startup.dart';
+import 'platform/platform.dart';
 import 'ui/app_scope.dart';
 import 'ui/library_index.dart';
 import 'ui/login_flow.dart';

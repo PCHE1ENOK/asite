@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'config/app_config.dart';
+import 'platform/platform.dart';
 import 'data/anilist/anilist_client.dart';
 import 'data/anime_repository.dart';
 import 'data/cache/app_database.dart';
@@ -74,7 +75,7 @@ class AppServices {
     final db = AppDatabase.open();
     final profiles = ProfileRepository(db);
     final preferences = AppPreferences(db);
-    TokenStore tokensFor(int id) => SecureTokenStore(profileId: id);
+    TokenStore tokensFor(int id) => tokenStoreFor(id);
     final animeRepo = AnimeRepository(client: AniListClient(), db: db);
     final shikiRepo = RussianTextRepository(db: db, client: ShikimoriClient());
     return AppServices(
@@ -87,14 +88,14 @@ class AppServices {
       // только через встроенный плеер YouTube.
       sources: VideoSources([
         YouTubeSource(
-          apiKey: AppConfig.youtubeApiKey,
+          apiKey: youtubeApiKey(),
           db: db,
           regionCode: PlatformDispatcher.instance.locale.countryCode,
         ),
       ]),
-      comments: YouTubeCommentsClient(apiKey: AppConfig.youtubeApiKey),
+      comments: YouTubeCommentsClient(apiKey: youtubeApiKey()),
       community: CommunityVideos(
-        apiKey: AppConfig.youtubeApiKey,
+        apiKey: youtubeApiKey(),
         db: db,
         regionCode: PlatformDispatcher.instance.locale.countryCode,
       ),
@@ -104,7 +105,7 @@ class AppServices {
       // AcoustID, звук — из AudioSnippetSource слоя источников.
       music: MusicRecognitionGate(
         isEnabled: preferences.musicRecognition,
-        hasApiKey: AppConfig.hasAcoustIdApiKey,
+        hasApiKey: hasAcoustIdApiKey,
         recognizer: const StubMusicRecognizer(),
       ),
       sessionFactory: (profile) {
@@ -146,10 +147,12 @@ class AppServices {
             db: db,
             tokens: tokensFor(profile.id),
             profiles: profiles,
-            auth: () => AppConfig.hasGitHubClientId
+            // В браузере Device Flow закрыт CORS — вход вставленным токеном.
+            auth: () => !isWeb && AppConfig.hasGitHubClientId
                 ? GitHubAuth(clientId: AppConfig.githubClientId)
                 : null,
             gistClient: GistClient.new,
+            tokenSignIn: isWeb,
           ),
         );
       },

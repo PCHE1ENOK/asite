@@ -571,13 +571,16 @@ class _OpenOnYouTube extends StatelessWidget {
             Icon(Symbols.smart_display_rounded, size: 56, color: t.fg3),
             const SizedBox(height: 16),
             Text(
-              'Встроенный плеер недоступен',
+              kIsWeb ? 'Видео — в приложении' : 'Встроенный плеер недоступен',
               textAlign: TextAlign.center,
               style: AppText.title.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 8),
             Text(
-              video.isTrailer
+              kIsWeb
+                  ? 'В браузерной версии видео не встраивается. Смотрите в '
+                        'приложении для ПК и телефона или откройте на YouTube'
+                  : video.isTrailer
                   ? 'На этом устройстве нет компонента для встроенного видео. '
                         'Трейлер можно посмотреть на YouTube в браузере'
                   : 'На этом устройстве нет компонента для встроенного видео. '
