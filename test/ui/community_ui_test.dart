@@ -14,11 +14,45 @@ void main() {
   late UiHarness h;
   setUp(() => h = UiHarness());
 
+  /// «Сообщество» — вкладка карточки тайтла (общая страница убрана).
   Future<void> openTab(WidgetTester tester) async {
     await h.pump(tester);
-    await tester.tap(find.text('Сообщество').first);
+    await tester.tap(find.text('Attack on Titan').first);
     await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Сообщество'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Сообщество'));
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
   }
+
+  testWidgets('tab is in the title card, not in the navigation', (
+    tester,
+  ) async {
+    await h.pump(tester);
+    expect(find.text('Сообщество'), findsNothing);
+    // Телефон: нижняя панель — тоже без «Сообщества».
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpAndSettle();
+    expect(find.text('Сообщество'), findsNothing);
+    await tester.tap(find.text('Attack on Titan').first);
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    // Последняя в ряду вкладок карточки.
+    await tester.dragUntilVisible(
+      find.text('Похожие'),
+      find.byType(CustomScrollView).last,
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Сообщество'), findsOneWidget);
+    expect(
+      tester.getCenter(find.text('Сообщество')).dx,
+      greaterThan(tester.getCenter(find.text('Похожие')).dx),
+    );
+    await h.dispose(tester);
+  });
 
   testWidgets('section without results shows an empty state', (tester) async {
     await openTab(tester);
@@ -28,11 +62,14 @@ void main() {
     expect(find.text('В этом разделе пока ничего нет'), findsOneWidget);
     final q = h.communityRequests.single.queryParameters;
     expect(q['safeSearch'], 'strict');
-    expect(q['q'], 'anime AMV');
+    expect(q['q'], 'Attack on Titan AMV');
 
     await tester.tap(find.text('Обзоры'));
     await UiHarness.settle(tester);
-    expect(h.communityRequests.last.queryParameters['q'], 'anime review');
+    expect(
+      h.communityRequests.last.queryParameters['q'],
+      'Attack on Titan review',
+    );
     expect(find.text('В этом разделе пока ничего нет'), findsOneWidget);
     await h.dispose(tester);
   });
