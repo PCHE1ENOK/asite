@@ -20,7 +20,7 @@
   --hover:#ECEEF50F; --pressed:#ECEEF51F;
   /* плеер всегда тёмный */
   --pl-fg:#FFFFFF; --pl-fg2:#FFFFFFB8; --pl-panel:#161923E6; --pl-track:#FFFFFF33; --pl-buf:#FFFFFF59;
-  --badge-ground:#0E1016CC; --shadow-1:0 0 0 transparent; --banner-h:260px;
+  --badge-ground:#0E1016CC; --lang-ru-bg:#2A3366; --lang-ru-fg:#C9D3FF; --lang-en-bg:#272C3D; --lang-en-fg:#C3C8D6; --shadow-1:0 0 0 transparent; --banner-h:260px;
 
   --f-display:"Unbounded","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
   --f-text:"Golos Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
@@ -37,7 +37,7 @@
     --good:#0F6B44; --warn:#8A5000; --bad:#B02A29;
     --st-current:#2369C7; --st-planning:#CC5320; --st-completed:#12876A; --st-paused:#A87300; --st-dropped:#C2477C;
     --skel:#E1E4EC; --skel-shine:#EEF0F5;
-    --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --banner-h:150px;
+    --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --lang-ru-bg:#E3E8FB; --lang-ru-fg:#24399A; --lang-en-bg:#E2E5EC; --lang-en-fg:#41475A; --banner-h:150px;
     --hover:#1417220F; --pressed:#1417221F;
   }
 }
@@ -50,7 +50,7 @@
   --good:#0F6B44; --warn:#8A5000; --bad:#B02A29;
   --st-current:#2369C7; --st-planning:#CC5320; --st-completed:#12876A; --st-paused:#A87300; --st-dropped:#C2477C;
   --skel:#E1E4EC; --skel-shine:#EEF0F5;
-  --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --banner-h:150px;
+  --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --lang-ru-bg:#E3E8FB; --lang-ru-fg:#24399A; --lang-en-bg:#E2E5EC; --lang-en-fg:#41475A; --banner-h:150px;
   --hover:#1417220F; --pressed:#1417221F;
 }
 
@@ -89,10 +89,10 @@ svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
 .winbtns svg { width: 12px; height: 12px; }
 
 .rail { background: var(--bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0; }
-.rail a { width: 68px; white-space: nowrap; padding: 8px 0 6px; border-radius: var(--r-sm); display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--fg2); text-decoration: none; font-size: 11px; line-height: 14px; position: relative; }
+.rail a { width: 56px; padding: 8px 0 6px; border-radius: var(--r-sm); display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--fg2); text-decoration: none; font-size: 11px; line-height: 14px; position: relative; }
 .rail a:hover { background: var(--hover); color: var(--fg); }
 .rail a[aria-current="page"] { color: var(--fg); background: var(--accent-soft); }
-.rail a[aria-current="page"]::before { content: ""; position: absolute; left: -2px; top: 14px; bottom: 14px; width: 3px; border-radius: 2px; background: var(--accent); }
+.rail a[aria-current="page"]::before { content: ""; position: absolute; left: -8px; top: 14px; bottom: 14px; width: 3px; border-radius: 2px; background: var(--accent); }
 .rail .spacer { flex: 1; }
 .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #3987E5, #8399FF); display: grid; place-items: center; font: 600 12px var(--f-display); color: #0E1016; }
 
@@ -638,17 +638,8 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .app .player.yt .seg.dark button[aria-pressed="true"] { background: var(--s1); color: var(--fg); }
 .player.yt .ytcom { color: var(--fg); background: var(--s1); border-top-color: var(--border); }
 .sample { font-size: 12px; color: var(--fg3); margin-top: 40px; }
-/* ---------- Сообщество: ролики пользователей YouTube ---------- */
-.cm-bar { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; margin-bottom: 20px; }
-.cm-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 1; min-width: 0; }
-.cm-filter .chip .x { display: grid; place-items: center; width: 18px; height: 18px; margin-right: -4px; border-radius: 50%; }
-.cm-filter .chip .x svg { width: 14px; height: 14px; }
-.cm-find { position: relative; flex: 1 1 220px; max-width: 320px; min-width: 0; }
-.cm-find .search { margin: 0; width: 100%; }
-.cm-sug { position: absolute; z-index: 5; left: 0; right: 0; top: 40px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-sm); box-shadow: var(--shadow-2); padding: 4px; display: grid; }
-.cm-sug button { display: flex; gap: 10px; align-items: center; text-align: left; padding: 8px 10px; border-radius: 4px; font-size: 14px; color: var(--fg); }
-.cm-sug button:hover, .cm-sug button:focus-visible { background: var(--hover); }
-.cm-sug .cap { margin-left: auto; }
+/* ---------- Сообщество (вкладка карточки тайтла): ролики пользователей YouTube ---------- */
+.cm-bar { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; margin-bottom: 16px; }
 .cm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px 20px; }
 .clip { display: grid; gap: 10px; min-width: 0; }
 .clip .thumb { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: var(--r-md); overflow: hidden; color: #FFFFFF; text-decoration: none; box-shadow: var(--shadow-1); }
@@ -667,7 +658,11 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .clip .meta > div { flex: 1; min-width: 0; }
 .clip .name { font: 600 14px/20px var(--f-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--fg); text-decoration: none; }
 .clip .name:hover { text-decoration: underline; }
-.clip .cap { margin-top: 2px; }
+.clip .cap { margin-top: 4px; display: flex; gap: 6px; align-items: center; min-width: 0; }
+.clip .cap .ch { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lang { flex: none; height: 18px; padding: 0 5px; border-radius: var(--r-xs); font: 700 11px/18px var(--f-text); letter-spacing: .04em; }
+.lang.ru { background: var(--lang-ru-bg); color: var(--lang-ru-fg); }
+.lang.en { background: var(--lang-en-bg); color: var(--lang-en-fg); }
 .clip .ext { flex: none; width: 36px; height: 36px; margin: -4px -6px 0 0; border-radius: var(--r-sm); display: grid; place-items: center; color: var(--fg2); }
 .clip .ext:hover { background: var(--hover); color: var(--fg); }
 .clip .ext svg { width: 20px; height: 20px; }
@@ -676,7 +671,6 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .cm-note svg { width: 16px; height: 16px; flex: none; }
 .app.m .cm-bar .seg { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
 .app.m .cm-bar .seg button { padding: 0 4px; white-space: nowrap; }
-.app.m .cm-find { max-width: none; flex: 1 1 160px; }
 .app.m .cm-grid { grid-template-columns: 1fr; gap: 20px; }
 .app.m .yt-bar.only-src { display: none; }
 
@@ -1285,82 +1279,72 @@ document.addEventListener('input', e => {
 });
 
 
-/* ---------- Сообщество: эдиты, обзоры, смешные моменты (пользовательские ролики YouTube) ----------
-   Данные примерные: названия роликов и каналов выдуманы. В приложении — YouTube Data API search.list
-   (videoEmbeddable=true, type=video) + videos.list для длительности и regionRestriction. */
+/* ---------- Сообщество: вкладка карточки тайтла — эдиты, обзоры, смешные моменты (пользовательские ролики YouTube) ----------
+   Данные примерные: названия роликов и каналов выдуманы. В приложении — YouTube Data API search.list по названию тайтла
+   (videoEmbeddable=true, type=video) + videos.list для длительности и regionRestriction. Язык: RU — русскоязычный автор. */
 const CM_SECT = { edits:'Эдиты', reviews:'Обзоры', funny:'Смешные моменты' };
 const CLIPS = {
-  edits:[ {id:'e1', a:2, n:'Фрирен — тысяча лет пути (эдит)', ch:'Канал Тихий кадр', d:'3:12'}, {id:'e2', a:6, n:'Человек-бензопила — эдит под тяжёлый рок', ch:'Канал Монтажная', d:'2:47'},
-    {id:'e3', a:1, n:'Дандадан: лучшие драки за сезон', ch:'Канал Кадр за кадром', d:'4:05'}, {id:'e4', a:16, n:'Сага о Винланде — «Мне не нужны враги»', ch:'Канал Северный эдит', d:'3:40'},
-    {id:'e5', a:5, n:'Стальной алхимик — братья (эдит)', ch:'Канал Тихий кадр', d:'2:58'}, {id:'e6', a:2, n:'Фрирен и Ферн — весь путь за 3 минуты', ch:'Канал Пастель', d:'3:01'} ],
-  reviews:[ {id:'r1', a:2, n:'Почему все хвалят Фрирен? Разбор без спойлеров', ch:'Канал Аниме по полочкам', d:'18:24'}, {id:'r2', a:3, n:'Монолог фармацевта: стоит ли смотреть', ch:'Канал Две серии', d:'12:09'},
-    {id:'r3', a:17, n:'Ex-Arm — худшее аниме десятилетия?', ch:'Канал Кринж-разбор', d:'21:48'}, {id:'r4', a:15, n:'Евангелион за 20 минут: что вообще произошло', ch:'Канал Аниме по полочкам', d:'20:15'},
-    {id:'r5', a:1, n:'Дандадан — обзор первого сезона', ch:'Канал Две серии', d:'14:32'} ],
-  funny:[ {id:'f1', a:9, n:'Аня Форджер — все смешные моменты, часть 1', ch:'Канал Хаха-аниме', d:'9:41'}, {id:'f2', a:2, n:'Фрирен и мимики — подборка', ch:'Канал Хаха-аниме', d:'4:20'},
-    {id:'f3', a:6, n:'Пауэр — лучшие моменты', ch:'Канал Нарезка дня', d:'7:03'}, {id:'f4', a:1, n:'Окарун и Турбобабка: смешные сцены', ch:'Канал Нарезка дня', d:'6:18'},
-    {id:'f5', a:12, n:'Блю Лок, но это ситком', ch:'Канал Хаха-аниме', d:'5:55'}, {id:'f6', a:9, n:'Бонд — самая умная собака сезона', ch:'Канал Пастель', d:'3:37'} ],
+  edits:[ {id:'e1', a:2, n:'Фрирен — тысяча лет пути (эдит)', ch:'Канал Тихий кадр', d:'3:12', l:'ru'}, {id:'e2', a:6, n:'Человек-бензопила — эдит под тяжёлый рок', ch:'Канал Монтажная', d:'2:47', l:'ru'},
+    {id:'e3', a:1, n:'Dandadan — best fights of the season', ch:'Frame by Frame', d:'4:05', l:'en'}, {id:'e4', a:16, n:'Сага о Винланде — «Мне не нужны враги»', ch:'Канал Северный эдит', d:'3:40', l:'ru'},
+    {id:'e5', a:5, n:'Fullmetal Alchemist — Brothers (edit)', ch:'Quiet Frame', d:'2:58', l:'en'}, {id:'e6', a:2, n:'Frieren & Fern — the whole journey in 3 minutes', ch:'Pastel Edits', d:'3:01', l:'en'} ],
+  reviews:[ {id:'r1', a:2, n:'Почему все хвалят Фрирен? Разбор без спойлеров', ch:'Канал Аниме по полочкам', d:'18:24', l:'ru'}, {id:'r2', a:3, n:'Монолог фармацевта: стоит ли смотреть', ch:'Канал Две серии', d:'12:09', l:'ru'},
+    {id:'r3', a:17, n:'Ex-Arm — худшее аниме десятилетия?', ch:'Канал Кринж-разбор', d:'21:48', l:'ru'}, {id:'r4', a:15, n:'Evangelion in 20 minutes: what actually happened', ch:'Anime Explained', d:'20:15', l:'en'},
+    {id:'r5', a:1, n:'Дандадан — обзор первого сезона', ch:'Канал Две серии', d:'14:32', l:'ru'}, {id:'r6', a:2, n:'Frieren review — a quiet masterpiece', ch:'Two Episodes In', d:'16:50', l:'en'} ],
+  funny:[ {id:'f1', a:9, n:'Аня Форджер — все смешные моменты, часть 1', ch:'Канал Хаха-аниме', d:'9:41', l:'ru'}, {id:'f2', a:2, n:'Frieren and the mimics — compilation', ch:'Laugh Track Anime', d:'4:20', l:'en'},
+    {id:'f3', a:6, n:'Пауэр — лучшие моменты', ch:'Канал Нарезка дня', d:'7:03', l:'ru'}, {id:'f4', a:1, n:'Окарун и Турбобабка: смешные сцены', ch:'Канал Нарезка дня', d:'6:18', l:'ru'},
+    {id:'f5', a:12, n:'Blue Lock but it’s a sitcom', ch:'Laugh Track Anime', d:'5:55', l:'en'}, {id:'f6', a:2, n:'Фрирен и Штарк — подборка неловких сцен', ch:'Канал Пастель', d:'3:37', l:'ru'} ],
 };
-const CM = { sect:'edits', title:null, q:'', sugOpen:false };
-const REGION_BLOCKED = new Set(['e2', 'r3', 'f3']);
+const CM = { sect:'edits' };
+const REGION_BLOCKED = new Set(['r6', 'e2', 'r3', 'f3', 'g-edits-1']);
+// Для тайтлов без «ручных» роликов — сгенерированные заглушки, чтобы вкладка не пустовала у каждого тайтла
+const GEN = { edits:[['— эдит','Канал Тихий кадр','2:54','ru'],['— AMV','Quiet Frame','3:27','en'],['— лучшие сцены (эдит)','Канал Монтажная','4:02','ru']],
+  reviews:[['— стоит ли смотреть?','Канал Две серии','13:40','ru'],['— review','Anime Explained','17:05','en'],['— разбор без спойлеров','Канал Аниме по полочкам','19:12','ru']],
+  funny:[['— смешные моменты','Канал Хаха-аниме','6:44','ru'],['— funny moments','Laugh Track Anime','8:10','en'],['— нарезка','Канал Нарезка дня','5:21','ru']] };
+function clipsFor(a, sect) {
+  const own = CLIPS[sect].filter(c => c.a === a.id);
+  if (own.length >= 3) return own;
+  return own.concat(GEN[sect].slice(0, 4 - own.length).map(([n, ch, d, l], i) => ({ id:`g-${sect}-${i}-${a.id}`, a:a.id, n:`${l === 'en' ? (EN_TITLE[a.id] || a.o) : a.t} ${n}`, ch, d, l })));
+}
+function allClips() { const a = DATA.find(x => x.id === S.titleId) || DATA[0]; return Object.keys(CM_SECT).flatMap(k => clipsFor(a, k).map(c => Object.assign(c, { sect:k }))); }
 function clipAnime(c) { return DATA.find(x => x.id === c.a) || DATA[0]; }
+const LANG = { ru:['RU','Русскоязычный автор'], en:['ENG','Англоязычный автор'] };
+const isBlocked = c => $('#demoCommunity').value === 'region' && (REGION_BLOCKED.has(c.id) || /^g-edits-1-/.test(c.id));
 function clipCard(c) {
-  const a = clipAnime(c), blocked = $('#demoCommunity').value === 'region' && REGION_BLOCKED.has(c.id);
+  const a = clipAnime(c), blocked = isBlocked(c), L = LANG[c.l];
   return `<div class="clip${blocked ? ' blocked' : ''}">
-    <a class="thumb" href="#player" data-clip="${c.id}" aria-label="${esc(c.n)} · ${esc(c.ch)} · ${c.d}${blocked ? ' · недоступно в вашем регионе' : ''}">${art(a)}<span class="yt-play" aria-hidden="true">${ic('play')}</span>${blocked ? `<span class="geo">${ic('block')}Недоступно в регионе</span>` : ''}<span class="dur">${c.d}</span></a>
-    <div class="meta"><div><a class="name" href="#player" data-clip="${c.id}" tabindex="-1">${esc(c.n)}</a><div class="cap">${esc(c.ch)} · ${esc(a.t)}</div></div>
+    <a class="thumb" href="#player" data-clip="${c.id}" aria-label="${esc(c.n)} · ${esc(c.ch)} · ${L[1]} · ${c.d}${blocked ? ' · недоступно в вашем регионе' : ''}">${art(a)}<span class="yt-play" aria-hidden="true">${ic('play')}</span>${blocked ? `<span class="geo">${ic('block')}Недоступно в регионе</span>` : ''}<span class="dur">${c.d}</span></a>
+    <div class="meta"><div><a class="name" href="#player" data-clip="${c.id}" tabindex="-1">${esc(c.n)}</a><div class="cap"><span class="lang ${c.l}" title="${L[1]}">${L[0]}</span><span class="ch">${esc(c.ch)}</span></div></div>
       <a class="ext" href="https://www.youtube.com/" target="_blank" rel="noopener" aria-label="Открыть на YouTube: ${esc(c.n)}" title="Открыть на YouTube">${ic('ext')}</a></div>
   </div>`;
 }
-function viewCommunity() {
-  const t = CM.title && DATA.find(x => x.id === CM.title);
-  return `<div class="page">
-    <div class="head"><h1>Сообщество</h1></div>
-    <div class="cm-bar">
-      <div class="seg" role="group" aria-label="Раздел">${Object.entries(CM_SECT).map(([k,v]) => `<button type="button" data-cmsect="${k}" aria-pressed="${CM.sect === k}">${v}</button>`).join('')}</div>
-      <div class="cm-filter">
-        ${!t ? `<button class="chip" type="button" data-act="cmAll" aria-pressed="true">Все тайтлы</button>` : `<span class="chip" aria-pressed="true" style="padding-right:6px">Тайтл: ${esc(t.t.length > 28 ? t.t.slice(0, 26) + '…' : t.t)}<button class="x" type="button" data-act="cmAll" aria-label="Сбросить тайтл «${esc(t.t)}», показать все тайтлы">${ic('close')}</button></span>`}
-        <div class="cm-find"><label class="search">${ic('search')}<input id="cmq" type="search" placeholder="Найти тайтл" aria-label="Ролики по тайтлу, необязательно" autocomplete="off" value="${esc(CM.q)}" aria-expanded="${CM.sugOpen}" aria-controls="cmsug"></label><div id="cmsug"></div></div>
-      </div>
-    </div>
+function communityTab() {
+  return `<div class="cm-tab">
+    <div class="cm-bar"><div class="seg" role="group" aria-label="Раздел">${Object.entries(CM_SECT).map(([k,v]) => `<button type="button" data-cmsect="${k}" aria-pressed="${CM.sect === k}">${v}</button>`).join('')}</div></div>
     <div id="cmres" aria-live="polite"></div>
     <p class="cm-note">${ic('phone')}<span>Ролики с YouTube, созданы пользователями. Не связаны с правообладателями.</span></p>
   </div>`;
 }
-function paintCmSug() {
-  const box = $('#cmsug'); if (!box) return;
-  const q = CM.q.trim().toLowerCase();
-  const res = q ? DATA.filter(a => (S.adult || !a.adult) && (a.t + ' ' + a.o).toLowerCase().includes(q)).slice(0, 5) : [];
-  CM.sugOpen = !!res.length; const inp = $('#cmq'); if (inp) inp.setAttribute('aria-expanded', CM.sugOpen);
-  box.innerHTML = res.length ? `<div class="cm-sug" role="listbox" aria-label="Тайтлы">${res.map(a => `<button type="button" role="option" data-cmtitle="${a.id}">${esc(a.t)}<span class="cap">${a.y}</span></button>`).join('')}</div>` : '';
-}
 function paintCommunity(loading) {
   const box = $('#cmres'); if (!box) return;
-  const st = $('#demoCommunity').value;
-  const sect = CM_SECT[CM.sect].toLowerCase(), t = CM.title && DATA.find(x => x.id === CM.title);
-  if (loading || st === 'loading') { box.innerHTML = `<div class="cm-grid" aria-busy="true">${Array.from({length:6}, () => `<div class="clip"><div class="skel thumb"></div><div class="skel" style="height:14px;width:85%"></div><div class="skel" style="height:12px;width:50%"></div></div>`).join('')}</div>`; return; }
-  if (st === 'error') { box.innerHTML = `<div class="state">${ic('cloud_off')}<h3>Нет связи с YouTube</h3><div>Проверьте подключение к интернету и попробуйте ещё раз.</div><button class="btn btn-filled" type="button" data-act="cmRetry">Повторить</button></div>`; return; }
-  if (st === 'quota') { box.innerHTML = `<div class="state">${ic('hourglass')}<h3>Лимит поиска исчерпан, попробуйте завтра</h3><div>YouTube даёт приложению ограниченное число поисков в сутки. Поиск снова заработает в 11:00.</div></div>`; return; }
-  let list = st === 'empty' ? [] : CLIPS[CM.sect].filter(c => !t || c.a === t.id).filter(c => S.adult || !clipAnime(c).adult);
-  if (!list.length) { box.innerHTML = `<div class="state">${ic('empty')}<h3>Роликов не нашлось</h3><div>${t ? `Для «${esc(t.t)}» в разделе «${CM_SECT[CM.sect]}» пока ничего. Попробуйте другой раздел или все тайтлы.` : 'Попробуйте другой раздел.'}</div>${t ? `<button class="btn btn-outline" type="button" data-act="cmAll">Показать все тайтлы</button>` : ''}</div>`; return; }
-  box.innerHTML = `<div class="overline" style="margin-bottom:12px">${CM_SECT[CM.sect]}${t ? ' · ' + esc(t.t) : ''} · ${list.length}</div><div class="cm-grid">${list.map(clipCard).join('')}</div>`;
+  const st = $('#demoCommunity').value, a = DATA.find(x => x.id === S.titleId) || DATA[0];
+  if (loading || st === 'loading') { box.innerHTML = `<div class="cm-grid" aria-busy="true">${Array.from({length:4}, () => `<div class="clip"><div class="skel thumb"></div><div class="skel" style="height:14px;width:85%"></div><div class="skel" style="height:12px;width:50%"></div></div>`).join('')}</div>`; return; }
+  if (st === 'error') { box.innerHTML = `<div class="state small">${ic('cloud_off')}<h3>Нет связи с YouTube</h3><div>Проверьте подключение к интернету и попробуйте ещё раз.</div><button class="btn btn-filled" type="button" data-act="cmRetry">Повторить</button></div>`; return; }
+  if (st === 'quota') { box.innerHTML = `<div class="state small">${ic('hourglass')}<h3>Лимит поиска исчерпан, попробуйте завтра</h3><div>YouTube даёт приложению ограниченное число поисков в сутки. Поиск снова заработает в 11:00.</div></div>`; return; }
+  const list = st === 'empty' ? [] : clipsFor(a, CM.sect);
+  if (!list.length) { box.innerHTML = `<div class="state small">${ic('empty')}<h3>Роликов не нашлось</h3><div>По «${esc(a.t)}» в разделе «${CM_SECT[CM.sect]}» пока ничего. Загляните в другой раздел.</div></div>`; return; }
+  box.innerHTML = `<div class="cm-grid">${list.map(clipCard).join('')}</div>`;
 }
 let cmTimer;
-document.addEventListener('input', e => {
-  if (e.target.id !== 'cmq') return;
-  CM.q = e.target.value; paintCmSug();
-});
-document.addEventListener('keydown', e => { if (e.target.id === 'cmq' && e.key === 'Escape') { CM.q = ''; e.target.value = ''; paintCmSug(); } });
 function cmReload() { paintCommunity(true); clearTimeout(cmTimer); cmTimer = setTimeout(() => paintCommunity(), 500); }
 function viewClip() {
-  const c = Object.values(CLIPS).flat().find(x => x.id === P.clip), a = clipAnime(c);
-  const blocked = $('#demoCommunity').value === 'region' && REGION_BLOCKED.has(c.id), loading = P.trailerLoading;
-  const sect = Object.keys(CLIPS).find(k => CLIPS[k].includes(c));
+  const c = allClips().find(x => x.id === P.clip), a = clipAnime(c);
+  const blocked = isBlocked(c), loading = P.trailerLoading, sect = c.sect;
   const stage = loading ? `<div class="pl-state" role="status"><span class="spin" aria-hidden="true"></span><div class="sub">Открываем ролик…</div></div>`
-    : blocked ? `<div class="pl-state card" role="alert">${ic('block')}<div class="big">Ролик недоступен в вашем регионе</div><div class="sub">Автор или YouTube ограничили показ в вашей стране. Посмотреть его в приложении нельзя.</div><div class="acts"><a class="btn btn-outline" href="#community" style="text-decoration:none">${ic('back')}К роликам</a></div></div>`
+    : blocked ? `<div class="pl-state card" role="alert">${ic('block')}<div class="big">Ролик недоступен в вашем регионе</div><div class="sub">Автор или YouTube ограничили показ в вашей стране. Посмотреть его в приложении нельзя.</div><div class="acts"><a class="btn btn-outline" href="#title" style="text-decoration:none">${ic('back')}К роликам</a></div></div>`
     : `<div class="yt-embed" role="img" aria-label="Встроенный плеер YouTube: ${esc(c.n)}"><div class="yt-ph"><span class="yt-play">${ic('play')}</span><span>Встроенный плеер YouTube · ${esc(c.d)}</span></div></div>`;
   return `<div class="player yt" id="player">
-    <div class="yt-top"><a class="pl-btn" href="#community" aria-label="Назад к роликам">${ic('back')}</a>
-      <div class="pl-title"><div>${esc(c.n)}</div><div>${esc(c.ch)} · ${CM_SECT[sect]} · ${esc(a.t)}</div></div><span class="grow"></span>
+    <div class="yt-top"><a class="pl-btn" href="#title" aria-label="Назад к тайтлу, вкладка «Сообщество»">${ic('back')}</a>
+      <div class="pl-title"><div>${esc(c.n)}</div><div>${esc(c.ch)} · ${LANG[c.l][0]} · ${CM_SECT[sect]}</div></div><span class="grow"></span>
       <button class="pl-btn" type="button" id="fsBtn" aria-pressed="${P.fs}" aria-label="${P.fs ? 'Выйти из полноэкранного режима' : 'Полный экран'}">${ic(P.fs ? 'full_exit' : 'full')}</button></div>
     <div class="yt-stage">${stage}</div>
     <div class="yt-bar${blocked ? ' only-src' : ''}"><span class="src">${ic('clips')}Ролик пользователя · не от правообладателя</span><span class="grow"></span>${blocked ? '' : `<a class="btn btn-text" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a>`}</div>
@@ -1588,7 +1572,7 @@ function viewTitle() {
   const tsi = Math.min(S.tseason || 0, seasonsOf(a).length - 1);
   const eps = Array.from({length: Math.min(seasonsOf(a)[tsi].ep, 12)}, (_, i) => i + 1);
   const name = n => epTitle(a, tsi, n);
-  const tabs = Object.assign({ eps:'Серии', about:'Описание', stats:'Статистика' }, HAS_YT.has(a.id) ? { comments:'Комментарии' } : {}, { similar:'Похожие' });
+  const tabs = Object.assign({ eps:'Серии', about:'Описание', stats:'Статистика' }, HAS_YT.has(a.id) ? { comments:'Комментарии' } : {}, { similar:'Похожие', community:'Сообщество' });
   if (S.titleTab === 'comments' && !HAS_YT.has(a.id)) S.titleTab = 'eps';
   let body = '';
   const ss = seasonsOf(a);
@@ -1614,6 +1598,7 @@ function viewTitle() {
       <div class="legend" style="display:grid;gap:8px">${ORDER.map(k => `<span><span style="color:var(${STATUS[k].v});display:inline-flex">${ic(k)}</span>${STATUS[k].label} <b>${fmtK(SDIST[k])}</b> <span class="muted num">${Math.round(SDIST[k]/tot*100)}%</span></span>`).join('')}</div></section></div>`;
   }
   if (S.titleTab === 'comments') body = `<div class="comments-wrap">${commentsView()}</div>`;
+  if (S.titleTab === 'community') body = communityTab();
   if (S.titleTab === 'similar') body = `<div class="hscroll">${DATA.filter(x => x.id !== a.id).slice(0,8).map(card).join('')}</div>`;
   return `<div class="page">
     <div class="mnav"><a href="#catalog" aria-label="Назад">${plat() === 'ios' ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 4 7.4 12l8 8 1.4-1.4L10.2 12l6.6-6.6z"/></svg>Каталог` : ic('back')}</a></div>
@@ -1926,12 +1911,12 @@ function profileMenu() {
 }
 function closeSheet() { const s = $('#sheet'); if (s) s.remove(); }
 
-const ROUTES = { catalog:viewCatalog, lists:viewLists, title:viewTitle, player:viewPlayer, login:viewLogin, search:viewSearch, community:viewCommunity, settings:viewSettings };
+const ROUTES = { catalog:viewCatalog, lists:viewLists, title:viewTitle, player:viewPlayer, login:viewLogin, search:viewSearch, settings:viewSettings };
 function route() { const h = location.hash.slice(1); return ROUTES[h] ? h : 'catalog'; }
 function render() {
   const r = route();
   applyPlatform(); closeSheet();
-  $('#rail').innerHTML = [['catalog','grid','Каталог'],['lists','lists','Списки'],['search','search','Поиск'],['community','clips','Сообщество']].map(([k,i,l]) =>
+  $('#rail').innerHTML = [['catalog','grid','Каталог'],['lists','lists','Списки'],['search','search','Поиск']].map(([k,i,l]) =>
     `<a href="#${k}" ${r === k || (k === 'catalog' && r === 'title') ? 'aria-current="page"' : ''}>${ic(i)}<span>${l}</span></a>`).join('')
     + `<span class="spacer"></span><a class="settings-link" href="#settings" ${r === 'settings' ? 'aria-current="page"' : ''} aria-label="Настройки">${ic('settings')}<span>Настройки</span></a>${(() => { const v = SYNC[syncState()]; const out = syncState() === 'out';
       return `<a class="avatar-wrap${r === 'settings' ? ' is-settings' : ''}" href="#settings" ${r === 'login' || r === 'settings' ? 'aria-current="page"' : ''} data-act="${isMob() ? '' : 'pmenu'}" aria-haspopup="${isMob() ? 'false' : 'menu'}" title="Профиль «${esc(prof().name)}»${out ? ' · без входа в GitHub' : ' · ' + v.text.replace(/<[^>]+>/g, '')}">${avatarHtml(prof())}${v.dot ? `<span class="syncdot" style="background:var(${v.dot})"></span>` : ''}<span>${isMob() ? 'Профиль' : esc(prof().name)}</span></a>`; })()}`;
@@ -1939,7 +1924,7 @@ function render() {
   $('#main').innerHTML = ROUTES[r]();
   if (r !== 'player') $('#main').scrollTop = 0;
   if (r === 'search') { paintSearch(); const i = $('#sq'); if (i) i.focus(); }
-  if (r === 'community') { paintCommunity(); paintCmSug(); }
+  if (r === 'title' && S.titleTab === 'community') paintCommunity();
   if (E.id && r !== 'title' && r !== 'lists') closeEditor();
   if (r !== 'player') { P.trailer = false; P.trailerLoading = false; P.clip = null; }
   if (r !== 'player') { clearTimeout(P.musT); P.mus = null; P.ep = null; P.t = Math.min(P.t, 70); }
@@ -1990,8 +1975,6 @@ document.addEventListener('click', e => {
   else if (d.trpack) downloadPack(d.trpack);
   else if (d.clip) { P.clip = d.clip; P.trailer = false; P.trailerLoading = true; setTimeout(() => { P.trailerLoading = false; if (route() === 'player' && P.clip) render(); }, 700); if (route() === 'player') { e.preventDefault(); render(); } }
   else if (d.cmsect) { CM.sect = d.cmsect; document.querySelectorAll('[data-cmsect]').forEach(b => b.setAttribute('aria-pressed', b === t)); cmReload(); }
-  else if (d.cmtitle) { CM.title = +d.cmtitle; CM.q = ''; CM.sugOpen = false; render(); cmReload(); }
-  else if (d.act === 'cmAll') { CM.title = null; render(); cmReload(); }
   else if (d.act === 'cmRetry') { $('#demoCommunity').value = 'loading'; paintCommunity(); setTimeout(() => { $('#demoCommunity').value = 'ok'; paintCommunity(); }, 800); }
   else if (d.act === 'openTrailer') { P.trailer = true; P.trailerLoading = true; if (route() === 'player') render(); else location.hash = 'player'; setTimeout(() => { P.trailerLoading = false; if (route() === 'player' && P.trailer) render(); }, 900); }
   else if (d.act === 'trailerRetry') { P.trailerLoading = true; render(); setTimeout(() => { P.trailerLoading = false; if (route() === 'player' && P.trailer) render(); }, 900); }
@@ -2085,7 +2068,7 @@ document.addEventListener('change', e => {
   if (e.target.id === 'demoPlatform') render();
   if (e.target.id === 'demoTrailer') { TRL.searched = {}; TRL.found = {}; TRL.searching = null; TRL.fail = {}; if (route() === 'title') render(); else location.hash = 'title'; }
   if (e.target.id === 'trDemo') { C.trDemo = e.target.value; TR.st = {}; TR.showOrig.clear(); TR.pack = {}; TR.pending = null; paintComments(); }
-  if (e.target.id === 'demoCommunity') { if (route() === 'community') paintCommunity(); else if (route() === 'player' && P.clip) render(); else location.hash = 'community'; }
+  if (e.target.id === 'demoCommunity') { S.titleTab = 'community'; if (route() === 'player' && P.clip) render(); else if (route() === 'title') render(); else location.hash = 'title'; }
   if (e.target.id === 'demoComments') { C.more = false; paintComments(); }
   if (e.target.id === 'nFail') E.failNext = e.target.checked;
   if (e.target.id === 'demoPlayer' && e.target.value === 'play') P.playing = true;
