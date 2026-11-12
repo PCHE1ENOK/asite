@@ -50,3 +50,6 @@ test/screenshots/failures/
 
 # Секретные ключи (YOUTUBE_API_KEY, ACOUSTID_API_KEY) — только локально.
 config/local.json
+
+# Сборка для Windows (tool/build_windows.ps1): в exe вшиты ключи из config/local.json
+dist/

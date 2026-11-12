@@ -162,6 +162,18 @@ flutter build ipa --release --dart-define-from-file=config/app.json --dart-defin
 flutter run -d android --dart-define-from-file=config/app.json --dart-define-from-file=config/local.json
 ```
 
+**Windows одним кликом (EXE и ярлык).** Из корня проекта в PowerShell:
+
+```
+powershell -ExecutionPolicy Bypass -File tool\build_windows.ps1
+```
+
+Скрипт проверяет `flutter`, `config/app.json` и `config/local.json`, выполняет `flutter pub get` и `flutter build windows --release` с обоими файлами, копирует `build\windows\x64\runner\Release\` целиком (exe, DLL, `data\`) в `dist\AnimeViewer\` и создаёт на рабочем столе ярлык «AnimeViewer» на `dist\AnimeViewer\anime_viewer.exe` (флаги в ярлыке не нужны — они вшиты при сборке). Без ярлыка: добавьте `-NoShortcut`. После `git pull` скрипт запускается заново.
+
+> **Внимание:** exe содержит ключ YouTube (и другие ключи) из `config/local.json` — он вшит при сборке. Папку `dist\` нельзя передавать другим людям и выкладывать; она в `.gitignore`.
+
+Установщик (Inno Setup) не сделан: для него на ПК нужно ставить Inno Setup Compiler, а программа и так запускается из папки `dist\AnimeViewer\` без установки.
+
 Без `GITHUB_CLIENT_ID` приложение работает, но кнопка «Войти через GitHub»
 неактивна. Без `YOUTUBE_API_KEY` источник видео пустой: кнопка «Смотреть»
 открывает экран «Источники видео не подключены», серии отмечаются вручную.
