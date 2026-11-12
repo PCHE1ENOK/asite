@@ -6,6 +6,7 @@ import '../../data/models/anime.dart';
 import '../../data/sync/sync_service.dart';
 import '../app_scope.dart';
 import '../catalog/catalog_screen.dart';
+import '../community/community_screen.dart';
 import '../lists/lists_screen.dart';
 import '../profiles/profile_widgets.dart';
 import '../search/search_screen.dart';
@@ -19,6 +20,7 @@ enum AppTab {
   catalog('Каталог', Symbols.grid_view_rounded),
   lists('Списки', Symbols.format_list_bulleted_rounded),
   search('Поиск', Symbols.search_rounded),
+  community('Сообщество', Symbols.groups_rounded),
   settings('Настройки', Symbols.settings_rounded);
 
   const AppTab(this.label, this.icon);
@@ -98,6 +100,7 @@ class AppShellState extends State<AppShell> {
       onOpenTitle: _openTitle,
     ),
     AppTab.search => SearchScreen(key: _searchKey, onOpenTitle: _openTitle),
+    AppTab.community => const CommunityScreen(),
     AppTab.settings => const SettingsScreen(),
   };
 
@@ -259,6 +262,7 @@ class _Rail extends StatelessWidget {
             item(AppTab.catalog),
             item(AppTab.lists),
             item(AppTab.search),
+            item(AppTab.community),
             const Spacer(),
             item(
               AppTab.settings,

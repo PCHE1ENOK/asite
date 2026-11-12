@@ -15,6 +15,7 @@ import 'data/favorites/favorites_repository.dart';
 import 'data/notes/notes_repository.dart';
 import 'data/profiles/profile_repository.dart';
 import 'data/settings/app_preferences.dart';
+import 'data/sources/community_videos.dart';
 import 'data/sources/video_source.dart';
 import 'data/sources/youtube_comments.dart';
 import 'data/sources/youtube_source.dart';
@@ -58,6 +59,7 @@ class AppServices {
     required this.music,
     required this.sources,
     required this.comments,
+    required this.community,
     required this.translator,
     required this.shiki,
     required this.tokensFor,
@@ -91,6 +93,11 @@ class AppServices {
         ),
       ]),
       comments: YouTubeCommentsClient(apiKey: AppConfig.youtubeApiKey),
+      community: CommunityVideos(
+        apiKey: AppConfig.youtubeApiKey,
+        db: db,
+        regionCode: PlatformDispatcher.instance.locale.countryCode,
+      ),
       translator: _translator(preferences),
       shiki: ShikimoriData(shikiRepo),
       // Этап 4.5: заглушка заменится распознавателем на Chromaprint +
@@ -163,6 +170,9 @@ class AppServices {
 
   /// Комментарии к официальным роликам YouTube.
   final YouTubeCommentsClient comments;
+
+  /// Вкладка «Сообщество»: эдиты, обзоры, смешные моменты.
+  final CommunityVideos community;
 
   /// Перевод комментариев на русский.
   final CommentTranslator translator;

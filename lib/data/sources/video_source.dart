@@ -12,6 +12,7 @@ class EmbeddedVideo {
     this.episode,
     this.thumbnail,
     this.isTrailer = false,
+    this.isCommunity = false,
   });
 
   /// Id источника ([VideoSource.id]).
@@ -30,6 +31,9 @@ class EmbeddedVideo {
 
   /// Трейлер (PV, тизер), а не серия.
   final bool isTrailer;
+
+  /// Ролик зрителя (вкладка «Сообщество»): эдит, обзор, нарезка.
+  final bool isCommunity;
 
   /// Страница официального встраиваемого плеера.
   Uri get embedUrl =>

@@ -52,7 +52,13 @@ void main() {
     );
     await h.pump(tester, size: const Size(1280, 800));
     // Открываем все вкладки в тёмной теме — их маршруты создаются сейчас.
-    for (final tab in ['Списки', 'Поиск', 'Настройки', 'Каталог']) {
+    for (final tab in [
+      'Списки',
+      'Поиск',
+      'Сообщество',
+      'Настройки',
+      'Каталог',
+    ]) {
       await tester.tap(find.text(tab).first);
       await UiHarness.settle(tester);
     }
@@ -60,7 +66,13 @@ void main() {
     await UiHarness.settle(tester);
     await tester.pumpAndSettle();
 
-    for (final tab in ['Каталог', 'Списки', 'Поиск', 'Настройки']) {
+    for (final tab in [
+      'Каталог',
+      'Списки',
+      'Поиск',
+      'Сообщество',
+      'Настройки',
+    ]) {
       await tester.tap(find.text(tab).first);
       await UiHarness.settle(tester);
       await tester.pumpAndSettle();
