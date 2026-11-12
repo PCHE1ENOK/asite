@@ -127,12 +127,18 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   /// Файл базы в каталоге данных приложения
-  /// (на Windows — `%APPDATA%\<company>\<app>`).
+  /// (на Windows — `%APPDATA%\<company>\<app>`), в браузере — хранилище сайта.
   factory AppDatabase.open() => AppDatabase(
     driftDatabase(
       name: 'anime_cache',
       native: const DriftNativeOptions(
         databaseDirectory: getApplicationSupportDirectory,
+      ),
+      // Браузер: SQLite в WebAssembly, файл — в OPFS или IndexedDB.
+      // Оба файла лежат в web/ (см. tool/build_web.sh).
+      web: DriftWebOptions(
+        sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+        driftWorker: Uri.parse('drift_worker.js'),
       ),
     ),
   );

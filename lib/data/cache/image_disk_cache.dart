@@ -30,14 +30,31 @@ class ImageDiskCache {
   int _writtenSinceTrim = 0;
 
   /// Имя файла по URL (FNV-1a, 64 бита).
+  ///
+  /// Считается 16-битными частями: в вебе (JavaScript) целые точны только
+  /// до 2^53, а имена должны совпадать с прежними 64-битными.
   static String fileName(String url) {
-    var h = 0xcbf29ce484222325;
+    // Смещение 0xcbf29ce484222325 и множитель 0x100000001b3, младшие
+    // 16 бит — первыми.
+    var h = [0x2325, 0x8422, 0x9ce4, 0xcbf2];
+    const prime = [0x01b3, 0x0000, 0x0100, 0x0000];
     for (final c in url.codeUnits) {
-      h ^= c;
-      h *= 0x100000001b3; // переполнение 64 бит — часть алгоритма
+      h[0] ^= c & 0xFFFF;
+      // Умножение по модулю 2^64: произведения до 2^32, суммы до 2^35.
+      final r = [0, 0, 0, 0];
+      var carry = 0;
+      for (var k = 0; k < 4; k++) {
+        var sum = carry;
+        for (var i = 0; i <= k; i++) {
+          sum += h[i] * prime[k - i];
+        }
+        r[k] = sum % 0x10000;
+        carry = sum ~/ 0x10000;
+      }
+      h = r;
     }
-    String hex(int v) => v.toRadixString(16).padLeft(8, '0');
-    return '${hex((h >> 32) & 0xFFFFFFFF)}${hex(h & 0xFFFFFFFF)}.img';
+    String hex(int v) => v.toRadixString(16).padLeft(4, '0');
+    return '${hex(h[3])}${hex(h[2])}${hex(h[1])}${hex(h[0])}.img';
   }
 
   File _file(String url) => File(p.join(dir.path, fileName(url)));

@@ -116,4 +116,22 @@ void main() {
     expect(c.forWidth(null), 'xl');
     expect(const CoverImage(large: 'l').forWidth(90), 'l');
   });
+
+  test('file names: same FNV-1a 64 as before (also in the web build)', () {
+    // Значения прежней 64-битной реализации: кэш на диске не теряется.
+    expect(ImageDiskCache.fileName(''), 'cbf29ce484222325.img');
+    expect(ImageDiskCache.fileName('a'), 'af63dc4c8601ec8c.img');
+    expect(
+      ImageDiskCache.fileName('https://img.test/a.jpg'),
+      '9d2c6910d0da88b8.img',
+    );
+    expect(
+      ImageDiskCache.fileName(
+        'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/'
+        'bx16498-73IhOXpJZiMF.jpg',
+      ),
+      '654a14e7fba7d33b.img',
+    );
+    expect(ImageDiskCache.fileName('кириллица/日本'), 'd20e62fd618d7a1b.img');
+  });
 }
