@@ -20,7 +20,7 @@
   --hover:#ECEEF50F; --pressed:#ECEEF51F;
   /* плеер всегда тёмный */
   --pl-fg:#FFFFFF; --pl-fg2:#FFFFFFB8; --pl-panel:#161923E6; --pl-track:#FFFFFF33; --pl-buf:#FFFFFF59;
-  --badge-ground:#0E1016CC; --lang-ru-bg:#2A3366; --lang-ru-fg:#C9D3FF; --lang-en-bg:#272C3D; --lang-en-fg:#C3C8D6; --shadow-1:0 0 0 transparent; --banner-h:260px;
+  --badge-ground:#0E1016CC; --shadow-1:0 0 0 transparent; --banner-h:260px;
 
   --f-display:"Unbounded","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
   --f-text:"Golos Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
@@ -37,7 +37,7 @@
     --good:#0F6B44; --warn:#8A5000; --bad:#B02A29;
     --st-current:#2369C7; --st-planning:#CC5320; --st-completed:#12876A; --st-paused:#A87300; --st-dropped:#C2477C;
     --skel:#E1E4EC; --skel-shine:#EEF0F5;
-    --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --lang-ru-bg:#E3E8FB; --lang-ru-fg:#24399A; --lang-en-bg:#E2E5EC; --lang-en-fg:#41475A; --banner-h:150px;
+    --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --banner-h:150px;
     --hover:#1417220F; --pressed:#1417221F;
   }
 }
@@ -50,7 +50,7 @@
   --good:#0F6B44; --warn:#8A5000; --bad:#B02A29;
   --st-current:#2369C7; --st-planning:#CC5320; --st-completed:#12876A; --st-paused:#A87300; --st-dropped:#C2477C;
   --skel:#E1E4EC; --skel-shine:#EEF0F5;
-  --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --lang-ru-bg:#E3E8FB; --lang-ru-fg:#24399A; --lang-en-bg:#E2E5EC; --lang-en-fg:#41475A; --banner-h:150px;
+  --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --banner-h:150px;
   --hover:#1417220F; --pressed:#1417221F;
 }
 
@@ -658,18 +658,14 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .clip .meta > div { flex: 1; min-width: 0; }
 .clip .name { font: 600 14px/20px var(--f-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--fg); text-decoration: none; }
 .clip .name:hover { text-decoration: underline; }
-.clip .cap { margin-top: 4px; display: flex; gap: 6px; align-items: center; min-width: 0; }
-.clip .cap .ch { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lang { flex: none; height: 18px; padding: 0 5px; border-radius: var(--r-xs); font: 700 11px/18px var(--f-text); letter-spacing: .04em; }
-.lang.ru { background: var(--lang-ru-bg); color: var(--lang-ru-fg); }
-.lang.en { background: var(--lang-en-bg); color: var(--lang-en-fg); }
+.clip .cap { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .clip .ext { flex: none; width: 36px; height: 36px; margin: -4px -6px 0 0; border-radius: var(--r-sm); display: grid; place-items: center; color: var(--fg2); }
 .clip .ext:hover { background: var(--hover); color: var(--fg); }
 .clip .ext svg { width: 20px; height: 20px; }
 .cm-grid .skel.thumb { aspect-ratio: 16 / 9; border-radius: var(--r-md); }
 .cm-note { display: flex; gap: 8px; align-items: flex-start; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; line-height: 16px; color: var(--fg3); }
 .cm-note svg { width: 16px; height: 16px; flex: none; }
-.app.m .cm-bar .seg { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
+.app.m .cm-bar .seg { width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); }
 .app.m .cm-bar .seg button { padding: 0 4px; white-space: nowrap; }
 .app.m .cm-grid { grid-template-columns: 1fr; gap: 20px; }
 .app.m .yt-bar.only-src { display: none; }
@@ -1279,41 +1275,44 @@ document.addEventListener('input', e => {
 });
 
 
-/* ---------- Сообщество: вкладка карточки тайтла — эдиты, обзоры, смешные моменты (пользовательские ролики YouTube) ----------
-   Данные примерные: названия роликов и каналов выдуманы. В приложении — YouTube Data API search.list по названию тайтла
-   (videoEmbeddable=true, type=video) + videos.list для длительности и regionRestriction. Язык: RU — русскоязычный автор. */
-const CM_SECT = { edits:'Эдиты', reviews:'Обзоры', funny:'Смешные моменты' };
+/* ---------- Сообщество: вкладка карточки тайтла — пересказ, эдиты, обзоры, смешные моменты (пользовательские ролики YouTube) ----------
+   Данные примерные: названия роликов и каналов выдуманы. Все ролики русскоязычные. В приложении — YouTube Data API search.list
+   по названию тайтла (videoEmbeddable=true, type=video, relevanceLanguage=ru) + videos.list для длительности и regionRestriction. */
+const CM_SECT = { recap:'Пересказ аниме', edits:'Эдиты', reviews:'Обзоры', funny:'Смешные моменты' };
 const CLIPS = {
-  edits:[ {id:'e1', a:2, n:'Фрирен — тысяча лет пути (эдит)', ch:'Канал Тихий кадр', d:'3:12', l:'ru'}, {id:'e2', a:6, n:'Человек-бензопила — эдит под тяжёлый рок', ch:'Канал Монтажная', d:'2:47', l:'ru'},
-    {id:'e3', a:1, n:'Dandadan — best fights of the season', ch:'Frame by Frame', d:'4:05', l:'en'}, {id:'e4', a:16, n:'Сага о Винланде — «Мне не нужны враги»', ch:'Канал Северный эдит', d:'3:40', l:'ru'},
-    {id:'e5', a:5, n:'Fullmetal Alchemist — Brothers (edit)', ch:'Quiet Frame', d:'2:58', l:'en'}, {id:'e6', a:2, n:'Frieren & Fern — the whole journey in 3 minutes', ch:'Pastel Edits', d:'3:01', l:'en'} ],
-  reviews:[ {id:'r1', a:2, n:'Почему все хвалят Фрирен? Разбор без спойлеров', ch:'Канал Аниме по полочкам', d:'18:24', l:'ru'}, {id:'r2', a:3, n:'Монолог фармацевта: стоит ли смотреть', ch:'Канал Две серии', d:'12:09', l:'ru'},
-    {id:'r3', a:17, n:'Ex-Arm — худшее аниме десятилетия?', ch:'Канал Кринж-разбор', d:'21:48', l:'ru'}, {id:'r4', a:15, n:'Evangelion in 20 minutes: what actually happened', ch:'Anime Explained', d:'20:15', l:'en'},
-    {id:'r5', a:1, n:'Дандадан — обзор первого сезона', ch:'Канал Две серии', d:'14:32', l:'ru'}, {id:'r6', a:2, n:'Frieren review — a quiet masterpiece', ch:'Two Episodes In', d:'16:50', l:'en'} ],
-  funny:[ {id:'f1', a:9, n:'Аня Форджер — все смешные моменты, часть 1', ch:'Канал Хаха-аниме', d:'9:41', l:'ru'}, {id:'f2', a:2, n:'Frieren and the mimics — compilation', ch:'Laugh Track Anime', d:'4:20', l:'en'},
-    {id:'f3', a:6, n:'Пауэр — лучшие моменты', ch:'Канал Нарезка дня', d:'7:03', l:'ru'}, {id:'f4', a:1, n:'Окарун и Турбобабка: смешные сцены', ch:'Канал Нарезка дня', d:'6:18', l:'ru'},
-    {id:'f5', a:12, n:'Blue Lock but it’s a sitcom', ch:'Laugh Track Anime', d:'5:55', l:'en'}, {id:'f6', a:2, n:'Фрирен и Штарк — подборка неловких сцен', ch:'Канал Пастель', d:'3:37', l:'ru'} ],
+  recap:[ {id:'p1', a:2, n:'Фрирен за 25 минут: пересказ первого сезона', ch:'Канал Коротко об аниме', d:'25:14'}, {id:'p2', a:1, n:'Дандадан — весь сезон за 18 минут', ch:'Канал Пересказ за вечер', d:'18:02'},
+    {id:'p3', a:5, n:'Стальной алхимик: Братство — полный пересказ', ch:'Канал Коротко об аниме', d:'41:30'}, {id:'p4', a:2, n:'Что было в Фрирен: путь героев до 28 серии', ch:'Канал Пересказ за вечер', d:'22:47'},
+    {id:'p5', a:2, n:'Фрирен — пересказ за 10 минут', ch:'Канал Аниме в двух словах', d:'10:05'} ],
+  edits:[ {id:'e1', a:2, n:'Фрирен — тысяча лет пути (эдит)', ch:'Канал Тихий кадр', d:'3:12'}, {id:'e2', a:6, n:'Человек-бензопила — эдит под тяжёлый рок', ch:'Канал Монтажная', d:'2:47'},
+    {id:'e3', a:1, n:'Дандадан: лучшие драки за сезон', ch:'Канал Кадр за кадром', d:'4:05'}, {id:'e4', a:16, n:'Сага о Винланде — «Мне не нужны враги»', ch:'Канал Северный эдит', d:'3:40'},
+    {id:'e5', a:5, n:'Стальной алхимик — братья (эдит)', ch:'Канал Тихий кадр', d:'2:58'}, {id:'e6', a:2, n:'Фрирен и Ферн — весь путь за 3 минуты', ch:'Канал Пастель', d:'3:01'} ],
+  reviews:[ {id:'r1', a:2, n:'Почему все хвалят Фрирен? Разбор без спойлеров', ch:'Канал Аниме по полочкам', d:'18:24'}, {id:'r2', a:3, n:'Монолог фармацевта: стоит ли смотреть', ch:'Канал Две серии', d:'12:09'},
+    {id:'r3', a:17, n:'Ex-Arm — худшее аниме десятилетия?', ch:'Канал Кринж-разбор', d:'21:48'}, {id:'r4', a:15, n:'Евангелион за 20 минут: что вообще произошло', ch:'Канал Аниме по полочкам', d:'20:15'},
+    {id:'r5', a:1, n:'Дандадан — обзор первого сезона', ch:'Канал Две серии', d:'14:32'}, {id:'r6', a:2, n:'Фрирен — тихий шедевр? Обзор', ch:'Канал Две серии', d:'16:50'} ],
+  funny:[ {id:'f1', a:9, n:'Аня Форджер — все смешные моменты, часть 1', ch:'Канал Хаха-аниме', d:'9:41'}, {id:'f2', a:2, n:'Фрирен и мимики — подборка', ch:'Канал Хаха-аниме', d:'4:20'},
+    {id:'f3', a:6, n:'Пауэр — лучшие моменты', ch:'Канал Нарезка дня', d:'7:03'}, {id:'f4', a:1, n:'Окарун и Турбобабка: смешные сцены', ch:'Канал Нарезка дня', d:'6:18'},
+    {id:'f5', a:12, n:'Блю Лок, но это ситком', ch:'Канал Хаха-аниме', d:'5:55'}, {id:'f6', a:2, n:'Фрирен и Штарк — подборка неловких сцен', ch:'Канал Пастель', d:'3:37'} ],
 };
-const CM = { sect:'edits' };
-const REGION_BLOCKED = new Set(['r6', 'e2', 'r3', 'f3', 'g-edits-1']);
+const CM = { sect:'recap' };
+const REGION_BLOCKED = new Set(['r6', 'e2', 'r3', 'f3', 'p4']);
 // Для тайтлов без «ручных» роликов — сгенерированные заглушки, чтобы вкладка не пустовала у каждого тайтла
-const GEN = { edits:[['— эдит','Канал Тихий кадр','2:54','ru'],['— AMV','Quiet Frame','3:27','en'],['— лучшие сцены (эдит)','Канал Монтажная','4:02','ru']],
-  reviews:[['— стоит ли смотреть?','Канал Две серии','13:40','ru'],['— review','Anime Explained','17:05','en'],['— разбор без спойлеров','Канал Аниме по полочкам','19:12','ru']],
-  funny:[['— смешные моменты','Канал Хаха-аниме','6:44','ru'],['— funny moments','Laugh Track Anime','8:10','en'],['— нарезка','Канал Нарезка дня','5:21','ru']] };
+const GEN = { recap:[['— пересказ сезона','Канал Коротко об аниме','21:30'],['за 15 минут','Канал Пересказ за вечер','15:12'],['— весь сюжет','Канал Аниме в двух словах','24:05']],
+  edits:[['— эдит','Канал Тихий кадр','2:54'],['— AMV','Канал Монтажная','3:27'],['— лучшие сцены (эдит)','Канал Кадр за кадром','4:02']],
+  reviews:[['— стоит ли смотреть?','Канал Две серии','13:40'],['— обзор','Канал Аниме по полочкам','17:05'],['— разбор без спойлеров','Канал Аниме по полочкам','19:12']],
+  funny:[['— смешные моменты','Канал Хаха-аниме','6:44'],['— подборка приколов','Канал Нарезка дня','8:10'],['— нарезка','Канал Нарезка дня','5:21']] };
 function clipsFor(a, sect) {
   const own = CLIPS[sect].filter(c => c.a === a.id);
   if (own.length >= 3) return own;
-  return own.concat(GEN[sect].slice(0, 4 - own.length).map(([n, ch, d, l], i) => ({ id:`g-${sect}-${i}-${a.id}`, a:a.id, n:`${l === 'en' ? (EN_TITLE[a.id] || a.o) : a.t} ${n}`, ch, d, l })));
+  return own.concat(GEN[sect].slice(0, 4 - own.length).map(([n, ch, d], i) => ({ id:`g-${sect}-${i}-${a.id}`, a:a.id, n:`${a.t} ${n}`, ch, d })));
 }
 function allClips() { const a = DATA.find(x => x.id === S.titleId) || DATA[0]; return Object.keys(CM_SECT).flatMap(k => clipsFor(a, k).map(c => Object.assign(c, { sect:k }))); }
 function clipAnime(c) { return DATA.find(x => x.id === c.a) || DATA[0]; }
-const LANG = { ru:['RU','Русскоязычный автор'], en:['ENG','Англоязычный автор'] };
-const isBlocked = c => $('#demoCommunity').value === 'region' && (REGION_BLOCKED.has(c.id) || /^g-edits-1-/.test(c.id));
+const isBlocked = c => $('#demoCommunity').value === 'region' && (REGION_BLOCKED.has(c.id) || /^g-recap-1-/.test(c.id));
 function clipCard(c) {
-  const a = clipAnime(c), blocked = isBlocked(c), L = LANG[c.l];
+  const a = clipAnime(c), blocked = isBlocked(c);
   return `<div class="clip${blocked ? ' blocked' : ''}">
-    <a class="thumb" href="#player" data-clip="${c.id}" aria-label="${esc(c.n)} · ${esc(c.ch)} · ${L[1]} · ${c.d}${blocked ? ' · недоступно в вашем регионе' : ''}">${art(a)}<span class="yt-play" aria-hidden="true">${ic('play')}</span>${blocked ? `<span class="geo">${ic('block')}Недоступно в регионе</span>` : ''}<span class="dur">${c.d}</span></a>
-    <div class="meta"><div><a class="name" href="#player" data-clip="${c.id}" tabindex="-1">${esc(c.n)}</a><div class="cap"><span class="lang ${c.l}" title="${L[1]}">${L[0]}</span><span class="ch">${esc(c.ch)}</span></div></div>
+    <a class="thumb" href="#player" data-clip="${c.id}" aria-label="${esc(c.n)} · ${esc(c.ch)} · ${c.d}${blocked ? ' · недоступно в вашем регионе' : ''}">${art(a)}<span class="yt-play" aria-hidden="true">${ic('play')}</span>${blocked ? `<span class="geo">${ic('block')}Недоступно в регионе</span>` : ''}<span class="dur">${c.d}</span></a>
+    <div class="meta"><div><a class="name" href="#player" data-clip="${c.id}" tabindex="-1">${esc(c.n)}</a><div class="cap">${esc(c.ch)}</div></div>
       <a class="ext" href="https://www.youtube.com/" target="_blank" rel="noopener" aria-label="Открыть на YouTube: ${esc(c.n)}" title="Открыть на YouTube">${ic('ext')}</a></div>
   </div>`;
 }
@@ -1344,7 +1343,7 @@ function viewClip() {
     : `<div class="yt-embed" role="img" aria-label="Встроенный плеер YouTube: ${esc(c.n)}"><div class="yt-ph"><span class="yt-play">${ic('play')}</span><span>Встроенный плеер YouTube · ${esc(c.d)}</span></div></div>`;
   return `<div class="player yt" id="player">
     <div class="yt-top"><a class="pl-btn" href="#title" aria-label="Назад к тайтлу, вкладка «Сообщество»">${ic('back')}</a>
-      <div class="pl-title"><div>${esc(c.n)}</div><div>${esc(c.ch)} · ${LANG[c.l][0]} · ${CM_SECT[sect]}</div></div><span class="grow"></span>
+      <div class="pl-title"><div>${esc(c.n)}</div><div>${esc(c.ch)} · ${CM_SECT[sect]}</div></div><span class="grow"></span>
       <button class="pl-btn" type="button" id="fsBtn" aria-pressed="${P.fs}" aria-label="${P.fs ? 'Выйти из полноэкранного режима' : 'Полный экран'}">${ic(P.fs ? 'full_exit' : 'full')}</button></div>
     <div class="yt-stage">${stage}</div>
     <div class="yt-bar${blocked ? ' only-src' : ''}"><span class="src">${ic('clips')}Ролик пользователя · не от правообладателя</span><span class="grow"></span>${blocked ? '' : `<a class="btn btn-text" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a>`}</div>
