@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <!-- Заменяется значением --base-href при сборке (tool/build_web.sh). -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Anime Viewer — каталог аниме, списки и заметки в браузере.">
+  <meta name="theme-color" content="#0E1016">
+  <!-- Не индексировать: личная копия приложения. -->
+  <meta name="robots" content="noindex">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Anime Viewer">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Anime Viewer</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    html, body { margin: 0; background: #0E1016; }
+    #loading {
+      position: fixed; inset: 0; display: flex; align-items: center;
+      justify-content: center; color: #9AA0B4;
+      font: 15px system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">Загрузка…</div>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
