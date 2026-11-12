@@ -8,31 +8,24 @@ import 'video_source.dart';
 import 'youtube_match.dart';
 
 /// Раздел вкладки «Сообщество»: ролики, которые делают зрители.
+/// Поиск только по-русски; у раздела может быть несколько запросов.
 enum CommunitySection {
-  edits('Эдиты', 'AMV', 'AMV'),
-  reviews('Обзоры', 'review', 'обзор'),
-  funny('Смешные моменты', 'funny moments', 'смешные моменты');
+  retell('Пересказ аниме', ['Переозвучка {t}', '{t} за 15 минут']),
+  edits('Эдиты', ['{t} AMV']),
+  reviews('Обзоры', ['{t} обзор']),
+  funny('Смешные моменты', ['{t} смешные моменты']);
 
-  const CommunitySection(this.label, this.query, this.ruQuery);
+  const CommunitySection(this.label, this.queries);
 
   final String label;
 
-  /// Что добавляется к английскому поисковому запросу.
-  final String query;
+  /// Шаблоны запросов: `{t}` — название тайтла.
+  final List<String> queries;
 
-  /// То же для русского запроса.
-  final String ruQuery;
-}
-
-/// Язык поискового запроса «Сообщества».
-enum CommunityLanguage {
-  en('ENG'),
-  ru('RU');
-
-  const CommunityLanguage(this.label);
-
-  /// Метка на карточке ролика.
-  final String label;
+  /// Запросы раздела для тайтла [title].
+  List<String> queriesFor(String title) => [
+    for (final q in queries) q.replaceAll('{t}', title),
+  ];
 }
 
 /// Ответ вкладки «Сообщество».
@@ -41,9 +34,12 @@ sealed class CommunityResult {
 }
 
 class CommunityLoaded extends CommunityResult {
-  const CommunityLoaded(this.videos);
+  const CommunityLoaded(this.videos, {this.quotaHit = false});
 
   final List<EmbeddedVideo> videos;
+
+  /// Квота кончилась, показан прошлый кэш (над сеткой — предупреждение).
+  final bool quotaHit;
 }
 
 /// Нет ключа YouTube.
@@ -60,22 +56,20 @@ class CommunityFailed extends CommunityResult {
   const CommunityFailed();
 }
 
-/// Ролики сообщества с YouTube: эдиты, обзоры, смешные моменты.
+/// Ролики сообщества с YouTube по тайтлу: пересказы, эдиты, обзоры,
+/// смешные моменты. Только русскоязычные.
 ///
-/// Поиск — `search.list` со строгим безопасным поиском, только
-/// встраиваемые и доступные вне youtube.com ролики. Каждый найденный ролик
-/// проверяется `videos.list` (1 единица на 50 роликов): отбрасываются
-/// ролики с возрастным ограничением, недоступные в регионе и без
-/// встраивания. Без «Показывать 18+» — ещё и ролики с пометками 18+ в
-/// названии или тегах.
+/// Поиск — `search.list` со строгим безопасным поиском, русским языком
+/// (`relevanceLanguage=ru`), только встраиваемые и доступные вне
+/// youtube.com ролики. Каждый найденный ролик проверяется `videos.list`
+/// (1 единица на запрос): отбрасываются ролики с возрастным ограничением,
+/// недоступные в регионе, без встраивания и не на русском (нет русского
+/// языка в метаданных и кириллицы в названии). Без «Показывать 18+» —
+/// ещё и ролики с пометками 18+ в названии или тегах.
 ///
-/// Ищется на двух языках (английский и русский запросы), у роликов —
-/// метка «RU» / «ENG».
-///
-/// Квота: `search.list` стоит 100 единиц, на раздел — два поиска.
-/// Результат кэшируется на сутки (пустой — на 6 часов), и каждый запрос
-/// (язык + раздел + тайтл) уходит в сеть не чаще раза в сутки на
-/// устройство.
+/// Квота: `search.list` стоит 100 единиц. Результат каждого запроса
+/// кэшируется на сутки (пустой — на 6 часов), и каждый запрос уходит в
+/// сеть не чаще раза в сутки на устройство.
 class CommunityVideos {
   CommunityVideos({
     required this.apiKey,
@@ -106,39 +100,43 @@ class CommunityVideos {
     unicode: true,
   );
 
+  static final _cyrillic = RegExp('[\\u0400-\\u04FF]');
+
   bool get isConfigured => apiKey.isNotEmpty;
 
-  String _key(CommunityLanguage lang, CommunitySection s, String? title) =>
-      'yt:community:${lang.name}:${s.name}:${title?.toLowerCase() ?? '*'}:'
-      '${regionCode ?? ''}';
+  String _key(String query) =>
+      'yt:community:ru:${query.toLowerCase()}:${regionCode ?? ''}';
 
   String _day() {
     final d = _now().toUtc();
     return '${d.year}-${d.month}-${d.day}';
   }
 
-  /// Ролики раздела на двух языках; [title] — название тайтла
-  /// (`null` — общий раздел), [ruTitle] — русское название для русского
-  /// запроса (нет — [title]). [showAdult] — «Показывать 18+» из настроек.
-  ///
-  /// Два поиска — английский и русский: у каждого свой кэш и своё
-  /// ограничение «один раз в сутки». Ролик, найденный обоими, — один раз.
+  /// Ролики раздела по тайтлу [title] (русское название, иначе ромадзи).
+  /// [showAdult] — «Показывать 18+» из настроек.
   Future<CommunityResult> find(
     CommunitySection section, {
-    String? title,
-    String? ruTitle,
+    required String title,
     bool showAdult = true,
   }) async {
     if (!isConfigured) return const CommunityNotConfigured();
-    final en = await _find(CommunityLanguage.en, section, title);
-    final ru = await _find(CommunityLanguage.ru, section, ruTitle ?? title);
-    final lists = [en, ru].whereType<List<Map<String, dynamic>>>().toList();
+    final results = [for (final q in section.queriesFor(title)) await _find(q)];
+    final lists = [
+      for (final r in results)
+        if (r case (final List<Map<String, dynamic>> l, _)) l,
+    ];
+    final quotaHit = results.any(
+      (r) => switch (r) {
+        _Quota() || (_, true) => true,
+        _ => false,
+      },
+    );
     if (lists.isEmpty) {
-      return en is _Quota || ru is _Quota
+      return quotaHit
           ? const CommunityQuotaExceeded()
           : const CommunityFailed();
     }
-    // Вперемешку: английский, русский, английский… без повторов.
+    // Вперемешку по запросам, без повторов.
     final seen = <String>{};
     final merged = <Map<String, dynamic>>[];
     for (var i = 0; lists.any((l) => i < l.length); i++) {
@@ -156,68 +154,61 @@ class CommunityVideos {
             channel: i['channel'] as String,
             thumbnail: i['thumb'] as String?,
             isCommunity: true,
-            language: i['lang'] as String?,
+            duration: switch (i['seconds']) {
+              final int s => Duration(seconds: s),
+              _ => null,
+            },
+            category: section.label,
           ),
-    ]);
+    ], quotaHit: quotaHit);
   }
 
-  /// Один запрос: список роликов, [_Quota] (квота или поиск уже был
-  /// сегодня, а кэша нет) или [_Failed].
-  Future<Object> _find(
-    CommunityLanguage lang,
-    CommunitySection section,
-    String? title,
-  ) async {
-    final key = _key(lang, section, title);
+  /// Один запрос: `(список, квота кончилась — показан старый кэш)`,
+  /// [_Quota] (квоты нет и кэша нет) или [_Failed].
+  Future<Object> _find(String query) async {
+    final key = _key(query);
     final cached = await _db.entry(key);
+    List<Map<String, dynamic>>? stale;
     if (cached != null) {
       final list = (jsonDecode(cached.payload) as List)
           .cast<Map<String, dynamic>>();
       final age = _now().difference(cached.updatedAt);
-      if (age < (list.isEmpty ? emptyTtl : ttl)) return list;
+      if (age < (list.isEmpty ? emptyTtl : ttl)) return (list, false);
       // Кэш устарел, но сегодня уже искали — новый поиск только завтра.
-      if (await _searchedToday(key)) return list;
+      if (await _searchedToday(key)) return (list, false);
+      stale = list;
     } else if (await _searchedToday(key)) {
       return const _Quota();
     }
     final List<Map<String, dynamic>> items;
     try {
-      items = await _search(lang, section, title);
+      items = await _search(query);
     } on _Quota {
       // Квота кончилась — до завтра этот поиск не повторяем.
       await _db.putSetting('$key:day', _day());
-      return const _Quota();
+      return stale == null ? const _Quota() : (stale, true);
     } on Object {
-      return const _Failed();
+      return stale == null ? const _Failed() : (stale, false);
     }
     await _db.putSetting('$key:day', _day());
     await _db.putEntry(key, jsonEncode(items), _now());
-    return items;
+    return (items, false);
   }
 
   Future<bool> _searchedToday(String key) async =>
       await _db.setting('$key:day') == _day();
 
   /// Поиск и проверка роликов; в кэш попадают только прошедшие проверку.
-  Future<List<Map<String, dynamic>>> _search(
-    CommunityLanguage lang,
-    CommunitySection section,
-    String? title,
-  ) async {
-    final words = lang == CommunityLanguage.ru
-        ? section.ruQuery
-        : section.query;
+  Future<List<Map<String, dynamic>>> _search(String query) async {
     final search = await _get('search', {
       'part': 'snippet',
       'type': 'video',
-      'q': title == null
-          ? (lang == CommunityLanguage.ru ? 'аниме $words' : 'anime $words')
-          : '$title $words',
+      'q': query,
       'maxResults': '25',
       'safeSearch': 'strict',
       'videoEmbeddable': 'true',
       'videoSyndicated': 'true',
-      'relevanceLanguage': lang.name,
+      'relevanceLanguage': 'ru',
       'regionCode': ?regionCode,
     });
     final ids = [
@@ -238,9 +229,11 @@ class CommunityVideos {
       final v = byId[id];
       if (v == null || !isAllowed(v, regionCode)) continue;
       final s = v['snippet'] as Map? ?? const {};
+      if (!isRussian(s)) continue;
       final name = YouTubeMatch.unescape(s['title'] as String? ?? '');
       final tags = (s['tags'] as List?)?.cast<String>() ?? const [];
       final thumbs = s['thumbnails'] as Map?;
+      final content = v['contentDetails'] as Map? ?? const {};
       result.add({
         'id': id,
         'title': name,
@@ -249,28 +242,62 @@ class CommunityVideos {
             ((thumbs?['medium'] ?? thumbs?['default']) as Map?)?['url']
                 as String?,
         'adult': adultMarks.hasMatch([name, ...tags].join(' ')),
-        'lang': languageOf(s),
+        'seconds': parseDuration(content['duration'] as String?)?.inSeconds,
       });
     }
     return result;
   }
 
-  static final _cyrillic = RegExp('[\u0400-\u04FF]');
-
-  /// «RU» или «ENG»: по языку из метаданных ролика (`defaultAudioLanguage`,
-  /// затем `defaultLanguage`), иначе — по кириллице в названии.
-  static String languageOf(Map snippet) {
-    final meta =
-        (snippet['defaultAudioLanguage'] ?? snippet['defaultLanguage'])
-            as String?;
-    if (meta != null && meta.isNotEmpty) {
-      return meta.toLowerCase().startsWith('ru')
-          ? CommunityLanguage.ru.label
-          : CommunityLanguage.en.label;
+  /// Ролик на русском: русский язык в метаданных
+  /// (`defaultAudioLanguage` / `defaultLanguage`) или кириллица в названии.
+  static bool isRussian(Map snippet) {
+    for (final k in ['defaultAudioLanguage', 'defaultLanguage']) {
+      final lang = snippet[k];
+      if (lang is String && lang.toLowerCase().startsWith('ru')) return true;
     }
-    return _cyrillic.hasMatch(snippet['title'] as String? ?? '')
-        ? CommunityLanguage.ru.label
-        : CommunityLanguage.en.label;
+    return _cyrillic.hasMatch(snippet['title'] as String? ?? '');
+  }
+
+  /// ISO 8601 `PT1H2M3S` → длительность; прямые эфиры (`P0D`) — `null`.
+  static Duration? parseDuration(String? iso) {
+    final m = RegExp(r'^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$')
+        .firstMatch(iso ?? '');
+    if (m == null) return null;
+    int g(int i) => int.parse(m[i] ?? '0');
+    final d = Duration(days: g(1), hours: g(2), minutes: g(3), seconds: g(4));
+    return d == Duration.zero ? null : d;
+  }
+
+  /// Когда YouTube обновит квоту: полночь по тихоокеанскому времени
+  /// (PST UTC−8, летом PDT UTC−7), в местном времени устройства.
+  static DateTime quotaResetAfter(DateTime now) {
+    final utc = now.toUtc();
+    final offset = _isPacificDst(utc) ? 7 : 8;
+    final pacific = utc.subtract(Duration(hours: offset));
+    final nextMidnight = DateTime.utc(
+      pacific.year,
+      pacific.month,
+      pacific.day + 1,
+    );
+    // Полночь следующих тихоокеанских суток — в UTC, затем в местное
+    // (летнее время переключается в 2:00, полночь — по прежнему смещению).
+    return nextMidnight.add(Duration(hours: offset)).toLocal();
+  }
+
+  /// Летнее время в США: со 2-го воскресенья марта 2:00 до 1-го
+  /// воскресенья ноября 2:00 (по местному).
+  static bool _isPacificDst(DateTime utc) {
+    DateTime sunday(int month, int nth) {
+      var d = DateTime.utc(utc.year, month);
+      while (d.weekday != DateTime.sunday) {
+        d = d.add(const Duration(days: 1));
+      }
+      return d.add(Duration(days: 7 * (nth - 1)));
+    }
+
+    final start = sunday(3, 2).add(const Duration(hours: 10)); // 2:00 PST
+    final end = sunday(11, 1).add(const Duration(hours: 9)); // 2:00 PDT
+    return !utc.isBefore(start) && utc.isBefore(end);
   }
 
   /// Ролик можно показать: без возрастного ограничения, встраивается,

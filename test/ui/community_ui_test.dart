@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:anime_viewer/ui/player/youtube_player_screen.dart';
+import 'package:anime_viewer/ui/title/community_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -12,7 +13,10 @@ http.Response json(Object body) =>
 
 void main() {
   late UiHarness h;
-  setUp(() => h = UiHarness());
+  setUp(() {
+    h = UiHarness();
+    CommunityTab.resetSection();
+  });
 
   /// «Сообщество» — вкладка карточки тайтла (общая страница убрана).
   Future<void> openTab(WidgetTester tester) async {
@@ -54,34 +58,51 @@ void main() {
     await h.dispose(tester);
   });
 
-  testWidgets('section without results shows an empty state', (tester) async {
+  testWidgets('retell first; empty section; Russian queries only', (
+    tester,
+  ) async {
     await openTab(tester);
-    expect(find.text('Эдиты'), findsOneWidget);
-    expect(find.text('Обзоры'), findsOneWidget);
-    expect(find.text('Смешные моменты'), findsOneWidget);
-    expect(find.text('В этом разделе пока ничего нет'), findsOneWidget);
-    expect(h.communityRequests, hasLength(2));
-    final q = h.communityRequests.first.queryParameters;
-    expect(q['safeSearch'], 'strict');
-    expect(q['q'], 'Attack on Titan AMV');
-    // Русского названия у тайтла в тесте нет — русский запрос по английскому.
+    final labels = ['Пересказ аниме', 'Эдиты', 'Обзоры', 'Смешные моменты'];
+    for (final l in labels) {
+      expect(find.text(l), findsOneWidget);
+    }
+    // «Пересказ аниме» — первый и выбран по умолчанию.
     expect(
-      h.communityRequests.last.queryParameters['q'],
-      'Attack on Titan AMV',
+      tester.getTopLeft(find.text('Пересказ аниме')).dx,
+      lessThan(tester.getTopLeft(find.text('Эдиты')).dx),
     );
-    expect(h.communityRequests.last.queryParameters['relevanceLanguage'], 'ru');
+    expect(find.text('Роликов не нашлось'), findsOneWidget);
+    expect(
+      find.text(
+        'По «Attack on Titan» в разделе «Пересказ аниме» пока ничего. '
+        'Загляните в другой раздел.',
+      ),
+      findsOneWidget,
+    );
+    // Русского названия в тесте нет — поиск по ромадзи.
+    expect(h.communityRequests.map((u) => u.queryParameters['q']), [
+      'Переозвучка Shingeki no Kyojin',
+      'Shingeki no Kyojin за 15 минут',
+    ]);
+    expect(h.communityRequests.first.queryParameters['safeSearch'], 'strict');
+    expect(find.text(CommunityTab.note), findsOneWidget);
 
     await tester.tap(find.text('Обзоры'));
     await UiHarness.settle(tester);
     expect(
       h.communityRequests.last.queryParameters['q'],
-      'Attack on Titan обзор',
+      'Shingeki no Kyojin обзор',
     );
-    expect(find.text('В этом разделе пока ничего нет'), findsOneWidget);
+    expect(
+      h.communityRequests.map((u) => u.queryParameters['relevanceLanguage']),
+      everyElement('ru'),
+    );
     await h.dispose(tester);
   });
 
-  testWidgets('quota exhausted: message, no crash', (tester) async {
+  testWidgets('quota exhausted: message with reset time, no crash', (
+    tester,
+  ) async {
     h.communityHandler = (_) =>
         http.Response('{"error":{"errors":[{"reason":"quotaExceeded"}]}}', 403);
     await openTab(tester);
@@ -89,11 +110,14 @@ void main() {
       find.text('Лимит поиска исчерпан, попробуйте завтра'),
       findsOneWidget,
     );
+    expect(find.textContaining('Поиск снова заработает в '), findsOneWidget);
     expect(tester.takeException(), isNull);
     await h.dispose(tester);
   });
 
-  testWidgets('tap opens the embedded player without comments', (tester) async {
+  testWidgets('card: duration, open button; tap opens player, no comments', (
+    tester,
+  ) async {
     YouTubePlayerScreen.debugEmbedBuilder = (id, onEvent) => Text('iframe $id');
     addTearDown(() => YouTubePlayerScreen.debugEmbedBuilder = null);
     h.communityHandler = (uri) => uri.path.endsWith('/search')
@@ -108,21 +132,31 @@ void main() {
             'items': [
               {
                 'id': 'v1',
-                'snippet': {'title': 'Лучший AMV', 'channelTitle': 'Фанат'},
-                'contentDetails': {'contentRating': {}},
+                'snippet': {
+                  'title': 'Пересказ за 15 минут',
+                  'channelTitle': 'Фанат',
+                },
+                'contentDetails': {'duration': 'PT14M5S', 'contentRating': {}},
                 'status': {'embeddable': true, 'privacyStatus': 'public'},
               },
             ],
           });
     await openTab(tester);
-    expect(find.text('Лучший AMV'), findsOneWidget);
+    // Найден обоими запросами раздела — показан один раз.
+    expect(find.text('Пересказ за 15 минут'), findsOneWidget);
     expect(find.text('Фанат'), findsOneWidget);
-    // Найден обоими запросами — показан один раз, с меткой языка.
-    expect(find.text('RU'), findsOneWidget);
-    await tester.tap(find.text('Лучший AMV'));
+    expect(find.text('14:05'), findsOneWidget);
+    expect(find.byTooltip('Открыть на YouTube'), findsOneWidget);
+    expect(find.text('RU'), findsNothing, reason: 'бейджа языка нет');
+
+    await tester.tap(find.text('Пересказ за 15 минут'));
     await UiHarness.settle(tester);
     expect(find.text('iframe v1'), findsOneWidget);
-    expect(find.text('Открыть на YouTube'), findsWidgets);
+    expect(find.text('Фанат · Пересказ аниме'), findsOneWidget);
+    expect(
+      find.text('Ролик пользователя · не от правообладателя'),
+      findsOneWidget,
+    );
     expect(find.text('Комментарии'), findsNothing);
     await h.dispose(tester);
   });

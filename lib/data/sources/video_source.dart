@@ -13,7 +13,8 @@ class EmbeddedVideo {
     this.thumbnail,
     this.isTrailer = false,
     this.isCommunity = false,
-    this.language,
+    this.duration,
+    this.category,
   });
 
   /// Id источника ([VideoSource.id]).
@@ -36,8 +37,11 @@ class EmbeddedVideo {
   /// Ролик зрителя (вкладка «Сообщество»): эдит, обзор, нарезка.
   final bool isCommunity;
 
-  /// Язык ролика сообщества: «RU» или «ENG».
-  final String? language;
+  /// Длительность (ролики «Сообщества»).
+  final Duration? duration;
+
+  /// Раздел «Сообщества» («Пересказ аниме», «Эдиты»…).
+  final String? category;
 
   /// Страница официального встраиваемого плеера.
   Uri get embedUrl =>

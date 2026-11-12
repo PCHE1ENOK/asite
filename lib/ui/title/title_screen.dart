@@ -437,8 +437,12 @@ class _TitleScreenState extends State<TitleScreen>
             child: _ruLoaded
                 ? CommunityTab(
                     key: ValueKey(d.id),
-                    title: d.anime.title.preferred,
-                    ruTitle: _ru?.title,
+                    // Поиск по-русски: русское название, иначе ромадзи.
+                    query:
+                        _ru?.title ??
+                        d.anime.title.romaji ??
+                        d.anime.title.preferred,
+                    displayTitle: _ru?.title ?? d.anime.title.preferred,
                   )
                 : const Skeleton(height: 48),
           ),

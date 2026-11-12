@@ -16,20 +16,20 @@ Map<String, dynamic> video(
   Map<String, dynamic>? region,
   List<String> tags = const [],
   String? audioLanguage,
-  String? language,
+  String duration = 'PT3M12S',
 }) => {
   'id': id,
   'snippet': {
-    'title': title ?? 'Video $id',
-    'defaultAudioLanguage': ?audioLanguage,
-    'defaultLanguage': ?language,
+    'title': title ?? 'Ролик $id',
     'channelTitle': 'Канал $id',
     'tags': tags,
+    'defaultAudioLanguage': ?audioLanguage,
     'thumbnails': {
       'medium': {'url': 'https://i.ytimg.com/vi/$id/mqdefault.jpg'},
     },
   },
   'contentDetails': {
+    'duration': duration,
     'contentRating': {'ytRating': ?ytRating},
     'regionRestriction': ?region,
   },
@@ -39,14 +39,22 @@ Map<String, dynamic> video(
 http.Response json(Object body) =>
     http.Response.bytes(utf8.encode(jsonEncode(body)), 200);
 
+http.Response quota() => http.Response(
+  '{"error":{"code":403,"errors":[{"reason":"quotaExceeded"}]}}',
+  403,
+);
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late AppDatabase db;
   late List<Uri> requests;
+
+  /// Ролики по запросу; нет запроса в карте — [videos].
+  late Map<String, List<Map<String, dynamic>>> byQuery;
   late List<Map<String, dynamic>> videos;
 
-  /// Ролики русского запроса; `null` — те же, что у английского.
-  List<Map<String, dynamic>>? ruVideos;
+  /// Запросы, на которые YouTube отвечает «квота кончилась».
+  late Set<String> quotaFor;
   late DateTime now;
 
   CommunityVideos source({String key = 'k'}) => CommunityVideos(
@@ -56,11 +64,12 @@ void main() {
     clock: () => now,
     httpClient: MockClient((r) async {
       requests.add(r.url);
+      final q = r.url.queryParameters['q'];
       if (r.url.path.endsWith('/search')) {
-        final ru = r.url.queryParameters['relevanceLanguage'] == 'ru';
+        if (quotaFor.contains(q)) return quota();
         return json({
           'items': [
-            for (final v in (ru ? ruVideos ?? videos : videos))
+            for (final v in byQuery[q] ?? videos)
               {
                 'id': {'kind': 'youtube#video', 'videoId': v['id']},
               },
@@ -68,73 +77,84 @@ void main() {
         });
       }
       final ids = r.url.queryParameters['id']!.split(',');
+      final all = [...videos, for (final l in byQuery.values) ...l];
       return json({
-        'items': [
-          for (final v in [...videos, ...?ruVideos])
-            if (ids.contains(v['id'])) v,
-        ],
+        'items': [for (final id in ids) all.firstWhere((v) => v['id'] == id)],
       });
     }),
   );
-
-  setUp(() {
-    db = AppDatabase(NativeDatabase.memory());
-    requests = [];
-    videos = [video('a'), video('b')];
-    ruVideos = null;
-    now = DateTime.utc(2026, 11, 12, 10);
-  });
-  tearDown(() => db.close());
 
   List<Uri> searches() => [
     for (final u in requests)
       if (u.path.endsWith('/search')) u,
   ];
+  List<String?> queries() => [
+    for (final u in searches()) u.queryParameters['q'],
+  ];
 
-  test('two strict searches: English and Russian words', () async {
-    final r = await source().find(CommunitySection.edits);
+  setUp(() {
+    db = AppDatabase(NativeDatabase.memory());
+    requests = [];
+    byQuery = {};
+    videos = [video('a'), video('b')];
+    quotaFor = {};
+    now = DateTime.utc(2026, 11, 12, 10);
+  });
+  tearDown(() => db.close());
+
+  test('«Пересказ аниме» is the first section', () {
+    expect(CommunitySection.values.first, CommunitySection.retell);
+    expect(CommunitySection.values.map((s) => s.label), [
+      'Пересказ аниме',
+      'Эдиты',
+      'Обзоры',
+      'Смешные моменты',
+    ]);
+  });
+
+  test('retell: «Переозвучка …» and «… за 15 минут», Russian only, '
+      'strict', () async {
+    final r = await source().find(CommunitySection.retell, title: 'Фрирен');
     expect(r, isA<CommunityLoaded>());
-    final s = searches();
-    expect(s, hasLength(2));
-    for (final u in s) {
+    expect(queries(), ['Переозвучка Фрирен', 'Фрирен за 15 минут']);
+    for (final u in searches()) {
       final q = u.queryParameters;
+      expect(q['relevanceLanguage'], 'ru');
       expect(q['safeSearch'], 'strict');
       expect(q['videoEmbeddable'], 'true');
       expect(q['videoSyndicated'], 'true');
       expect(q['type'], 'video');
       expect(q['regionCode'], 'RU');
     }
-    expect(s[0].queryParameters['q'], 'anime AMV');
-    expect(s[0].queryParameters['relevanceLanguage'], 'en');
-    expect(s[1].queryParameters['q'], 'аниме AMV');
-    expect(s[1].queryParameters['relevanceLanguage'], 'ru');
-    // Проверка роликов — одним videos.list на запрос.
-    final details = requests.where((u) => u.path.endsWith('/videos')).first;
-    expect(details.queryParameters['id'], 'a,b');
-    expect(details.queryParameters['part'], contains('contentDetails'));
-    expect(details.queryParameters['part'], contains('status'));
+    // Один ролик в обоих запросах — один раз.
+    expect((r as CommunityLoaded).videos.map((v) => v.videoId), ['a', 'b']);
+    expect(r.videos.first.category, 'Пересказ аниме');
   });
 
-  test('title queries in both languages', () async {
+  test('other sections: one Russian query each, no English search', () async {
     final c = source();
-    await c.find(CommunitySection.funny, title: 'Frieren', ruTitle: 'Фрирен');
-    await c.find(CommunitySection.reviews, title: 'Frieren', ruTitle: 'Фрирен');
-    await c.find(CommunitySection.edits, title: 'Frieren');
+    for (final s in [
+      CommunitySection.edits,
+      CommunitySection.reviews,
+      CommunitySection.funny,
+    ]) {
+      await c.find(s, title: 'Sousou no Frieren');
+    }
+    expect(queries(), [
+      'Sousou no Frieren AMV',
+      'Sousou no Frieren обзор',
+      'Sousou no Frieren смешные моменты',
+    ]);
     expect(
-      [for (final u in searches()) u.queryParameters['q']],
-      [
-        'Frieren funny moments',
-        'Фрирен смешные моменты',
-        'Frieren review',
-        'Фрирен обзор',
-        'Frieren AMV',
-        'Frieren AMV', // нет русского названия — английское
-      ],
+      searches().map((u) => u.queryParameters['relevanceLanguage']).toSet(),
+      {'ru'},
     );
+    expect(queries().any((q) => q!.contains('review')), isFalse);
+    expect(queries().any((q) => q!.contains('funny moments')), isFalse);
   });
 
   test(
-    'age-restricted, non-embeddable and region-blocked videos dropped',
+    'dropped: age-restricted, not embeddable, region, not Russian',
     () async {
       videos = [
         video('ok'),
@@ -152,193 +172,149 @@ void main() {
             'allowed': ['US'],
           },
         ),
-        video(
-          'allowed',
-          region: {
-            'allowed': ['RU', 'US'],
-          },
-        ),
+        video('english', title: 'Frieren AMV best edit'),
+        video('meta', title: 'Frieren AMV', audioLanguage: 'ru'),
+        video('meta-en', title: 'Frieren AMV', audioLanguage: 'en'),
       ];
-      final r =
-          await source().find(CommunitySection.reviews) as CommunityLoaded;
-      expect([for (final v in r.videos) v.videoId], ['ok', 'allowed']);
+      final r = await source().find(
+        CommunitySection.edits,
+        title: 'Фрирен',
+      ) as CommunityLoaded;
+      expect(r.videos.map((v) => v.videoId), ['ok', 'meta']);
       expect(r.videos.first.isCommunity, isTrue);
       expect(r.videos.first.channel, 'Канал ok');
     },
   );
 
-  test('duplicates found by both searches shown once', () async {
-    videos = [video('a'), video('both'), video('b')];
-    ruVideos = [video('both'), video('ру', title: 'Ролик по-русски')];
-    final r = await source().find(CommunitySection.edits) as CommunityLoaded;
-    // Вперемешку: английский, русский, …; «both» — один раз.
-    expect([for (final v in r.videos) v.videoId], ['a', 'both', 'ру', 'b']);
-  });
-
-  test('language: metadata first, then Cyrillic in the title', () async {
-    expect(
-      CommunityVideos.languageOf({
-        'title': 'AMV',
-        'defaultAudioLanguage': 'ru',
-      }),
-      'RU',
-    );
-    expect(
-      CommunityVideos.languageOf({
-        'title': 'Обзор',
-        'defaultAudioLanguage': 'en-US',
-      }),
-      'ENG',
-      reason: 'metadata wins over the title',
-    );
-    expect(
-      CommunityVideos.languageOf({'title': 'AMV', 'defaultLanguage': 'ru-RU'}),
-      'RU',
-    );
-    expect(
-      CommunityVideos.languageOf({'title': 'ja', 'defaultLanguage': 'ja'}),
-      'ENG',
-    );
-    expect(CommunityVideos.languageOf({'title': 'Смешные моменты'}), 'RU');
-    expect(CommunityVideos.languageOf({'title': 'Funny moments'}), 'ENG');
-
+  test('duration from contentDetails', () async {
     videos = [
-      video('m', audioLanguage: 'ru'),
-      video('c', title: 'Эдит под музыку'),
-      video('e', title: 'Best edit'),
+      video('short', duration: 'PT3M12S'),
+      video('long', duration: 'PT1H2M5S'),
+      video('live', duration: 'P0D'),
     ];
-    final r = await source().find(CommunitySection.edits) as CommunityLoaded;
+    final r = await source().find(
+      CommunitySection.retell,
+      title: 'Т',
+    ) as CommunityLoaded;
     expect(
-      {for (final v in r.videos) v.videoId: v.language},
-      {'m': 'RU', 'c': 'RU', 'e': 'ENG'},
+      {for (final v in r.videos) v.videoId: v.duration},
+      {
+        'short': const Duration(minutes: 3, seconds: 12),
+        'long': const Duration(hours: 1, minutes: 2, seconds: 5),
+        'live': null,
+      },
     );
+    expect(CommunityVideos.parseDuration('PT15M'), const Duration(minutes: 15));
+    expect(CommunityVideos.parseDuration('P1DT2H'), const Duration(hours: 26));
+    expect(CommunityVideos.parseDuration('junk'), isNull);
   });
 
   test('18+ markers hidden when «Показывать 18+» is off', () async {
     videos = [
       video('ok'),
-      video('t', title: 'Best fights [18+]'),
-      video('tag', tags: ['anime', 'ecchi']),
+      video('t', title: 'Лучшие бои [18+]'),
+      video('tag', tags: ['аниме', 'ecchi']),
     ];
     final c = source();
-    final on = await c.find(CommunitySection.edits) as CommunityLoaded;
+    final on =
+        await c.find(CommunitySection.edits, title: 'Т') as CommunityLoaded;
     expect(on.videos, hasLength(3));
     final n = requests.length;
     final off = await c.find(
       CommunitySection.edits,
+      title: 'Т',
       showAdult: false,
     ) as CommunityLoaded;
-    expect([for (final v in off.videos) v.videoId], ['ok']);
-    // Фильтр работает по кэшу — новых запросов нет.
-    expect(requests, hasLength(n));
+    expect(off.videos.map((v) => v.videoId), ['ok']);
+    expect(requests, hasLength(n), reason: 'фильтр по кэшу');
   });
 
-  test(
-    '24h cache: no new request within a day, new search the next day',
-    () async {
-      final c = source();
-      await c.find(CommunitySection.edits);
-      expect(searches(), hasLength(2));
-      now = now.add(const Duration(hours: 23));
-      final cached = await c.find(CommunitySection.edits) as CommunityLoaded;
-      expect(cached.videos, hasLength(2));
-      expect(searches(), hasLength(2));
-      // Другой раздел — свой кэш.
-      await c.find(CommunitySection.reviews);
-      expect(searches(), hasLength(4));
-      now = now.add(const Duration(hours: 2));
-      await c.find(CommunitySection.edits);
-      expect(searches(), hasLength(6));
-    },
-  );
+  test('24h cache per query: no new request within a day', () async {
+    final c = source();
+    await c.find(CommunitySection.retell, title: 'Т');
+    expect(searches(), hasLength(2));
+    now = now.add(const Duration(hours: 23));
+    final cached =
+        await c.find(CommunitySection.retell, title: 'Т') as CommunityLoaded;
+    expect(cached.videos, hasLength(2));
+    expect(searches(), hasLength(2));
+    // Другой тайтл — свой кэш.
+    await c.find(CommunitySection.retell, title: 'Другой');
+    expect(searches(), hasLength(4));
+    now = now.add(const Duration(hours: 2));
+    await c.find(CommunitySection.retell, title: 'Т');
+    expect(searches(), hasLength(6));
+  });
 
-  test('empty result cached 6 hours; one search per day', () async {
+  test('empty section: cached 6 hours, one search per day', () async {
     videos = [];
     final c = source();
-    final r = await c.find(CommunitySection.funny) as CommunityLoaded;
-    expect(r.videos, isEmpty);
-    expect(requests, hasLength(2)); // без id videos.list не нужен
+    final r = await c.find(CommunitySection.funny, title: 'Т');
+    expect((r as CommunityLoaded).videos, isEmpty);
+    expect(requests, hasLength(1)); // без id videos.list не нужен
     now = now.add(const Duration(hours: 5));
-    await c.find(CommunitySection.funny);
-    expect(requests, hasLength(2));
-    // Пустой кэш устарел, но сегодня уже искали — ждём завтра.
+    await c.find(CommunitySection.funny, title: 'Т');
+    expect(requests, hasLength(1));
     now = now.add(const Duration(hours: 2));
-    final again = await c.find(CommunitySection.funny);
-    expect(again, isA<CommunityLoaded>());
-    expect(requests, hasLength(2));
+    await c.find(CommunitySection.funny, title: 'Т');
+    expect(requests, hasLength(1), reason: 'сегодня уже искали');
     now = DateTime.utc(2026, 11, 13, 1);
-    await c.find(CommunitySection.funny);
-    expect(requests, hasLength(4));
-  });
-
-  test('quota exceeded on both: result, not a crash; no retry today', () async {
-    final c = CommunityVideos(
-      apiKey: 'k',
-      db: db,
-      clock: () => now,
-      httpClient: MockClient((r) async {
-        requests.add(r.url);
-        return http.Response(
-          '{"error":{"code":403,"errors":[{"reason":"quotaExceeded"}]}}',
-          403,
-        );
-      }),
-    );
-    expect(await c.find(CommunitySection.edits), isA<CommunityQuotaExceeded>());
-    expect(requests, hasLength(2));
-    expect(await c.find(CommunitySection.edits), isA<CommunityQuotaExceeded>());
+    await c.find(CommunitySection.funny, title: 'Т');
     expect(requests, hasLength(2));
   });
 
-  test('quota checked per request: English out, Russian still shown', () async {
-    var quotaOut = true;
-    final c = CommunityVideos(
-      apiKey: 'k',
-      db: db,
-      clock: () => now,
-      httpClient: MockClient((r) async {
-        requests.add(r.url);
-        final ru = r.url.queryParameters['relevanceLanguage'] == 'ru';
-        if (r.url.path.endsWith('/search')) {
-          if (!ru && quotaOut) {
-            return http.Response(
-              '{"error":{"errors":[{"reason":"quotaExceeded"}]}}',
-              403,
-            );
-          }
-          return json({
-            'items': [
-              {
-                'id': {'videoId': ru ? 'r1' : 'e1'},
-              },
-            ],
-          });
-        }
-        final id = r.url.queryParameters['id']!;
-        return json({
-          'items': [video(id, title: id == 'r1' ? 'Обзор' : 'Review')],
-        });
-      }),
-    );
-    final r = await c.find(CommunitySection.reviews) as CommunityLoaded;
-    expect([for (final v in r.videos) '${v.videoId}:${v.language}'], ['r1:RU']);
-    // Квота вернулась, но английский уже пробовали сегодня — не ищем;
-    // русский — из кэша.
-    quotaOut = false;
-    final n = requests.length;
-    final again = await c.find(CommunitySection.reviews) as CommunityLoaded;
-    expect(again.videos, hasLength(1));
-    expect(requests, hasLength(n));
-    // Завтра английский ищется снова, русский — ещё в кэше (сутки не прошли).
-    now = DateTime.utc(2026, 11, 13, 1);
-    final next = await c.find(CommunitySection.reviews) as CommunityLoaded;
-    expect([for (final v in next.videos) v.videoId], ['e1', 'r1']);
+  test('quota on every Russian query: no crash, no retry today', () async {
+    quotaFor = {'Т AMV'};
+    final c = source();
     expect(
-      [
-        for (final u in requests.skip(n))
-          u.queryParameters['relevanceLanguage'],
-      ],
-      ['en', null],
+      await c.find(CommunitySection.edits, title: 'Т'),
+      isA<CommunityQuotaExceeded>(),
+    );
+    expect(searches(), hasLength(1));
+    quotaFor = {};
+    expect(
+      await c.find(CommunitySection.edits, title: 'Т'),
+      isA<CommunityQuotaExceeded>(),
+    );
+    expect(searches(), hasLength(1));
+  });
+
+  test('quota checked per query: the other retell query still shown', () async {
+    quotaFor = {'Переозвучка Т'};
+    final r = await source().find(
+      CommunitySection.retell,
+      title: 'Т',
+    ) as CommunityLoaded;
+    expect(r.videos, hasLength(2));
+    expect(r.quotaHit, isTrue);
+  });
+
+  test('quota with an expired cache: old videos with a warning', () async {
+    final c = source();
+    await c.find(CommunitySection.edits, title: 'Т');
+    now = DateTime.utc(2026, 11, 14, 10);
+    quotaFor = {'Т AMV'};
+    final r =
+        await c.find(CommunitySection.edits, title: 'Т') as CommunityLoaded;
+    expect(r.videos, hasLength(2));
+    expect(r.quotaHit, isTrue);
+  });
+
+  test('quota resets at midnight Pacific time', () {
+    // Ноябрь — PST (UTC−8): полночь = 08:00 UTC.
+    expect(
+      CommunityVideos.quotaResetAfter(DateTime.utc(2026, 11, 12, 10)).toUtc(),
+      DateTime.utc(2026, 11, 13, 8),
+    );
+    // До полуночи по Тихоокеанскому — сегодняшняя полночь (по UTC — завтра).
+    expect(
+      CommunityVideos.quotaResetAfter(DateTime.utc(2026, 11, 13, 7)).toUtc(),
+      DateTime.utc(2026, 11, 13, 8),
+    );
+    // Июль — PDT (UTC−7): 07:00 UTC.
+    expect(
+      CommunityVideos.quotaResetAfter(DateTime.utc(2026, 7, 1, 12)).toUtc(),
+      DateTime.utc(2026, 7, 2, 7),
     );
   });
 
@@ -348,9 +324,12 @@ void main() {
       db: db,
       httpClient: MockClient((_) async => http.Response('oops', 500)),
     );
-    expect(await c.find(CommunitySection.edits), isA<CommunityFailed>());
     expect(
-      await source(key: '').find(CommunitySection.edits),
+      await c.find(CommunitySection.edits, title: 'Т'),
+      isA<CommunityFailed>(),
+    );
+    expect(
+      await source(key: '').find(CommunitySection.edits, title: 'Т'),
       isA<CommunityNotConfigured>(),
     );
     expect(requests, isEmpty);

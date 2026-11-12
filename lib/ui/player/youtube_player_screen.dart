@@ -270,7 +270,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                       video.isTrailer
                           ? 'Трейлер · ${video.channel}'
                           : video.isCommunity
-                          ? 'Ролик сообщества · ${video.channel}'
+                          ? [video.channel, ?video.category].join(' · ')
                           : 'Официальное видео · ${video.channel}',
                     ].join(' · '),
                     style: AppText.caption.copyWith(color: t.fg2),
@@ -317,7 +317,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                         child: Text(
                           video.isTrailer
                               ? 'Официальный трейлер на YouTube'
-                              : 'Ролик автора ${video.channel} на YouTube',
+                              : 'Ролик пользователя · не от правообладателя',
                           style: AppText.label.copyWith(color: t.fg2),
                         ),
                       ),
@@ -390,7 +390,11 @@ extension on _YouTubePlayerScreenState {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    video.isTrailer ? 'Открываем трейлер…' : 'Запускаем плеер…',
+                    video.isTrailer
+                        ? 'Открываем трейлер…'
+                        : video.isCommunity
+                        ? 'Открываем ролик…'
+                        : 'Запускаем плеер…',
                     style: AppText.body.copyWith(color: Colors.white70),
                   ),
                 ],

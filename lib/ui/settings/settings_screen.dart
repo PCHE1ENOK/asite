@@ -196,7 +196,9 @@ class _YouTubeKeyRowState extends State<_YouTubeKeyRow> {
             children: [
               FilledButton(
                 onPressed: () {
-                  if (_key.text.trim().isNotEmpty) platform.saveYoutubeApiKey(_key.text);
+                  if (_key.text.trim().isNotEmpty) {
+                    platform.saveYoutubeApiKey(_key.text);
+                  }
                 },
                 child: const Text('Сохранить'),
               ),
