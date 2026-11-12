@@ -118,7 +118,11 @@ class AppShellState extends State<AppShell> {
               child: Navigator(
                 key: _navigators[tab],
                 onGenerateRoute: (_) => MaterialPageRoute<void>(
-                  builder: (_) => Material(color: t.bg, child: _root(tab)),
+                  // Цвет берём из контекста маршрута, а не из `t` снаружи:
+                  // маршрут создаётся один раз, и захваченный цвет не
+                  // менялся бы при смене темы (фон оставался тёмным).
+                  builder: (context) =>
+                      Material(color: context.tokens.bg, child: _root(tab)),
                 ),
               ),
             ),
