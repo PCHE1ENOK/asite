@@ -15,6 +15,7 @@ import 'package:anime_viewer/data/profiles/profile_repository.dart';
 import 'package:anime_viewer/data/settings/app_preferences.dart';
 import 'package:anime_viewer/data/models/anime.dart';
 import 'package:anime_viewer/data/sources/video_source.dart';
+import 'package:anime_viewer/data/sources/community_videos.dart';
 import 'package:anime_viewer/data/sources/youtube_comments.dart';
 import 'package:anime_viewer/data/translation/translation.dart';
 import 'package:anime_viewer/data/shikimori/russian_text.dart';
@@ -79,6 +80,15 @@ class UiHarness {
             }),
           ),
         ),
+      ),
+      community: CommunityVideos(
+        apiKey: communityKey,
+        db: db,
+        regionCode: 'RU',
+        httpClient: MockClient((r) async {
+          communityRequests.add(r.url);
+          return communityHandler(r.url);
+        }),
       ),
       translator: CommentTranslator(
         detector: const ScriptLanguageDetector(),
@@ -146,6 +156,12 @@ class UiHarness {
   late final AppDatabase db;
   late final FakeAniList fake;
   final tokens = <int, MemoryTokenStore>{};
+
+  /// Ключ YouTube для «Сообщества» (пустой — «Нет ключа»).
+  static const communityKey = 'test-key';
+  http.Response Function(Uri) communityHandler = (_) =>
+      http.Response('{"items":[]}', 200);
+  final communityRequests = <Uri>[];
 
   /// Ответы Shikimori (по умолчанию русского нет).
   http.Response Function(Uri) shikiHandler = (_) => http.Response('[]', 200);

@@ -28,14 +28,16 @@ class YouTubePlayerScreen extends StatefulWidget {
   const YouTubePlayerScreen({
     super.key,
     required this.video,
-    required this.details,
+    this.details,
     this.embedBuilder,
     this.onFailed,
     this.onStarted,
   });
 
   final EmbeddedVideo video;
-  final AnimeDetails details;
+
+  /// Тайтл ролика; у роликов сообщества без выбранного тайтла — `null`.
+  final AnimeDetails? details;
 
   /// Плеер не запустился (для строки «Трейлер не открывается…» на
   /// карточке тайтла) / запустился.
@@ -150,38 +152,41 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
       ? 50
       : 42;
 
-  Widget _markButton(BuildContext context, AppTokens t, int episode) =>
-      ListenableBuilder(
-        listenable: AppScope.of(context).library,
-        builder: (context, _) {
-          final progress =
-              AppScope.of(context).library[details.id]?.progress ?? 0;
-          final watched = episode <= progress;
-          return FilledButton.tonalIcon(
-            style: FilledButton.styleFrom(
-              backgroundColor: t.surface3,
-              foregroundColor: t.fg,
-            ),
-            onPressed: watched
-                ? null
-                : () => toggleEpisodeWatched(
-                    context,
-                    details,
-                    episode,
-                    watched: false,
-                  ),
-            icon: const Icon(Symbols.check_rounded),
-            label: Text(
-              watched
-                  ? 'Серия $episode просмотрена'
-                  : 'Отметить серию $episode просмотренной',
-            ),
-          );
-        },
+  Widget _markButton(
+    BuildContext context,
+    AppTokens t,
+    AnimeDetails details,
+    int episode,
+  ) => ListenableBuilder(
+    listenable: AppScope.of(context).library,
+    builder: (context, _) {
+      final progress = AppScope.of(context).library[details.id]?.progress ?? 0;
+      final watched = episode <= progress;
+      return FilledButton.tonalIcon(
+        style: FilledButton.styleFrom(
+          backgroundColor: t.surface3,
+          foregroundColor: t.fg,
+        ),
+        onPressed: watched
+            ? null
+            : () => toggleEpisodeWatched(
+                context,
+                details,
+                episode,
+                watched: false,
+              ),
+        icon: const Icon(Symbols.check_rounded),
+        label: Text(
+          watched
+              ? 'Серия $episode просмотрена'
+              : 'Отметить серию $episode просмотренной',
+        ),
       );
+    },
+  );
 
   EmbeddedVideo get video => widget.video;
-  AnimeDetails get details => widget.details;
+  AnimeDetails? get details => widget.details;
 
   void _setFullscreen(bool value) {
     if (value == _fullscreen) return;
@@ -246,11 +251,17 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    AppScope.of(context).services.shiki
-                            .of(details.id)
-                            .value
-                            ?.title ??
-                        details.anime.title.preferred,
+                    switch (details) {
+                      final d? =>
+                        AppScope.of(context).services.shiki
+                                .of(d.id)
+                                .value
+                                ?.title ??
+                            d.anime.title.preferred,
+                      null => video.title,
+                    },
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: AppText.labelStrong.copyWith(color: t.fg),
                   ),
                   Text(
@@ -258,6 +269,8 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                       if (episode != null) 'Серия $episode',
                       video.isTrailer
                           ? 'Трейлер · ${video.channel}'
+                          : video.isCommunity
+                          ? 'Ролик сообщества · ${video.channel}'
                           : 'Официальное видео · ${video.channel}',
                     ].join(' · '),
                     style: AppText.caption.copyWith(color: t.fg2),
@@ -294,14 +307,17 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                   runSpacing: 8,
                   alignment: WrapAlignment.center,
                   children: [
-                    if (episode != null) _markButton(context, t, episode),
+                    if ((details, episode) case (final d?, final e?))
+                      _markButton(context, t, d, e),
                     // Трейлер — упрощённый плеер: без серий, «Просмотрено»
                     // и комментариев (design/screens.md, «Трейлер»).
-                    if (video.isTrailer) ...[
+                    if (video.isTrailer || video.isCommunity) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Text(
-                          'Официальный трейлер на YouTube',
+                          video.isTrailer
+                              ? 'Официальный трейлер на YouTube'
+                              : 'Ролик автора ${video.channel} на YouTube',
                           style: AppText.label.copyWith(color: t.fg2),
                         ),
                       ),
@@ -328,7 +344,10 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
               ),
             // Панель комментариев — новая строка под видео, не поверх
             // iframe (design/screens.md §11, §13), в теме приложения.
-            if (_comments && !_fullscreen && !video.isTrailer)
+            if (_comments &&
+                !_fullscreen &&
+                !video.isTrailer &&
+                !video.isCommunity)
               Expanded(
                 flex: _commentsShare(context),
                 child: ColoredBox(

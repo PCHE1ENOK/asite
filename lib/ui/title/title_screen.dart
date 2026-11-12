@@ -28,6 +28,7 @@ import '../widgets/state_views.dart';
 import '../widgets/status_widgets.dart';
 import 'episode_actions.dart';
 import 'comments_tab.dart';
+import 'community_tab.dart';
 import 'episode_list.dart';
 import 'note_editor.dart';
 import 'title_charts.dart';
@@ -56,7 +57,8 @@ enum TitleTab {
   description('Описание'),
   stats('Статистика'),
   comments('Комментарии'),
-  similar('Похожие');
+  similar('Похожие'),
+  community('Сообщество');
 
   const TitleTab(this.label);
 
@@ -424,6 +426,21 @@ class _TitleScreenState extends State<TitleScreen>
           padding: pad,
           sliver: SliverToBoxAdapter(
             child: _Similar(details: d, onOpenTitle: widget.onOpenTitle),
+          ),
+        ),
+      ],
+      TitleTab.community => [
+        SliverPadding(
+          padding: pad,
+          sliver: SliverToBoxAdapter(
+            // Русский запрос — по русскому названию, поэтому ждём Shikimori.
+            child: _ruLoaded
+                ? CommunityTab(
+                    key: ValueKey(d.id),
+                    title: d.anime.title.preferred,
+                    ruTitle: _ru?.title,
+                  )
+                : const Skeleton(height: 48),
           ),
         ),
       ],
