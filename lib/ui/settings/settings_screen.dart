@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../data/profiles/profile_repository.dart';
 import '../../data/settings/app_preferences.dart';
 import '../../data/sync/sync_service.dart';
+import '../../platform/platform.dart' as platform;
 import '../app_scope.dart';
 import '../login_flow.dart';
 import '../profiles/profile_widgets.dart';
@@ -81,23 +82,26 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      _Group(
-                        title: 'Плеер',
-                        rows: [
-                          _Row(
-                            title: 'Распознавать музыку',
-                            subtitle: 'Короткий фрагмент звука из серии отправляется на сервер AcoustID для распознавания. Кнопка «Что играет» в плеере',
-                            inlineOnNarrow: true,
-                            trailing: Switch.adaptive(
-                              value: settings.musicRecognition,
-                              onChanged: settings.setMusicRecognition,
+                      if (platform.isWeb)
+                        const _Group(title: 'YouTube', rows: [_YouTubeKeyRow()])
+                      else
+                        _Group(
+                          title: 'Плеер',
+                          rows: [
+                            _Row(
+                              title: 'Распознавать музыку',
+                              subtitle: 'Короткий фрагмент звука из серии отправляется на сервер AcoustID для распознавания. Кнопка «Что играет» в плеере',
+                              inlineOnNarrow: true,
+                              trailing: Switch.adaptive(
+                                value: settings.musicRecognition,
+                                onChanged: settings.setMusicRecognition,
+                              ),
+                              onTap: () => settings.setMusicRecognition(
+                                !settings.musicRecognition,
+                              ),
                             ),
-                            onTap: () => settings.setMusicRecognition(
-                              !settings.musicRecognition,
-                            ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
                       _Group(
                         title: 'Оформление',
                         rows: [
@@ -122,6 +126,89 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Веб-версия: свой ключ YouTube Data API. Хранится только в этом
+/// браузере; ключей в публичной сборке нет.
+class _YouTubeKeyRow extends StatefulWidget {
+  const _YouTubeKeyRow();
+
+  @override
+  State<_YouTubeKeyRow> createState() => _YouTubeKeyRowState();
+}
+
+class _YouTubeKeyRowState extends State<_YouTubeKeyRow> {
+  final _key = TextEditingController();
+  final bool _hasKey = platform.youtubeApiKey().isNotEmpty;
+
+  @override
+  void dispose() {
+    _key.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Свой ключ YouTube',
+            style: AppText.bodyStrong.copyWith(color: t.fg),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _hasKey
+                ? 'Ключ задан. Серии, трейлеры, комментарии и «Сообщество» '
+                      'ищутся с ним; видео открывается на YouTube'
+                : 'Без ключа серии, трейлеры, комментарии и «Сообщество» '
+                      'выключены. Ключ YouTube Data API v3 (бесплатный) '
+                      'создаётся в Google Cloud Console',
+            style: AppText.label.copyWith(color: t.fg2),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Хранится только в этом браузере. Видео — в приложении: в '
+            'браузере оно открывается на YouTube',
+            style: AppText.caption.copyWith(color: t.fg2),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _key,
+            obscureText: true,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(
+              labelText: _hasKey ? 'Новый ключ' : 'Ключ (AIza…)',
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton(
+                onPressed: () {
+                  if (_key.text.trim().isNotEmpty) platform.saveYoutubeApiKey(_key.text);
+                },
+                child: const Text('Сохранить'),
+              ),
+              if (_hasKey)
+                OutlinedButton(
+                  onPressed: () => platform.saveYoutubeApiKey(null),
+                  child: const Text('Удалить ключ'),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

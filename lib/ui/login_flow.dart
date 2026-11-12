@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/github/github_auth.dart';
 import '../data/github/github_exception.dart';
 import '../data/sync/sync_service.dart';
+import '../platform/platform.dart' as platform;
 
 /// Вход через GitHub Device Flow (design/screens.md §5).
 ///
@@ -15,9 +16,20 @@ class LoginFlow extends StatefulWidget {
     required this.sync,
     required this.onDone,
     this.onSwitchProfile,
+    this.pasteToken = platform.isWeb,
   });
 
   final SyncService sync;
+
+  /// Вход вставленным токеном вместо Device Flow (веб-версия: в браузере
+  /// Device Flow закрыт CORS).
+  final bool pasteToken;
+
+  /// Страница создания classic-токена с отмеченным правом gist.
+  static final newTokenUrl = Uri.parse(
+    'https://github.com/settings/tokens/new'
+    '?scopes=gist&description=Anime%20Viewer%20(web)',
+  );
 
   /// Вызывается при входе, пропуске или отмене.
   final VoidCallback onDone;
@@ -35,6 +47,94 @@ class _LoginFlowState extends State<LoginFlow> {
   GitHubException? _error;
   bool _busy = false;
   bool _cancelled = false;
+  final _token = TextEditingController();
+
+  @override
+  void dispose() {
+    _token.dispose();
+    super.dispose();
+  }
+
+  Future<void> _signInWithToken() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final result = await widget.sync.signInWithToken(_token.text);
+      if (mounted) setState(() => _result = result);
+    } on GitHubException catch (e) {
+      if (mounted) setState(() => _error = e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  List<Widget> _tokenForm(ThemeData theme) => [
+    Text('Вход через GitHub', style: theme.textTheme.headlineSmall),
+    const SizedBox(height: 12),
+    const Text(
+      'Списки хранятся в вашем приватном Gist — видите их только вы. '
+      'В браузере вход — по токену GitHub с одним правом: gist.',
+      textAlign: TextAlign.center,
+    ),
+    const SizedBox(height: 16),
+    const Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        '1. Откройте страницу создания токена на GitHub.\n'
+        '2. Тип — classic (Personal access token, classic). Отмечено '
+        'только «gist», остальные права не нужны. Срок — на ваш выбор.\n'
+        '3. Нажмите «Generate token», скопируйте токен (ghp_…) и вставьте '
+        'ниже.',
+      ),
+    ),
+    const SizedBox(height: 12),
+    OutlinedButton(
+      onPressed: () => launchUrl(
+        LoginFlow.newTokenUrl,
+        mode: LaunchMode.externalApplication,
+      ),
+      child: const Text('Открыть GitHub'),
+    ),
+    const SizedBox(height: 16),
+    TextField(
+      controller: _token,
+      obscureText: true,
+      autocorrect: false,
+      enableSuggestions: false,
+      decoration: const InputDecoration(
+        labelText: 'Токен GitHub (только права gist)',
+        border: OutlineInputBorder(),
+      ),
+      onSubmitted: (_) => _busy ? null : _signInWithToken(),
+    ),
+    if (_error case final error?) ...[
+      const SizedBox(height: 12),
+      Text(
+        _errorText(error),
+        style: TextStyle(color: theme.colorScheme.error),
+        textAlign: TextAlign.center,
+      ),
+    ],
+    const SizedBox(height: 16),
+    FilledButton(
+      onPressed: _busy ? null : _signInWithToken,
+      child: const Text('Войти'),
+    ),
+    if (_busy) ...[const SizedBox(height: 12), const LinearProgressIndicator()],
+    TextButton(
+      onPressed: widget.onDone,
+      child: const Text('Продолжить без входа'),
+    ),
+    Text(
+      'Токен хранится только в этом браузере (localStorage), не в Gist и '
+      'не на сервере. Не входите так на чужом устройстве. «Выйти» стирает '
+      'токен; отозвать его можно на GitHub.',
+      style: theme.textTheme.bodySmall,
+      textAlign: TextAlign.center,
+    ),
+  ];
 
   Future<void> _start() async {
     setState(() {
@@ -90,6 +190,8 @@ class _LoginFlowState extends State<LoginFlow> {
           child: const Text('Открыть мои списки'),
         ),
       ]);
+    } else if (widget.pasteToken) {
+      children.addAll(_tokenForm(theme));
     } else if (_code case final code?) {
       children.addAll([
         Text(
@@ -187,7 +289,9 @@ class _LoginFlowState extends State<LoginFlow> {
           constraints: const BoxConstraints(maxWidth: 480),
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Column(mainAxisSize: MainAxisSize.min, children: children),
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: children),
+            ),
           ),
         ),
       ),

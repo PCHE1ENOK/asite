@@ -16,9 +16,24 @@ class GistClient {
   final Uri _base;
 
   /// Логин владельца токена.
-  Future<String> currentLogin() async {
-    final json = await _send('GET', '/user');
-    return json['login'] as String;
+  Future<String> currentLogin() async => (await currentUser()).login;
+
+  /// Владелец токена и права classic-токена (заголовок `X-OAuth-Scopes`;
+  /// `null` — GitHub его не прислал или браузер не дал прочитать).
+  Future<({String login, Set<String>? scopes})> currentUser() async {
+    final response = await _request('GET', _base.resolve('/user'));
+    final json =
+        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    final header = response.headers['x-oauth-scopes'];
+    return (
+      login: json['login'] as String,
+      scopes: header == null
+          ? null
+          : {
+              for (final s in header.split(','))
+                if (s.trim().isNotEmpty) s.trim(),
+            },
+    );
   }
 
   /// Ищет среди Gist пользователя тот, где есть файл [fileName].

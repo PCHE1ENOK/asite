@@ -13,6 +13,13 @@ class FakeGitHub {
   String? tokenError;
   bool offline = false;
   bool revoked = false;
+
+  /// Токен, который принимает API (Device Flow выдаёт `tok`).
+  String token = 'tok';
+
+  /// Права classic-токена в заголовке `X-OAuth-Scopes` ответа `/user`;
+  /// `null` — заголовка нет.
+  String? scopes = 'gist';
   int writes = 0;
   final deleted = <String>[];
   int _nextId = 1;
@@ -45,10 +52,12 @@ class FakeGitHub {
       });
     }
 
-    if (revoked || r.headers['Authorization'] != 'Bearer tok') {
+    if (revoked || r.headers['Authorization'] != 'Bearer $token') {
       return _json({'message': 'Bad credentials'}, 401);
     }
-    if (path == '/user') return _json({'login': login});
+    if (path == '/user') {
+      return _json({'login': login}, 200, {'x-oauth-scopes': ?scopes});
+    }
     if (path == '/gists' && r.method == 'GET') {
       final page = int.parse(r.url.queryParameters['page'] ?? '1');
       if (page > 1) return _json([]);
@@ -100,10 +109,13 @@ class FakeGitHub {
       key: (value as Map)['content'] as String,
   };
 
-  static http.Response _json(Object body, [int status = 200]) =>
-      http.Response.bytes(
-        utf8.encode(jsonEncode(body)),
-        status,
-        headers: {'content-type': 'application/json; charset=utf-8'},
-      );
+  static http.Response _json(
+    Object body, [
+    int status = 200,
+    Map<String, String> headers = const {},
+  ]) => http.Response.bytes(
+    utf8.encode(jsonEncode(body)),
+    status,
+    headers: {'content-type': 'application/json; charset=utf-8', ...headers},
+  );
 }
