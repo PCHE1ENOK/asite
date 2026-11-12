@@ -20,7 +20,7 @@
   --hover:#ECEEF50F; --pressed:#ECEEF51F;
   /* плеер всегда тёмный */
   --pl-fg:#FFFFFF; --pl-fg2:#FFFFFFB8; --pl-panel:#161923E6; --pl-track:#FFFFFF33; --pl-buf:#FFFFFF59;
-  --badge-ground:#0E1016CC; --shadow-1:0 0 0 transparent; --banner-h:260px;
+  --badge-ground:#0E1016CC; --av-ground:#272C3D; --av-ring:#FFFFFF24; --shadow-1:0 0 0 transparent; --banner-h:260px;
 
   --f-display:"Unbounded","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
   --f-text:"Golos Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
@@ -37,7 +37,7 @@
     --good:#0F6B44; --warn:#8A5000; --bad:#B02A29;
     --st-current:#2369C7; --st-planning:#CC5320; --st-completed:#12876A; --st-paused:#A87300; --st-dropped:#C2477C;
     --skel:#E1E4EC; --skel-shine:#EEF0F5;
-    --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --banner-h:150px;
+    --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --av-ground:#E2E5EC; --av-ring:#11141D24; --banner-h:150px;
     --hover:#1417220F; --pressed:#1417221F;
   }
 }
@@ -50,7 +50,7 @@
   --good:#0F6B44; --warn:#8A5000; --bad:#B02A29;
   --st-current:#2369C7; --st-planning:#CC5320; --st-completed:#12876A; --st-paused:#A87300; --st-dropped:#C2477C;
   --skel:#E1E4EC; --skel-shine:#EEF0F5;
-  --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --banner-h:150px;
+  --shadow-1:0 1px 2px #1417220F, 0 1px 3px #14172214; --shadow-2:0 8px 24px #1417221F; --shadow-3:0 16px 48px #1417222E; --badge-ground:#FFFFFFEB; --av-ground:#E2E5EC; --av-ring:#11141D24; --banner-h:150px;
   --hover:#1417220F; --pressed:#1417221F;
 }
 
@@ -478,6 +478,18 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .pmenu .chk { margin-left: auto; color: var(--accent); }
 .pmenu hr { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
 .prow .avatar { flex: none; }
+.avatar { flex: none; position: relative; overflow: hidden; }
+.avatar.img { background: var(--av-ground) !important; }
+.avatar.img img { width: 100%; height: 100%; display: block; }
+.avatar.img::after, .avatar.load::after { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--av-ring); }
+.avatar.load { background: linear-gradient(100deg, var(--skel) 30%, var(--skel-shine) 50%, var(--skel) 70%) !important; background-size: 300% 100% !important; animation: shine 1.2s linear infinite; }
+.acct { flex: 1; display: flex; gap: 14px; align-items: center; min-width: 0; }
+.acct .lbl { min-width: 0; }
+.app.m .srow:has(> .acct) { flex-wrap: wrap; row-gap: 12px; }
+.app.m .srow > .acct { flex-basis: 100%; }
+.who { display: flex; gap: 14px; align-items: center; }
+.who b { display: block; font-size: 16px; }
+.who small { color: var(--fg2); font-size: 13px; }
 .app.m .prow { flex-wrap: nowrap; gap: 12px; }
 .app.m .prow .lbl { flex: 1 1 0; }
 .app.m .prow .btn { height: 32px; padding: 0 10px; font-size: 13px; }
@@ -907,6 +919,13 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
         <option value="off">отключены</option>
         <option value="error">ошибка сети</option>
       </select></span>
+      <span class="pf"><label for="demoAvatar">Аватар:</label>
+      <select id="demoAvatar" aria-label="Аватар профиля">
+        <option value="gh">GitHub</option>
+        <option value="letter">буква</option>
+        <option value="loading">GitHub: загрузка</option>
+        <option value="error">GitHub: ошибка загрузки</option>
+      </select></span>
       <span class="pf"><label for="demoCommunity">Сообщество:</label>
       <select id="demoCommunity" aria-label="Состояние вкладки «Сообщество»">
         <option value="ok">есть ролики</option>
@@ -1056,7 +1075,22 @@ const PROFILES = [
 ];
 let CUR = 'yu';
 const prof = (id = CUR) => PROFILES.find(x => x.id === id);
-const avatarHtml = (p, size) => `<span class="avatar" style="background:hsl(${p.h} 70% 66%)${size ? `;width:${size}px;height:${size}px;font-size:${Math.round(size * .4)}px` : ''}">${esc(p.name[0])}</span>`;
+/* Аватар профиля: картинка GitHub (avatar_url) у профилей со входом, иначе буква. Загрузка — круг-скелетон, ошибка — снова буква.
+   В прототипе вместо фото — identicon (так выглядят аватары GitHub по умолчанию): реальных фото в публичном репозитории нет. */
+function identicon(seed) {
+  let h = 0; for (const ch of seed) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+  const hue = h % 360, fg = `hsl(${hue} 55% 55%)`; let cells = '';
+  for (let y = 0; y < 5; y++) for (let x = 0; x < 3; x++) if ((h >>> (y * 3 + x)) & 1) { cells += `<rect x="${x + .5}" y="${y + .5}" width="1" height="1"/>`; if (x < 2) cells += `<rect x="${4 - x + .5}" y="${y + .5}" width="1" height="1"/>`; }
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 6" shape-rendering="crispEdges"><rect width="6" height="6" fill="#F0F0F0"/><g fill="${fg}">${cells}</g></svg>`);
+}
+const avMode = () => { const el = document.querySelector('#demoAvatar'); return el ? el.value : 'gh'; };
+const avatarHtml = (p, size) => {
+  const dim = size ? `;width:${size}px;height:${size}px;font-size:${Math.round(size * .4)}px` : '';
+  const m = p.gh ? avMode() : 'letter';
+  if (m === 'gh') return `<span class="avatar img" style="${dim.slice(1)}"><img src="${identicon(p.gh)}" alt="" width="${size || 32}" height="${size || 32}"></span>`;
+  if (m === 'loading') return `<span class="avatar load" style="${dim.slice(1)}" aria-hidden="true"></span>`;
+  return `<span class="avatar" style="background:hsl(${p.h} 70% 66%)${dim}"${m === 'error' ? ' title="Не удалось загрузить аватар GitHub"' : ''}>${esc(p.name[0])}</span>`;
+};
 function saveLists() { const p = prof(); p.lists = {}; DATA.forEach(a => { if (a.st) p.lists[a.id] = { st:a.st, pr:a.pr }; }); p.sync = $('#demoSync').value; if (p.id !== 'yu') p.total = Object.keys(p.lists).length; }
 function loadLists(p) { DATA.forEach(a => { const v = p.lists && p.lists[a.id]; a.st = v ? v.st : undefined; a.pr = v ? (v.pr || 0) : undefined; }); $('#demoSync').value = p.sync; }
 function switchProfile(id) {
@@ -1223,6 +1257,7 @@ function viewLogin() {
     <div class="wait">${ic('sync')}Ждём подтверждения на GitHub · код действует 15 мин</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-tonal" type="button" data-login="done">Демо: подтверждено</button><button class="btn btn-text" type="button" data-login="fail">Демо: ошибка</button><button class="btn btn-text" type="button" data-login="taken">Демо: аккаунт уже в другом профиле</button><button class="btn btn-text" type="button" data-login="start">Отмена</button></div>`;
   if (st === 'done') body = `
+    <div class="who">${avatarHtml(prof(), 56)}<span><b>${esc(prof().gh || 'yuki-dev')}</b><small>GitHub · профиль «${esc(prof().name)}»</small></span></div>
     <div class="sync ok">${ic('cloud_done')}<span class="msg"><b>Профиль «${esc(prof().name)}» привязан к ${esc(prof().gh || 'yuki-dev')}.</b> Списки объединены с Gist «anime-lists»: 184 тайтла, по 5 взята более свежая запись.</span></div>
     <a class="btn btn-filled" href="#lists" style="text-decoration:none;justify-self:start">Открыть мои списки</a>`;
   if (st === 'taken') { const o = PROFILES.find(x => x.id !== CUR && x.gh) || PROFILES[0]; body = `
@@ -1365,7 +1400,7 @@ function viewSettings() {
     </section>
     <section class="group"><div class="overline">Аккаунт профиля «${esc(cp.name)}»</div>
       ${out ? '' : `<div class="srow">${syncBar()}</div>`}
-      <div class="srow"><span class="lbl">${out ? 'Вход не выполнен<small>Списки хранятся только на этом устройстве</small>' : `GitHub · ${esc(cp.gh || 'yuki-dev')}<small>Приватный Gist «anime-lists» · ${cp.total} тайтлов</small>`}</span>
+      <div class="srow"><span class="acct">${avatarHtml(cp, 56)}<span class="lbl">${out ? 'Вход не выполнен<small>Списки хранятся только на этом устройстве</small>' : `GitHub · ${esc(cp.gh || 'yuki-dev')}<small>Приватный Gist «anime-lists» · ${cp.total} тайтлов</small>`}</span></span>
         ${out ? `<a class="btn btn-filled" href="#login" style="text-decoration:none">${ic('login')}Войти через GitHub</a>` : `<button class="btn btn-outline" type="button" data-act="logout">Выйти из GitHub</button>`}</div>
     </section>
     <div class="cap" style="margin-bottom:-16px">Настройки ниже общие для всех профилей на этом устройстве.</div>
@@ -1904,7 +1939,7 @@ function profileMenu() {
   }
   const m = $('#pmenu'); if (m) { m.remove(); return; }
   const el = document.createElement('div'); el.className = 'pmenu'; el.id = 'pmenu'; el.setAttribute('role', 'menu');
-  el.innerHTML = `<div class="overline" style="padding:8px 10px 4px">Профиль</div>${PROFILES.map(x => `<button type="button" role="menuitemradio" aria-checked="${x.id === CUR}" data-pfswitch="${x.id}">${avatarHtml(x, 28)}<span><div>${esc(x.name)}</div><small>${x.gh ? 'GitHub · ' + esc(x.gh) : 'Без входа в GitHub'}</small></span>${x.id === CUR ? `<span class="chk">${ic('check')}</span>` : ''}</button>`).join('')}
+  el.innerHTML = `<div class="overline" style="padding:8px 10px 4px">Профиль</div>${PROFILES.map(x => `<button type="button" role="menuitemradio" aria-checked="${x.id === CUR}" data-pfswitch="${x.id}">${avatarHtml(x, 32)}<span><div>${esc(x.name)}</div><small>${x.gh ? 'GitHub · ' + esc(x.gh) : 'Без входа в GitHub'}</small></span>${x.id === CUR ? `<span class="chk">${ic('check')}</span>` : ''}</button>`).join('')}
     <hr><button type="button" data-act="pfAdd">${ic('plus')}Добавить профиль</button><a href="#settings" class="pm-link">${ic('settings')}Управление профилями</a>`;
   $('#device').appendChild(el);
 }
@@ -2067,6 +2102,7 @@ document.addEventListener('change', e => {
   if (e.target.id === 'demoPlatform') render();
   if (e.target.id === 'demoTrailer') { TRL.searched = {}; TRL.found = {}; TRL.searching = null; TRL.fail = {}; if (route() === 'title') render(); else location.hash = 'title'; }
   if (e.target.id === 'trDemo') { C.trDemo = e.target.value; TR.st = {}; TR.showOrig.clear(); TR.pack = {}; TR.pending = null; paintComments(); }
+  if (e.target.id === 'demoAvatar') render();
   if (e.target.id === 'demoCommunity') { S.titleTab = 'community'; if (route() === 'player' && P.clip) render(); else if (route() === 'title') render(); else location.hash = 'title'; }
   if (e.target.id === 'demoComments') { C.more = false; paintComments(); }
   if (e.target.id === 'nFail') E.failNext = e.target.checked;
