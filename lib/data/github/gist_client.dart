@@ -20,13 +20,15 @@ class GistClient {
 
   /// Владелец токена и права classic-токена (заголовок `X-OAuth-Scopes`;
   /// `null` — GitHub его не прислал или браузер не дал прочитать).
-  Future<({String login, Set<String>? scopes})> currentUser() async {
+  Future<({String login, String? avatarUrl, Set<String>? scopes})>
+  currentUser() async {
     final response = await _request('GET', _base.resolve('/user'));
     final json =
         jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     final header = response.headers['x-oauth-scopes'];
     return (
       login: json['login'] as String,
+      avatarUrl: json['avatar_url'] as String?,
       scopes: header == null
           ? null
           : {

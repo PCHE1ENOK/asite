@@ -6,6 +6,7 @@ import '../data/github/github_auth.dart';
 import '../data/github/github_exception.dart';
 import '../data/sync/sync_service.dart';
 import '../platform/platform.dart' as platform;
+import 'profiles/profile_widgets.dart';
 
 /// Вход через GitHub Device Flow (design/screens.md §5).
 ///
@@ -172,6 +173,8 @@ class _LoginFlowState extends State<LoginFlow> {
 
     if (_result case final result?) {
       children.addAll([
+        GitHubAvatar(url: result.avatarUrl, letter: result.login, size: 56),
+        const SizedBox(height: 12),
         Text(
           'Вы вошли как ${result.login}',
           style: theme.textTheme.headlineSmall,

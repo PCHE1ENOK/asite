@@ -109,6 +109,10 @@ class AppScope extends InheritedWidget {
   static AppScope of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<AppScope>()!;
 
+  /// [AppScope] или `null` (экраны поверх приложения в тестах).
+  static AppScope? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<AppScope>();
+
   @override
   bool updateShouldNotify(AppScope old) =>
       services != old.services ||

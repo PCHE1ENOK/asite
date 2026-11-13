@@ -5,9 +5,14 @@ import 'package:http/testing.dart';
 
 /// Поддельный GitHub: Device Flow, /user и /gists в памяти.
 class FakeGitHub {
-  FakeGitHub({this.login = 'octocat'});
+  FakeGitHub({this.login = 'octocat', String? avatarUrl})
+    : avatarUrl = avatarUrl ?? 'https://avatars.githubusercontent.com/u/1?v=4';
 
-  final String login;
+  String login;
+
+  /// `avatar_url` в ответе `/user`.
+  String? avatarUrl;
+  int userRequests = 0;
   final gists = <String, Map<String, String>>{};
   var pendingPolls = 1;
   String? tokenError;
@@ -56,7 +61,12 @@ class FakeGitHub {
       return _json({'message': 'Bad credentials'}, 401);
     }
     if (path == '/user') {
-      return _json({'login': login}, 200, {'x-oauth-scopes': ?scopes});
+      userRequests++;
+      return _json(
+        {'login': login, 'avatar_url': ?avatarUrl},
+        200,
+        {'x-oauth-scopes': ?scopes},
+      );
     }
     if (path == '/gists' && r.method == 'GET') {
       final page = int.parse(r.url.queryParameters['page'] ?? '1');

@@ -83,9 +83,13 @@ class SignInResult {
     required this.gistCreated,
     required this.entryCount,
     required this.conflicts,
+    this.avatarUrl,
   });
 
   final String login;
+
+  /// Аватар аккаунта GitHub.
+  final String? avatarUrl;
 
   /// `true` — создан новый Gist, `false` — найден существующий.
   final bool gistCreated;
@@ -151,6 +155,8 @@ class SyncService {
   String get _gistIdKey =>
       ProfileRepository.settingKey(profileId, 'sync_gist_id');
   String get _loginKey => ProfileRepository.settingKey(profileId, 'sync_login');
+  String get _avatarCheckedKey =>
+      ProfileRepository.settingKey(profileId, 'github_avatar_checked_at');
   String get _lastSyncedKey =>
       ProfileRepository.settingKey(profileId, 'sync_last_synced_at');
 
@@ -332,13 +338,13 @@ class SyncService {
   }) async {
     final token = await _auth()!.waitForToken(code, isCancelled: isCancelled);
     final client = _gistClient(token);
-    final String login;
+    final ({String login, String? avatarUrl, Set<String>? scopes}) user;
     try {
-      login = await client.currentLogin();
+      user = await client.currentUser();
     } finally {
       client.close();
     }
-    return _finishSignIn(token, login);
+    return _finishSignIn(token, user.login, user.avatarUrl);
   }
 
   /// Вход вставленным токеном (веб-версия: Device Flow в браузере
@@ -361,7 +367,7 @@ class SyncService {
       );
     }
     final client = _gistClient(token);
-    final ({String login, Set<String>? scopes}) user;
+    final ({String login, String? avatarUrl, Set<String>? scopes}) user;
     try {
       user = await client.currentUser();
     } on GitHubException catch (e) {
@@ -389,14 +395,18 @@ class SyncService {
         );
       }
     }
-    return _finishSignIn(token, user.login);
+    return _finishSignIn(token, user.login, user.avatarUrl);
   }
 
-  Future<SignInResult> _finishSignIn(String token, String login) async {
+  Future<SignInResult> _finishSignIn(
+    String token,
+    String login,
+    String? avatarUrl,
+  ) async {
     // Один аккаунт GitHub — один профиль: иначе списки разных людей
     // смешаются. Токен не сохраняем, списки профиля не трогаем.
     try {
-      await profiles.bindGitHub(profileId, login);
+      await profiles.bindGitHub(profileId, login, avatarUrl: avatarUrl);
     } on GitHubAccountInUse catch (e) {
       throw GitHubException(
         GitHubErrorKind.accountInUse,
@@ -411,6 +421,7 @@ class SyncService {
     await _tokens.write(token);
     _token = token;
     await _db.putSetting(_loginKey, login);
+    await _db.putSetting(_avatarCheckedKey, _now().toUtc().toIso8601String());
 
     final hadGist = await syncNow().then((_) => _lastHadGist);
     final error = state.value.error;
@@ -419,6 +430,7 @@ class SyncService {
     final entries = await _library.allForSync();
     return SignInResult(
       login: login,
+      avatarUrl: avatarUrl,
       gistCreated: !hadGist,
       entryCount: entries.where((e) => !e.deleted).length,
       conflicts: _lastConflicts,
@@ -433,6 +445,7 @@ class SyncService {
     await _db.putSetting(_gistIdKey, null);
     await _db.putSetting(_loginKey, null);
     await _db.putSetting(_lastSyncedKey, null);
+    await _db.putSetting(_avatarCheckedKey, null);
     await profiles.unbindGitHub(profileId);
     await _publishIdle();
   }
@@ -452,6 +465,22 @@ class SyncService {
       _rerun = false;
       await _syncOnce();
     } while (_rerun && _token != null);
+  }
+
+  /// Аватар GitHub обновляется не чаще раза в сутки; ошибка не мешает
+  /// синхронизации (останется прежний аватар или буква).
+  Future<void> _refreshAvatar(GistClient client) async {
+    final last = DateTime.tryParse(await _db.setting(_avatarCheckedKey) ?? '');
+    if (last != null && _now().difference(last) < const Duration(days: 1)) {
+      return;
+    }
+    try {
+      final user = await client.currentUser();
+      await profiles.setGitHubAvatar(profileId, user.avatarUrl);
+      await _db.putSetting(_avatarCheckedKey, _now().toUtc().toIso8601String());
+    } on Object {
+      // Повторим при следующей синхронизации.
+    }
   }
 
   Future<void> _syncOnce() async {
@@ -507,6 +536,7 @@ class SyncService {
       if (notesMerge != null) await notes!.markSynced(notesMerge.entries);
       if (favMerge != null) await favorites!.markSynced(favMerge.entries);
       await _db.putSetting(_lastSyncedKey, _now().toUtc().toIso8601String());
+      await _refreshAvatar(client);
       await _publishIdle();
       await _updateShare();
     } on GitHubException catch (e) {

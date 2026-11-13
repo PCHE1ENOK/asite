@@ -340,6 +340,29 @@ class _Row extends StatelessWidget {
   }
 }
 
+/// Аватар текущего профиля; обновляется, когда синхронизация получает
+/// новый аватар GitHub.
+class _CurrentProfileAvatar extends StatelessWidget {
+  const _CurrentProfileAvatar({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = AppScope.of(context).services;
+    final current = services.profile;
+    return StreamBuilder<List<Profile>>(
+      stream: services.profiles.watchAll(),
+      builder: (context, snapshot) => ProfileAvatar(
+        profile:
+            snapshot.data?.where((p) => p.id == current.id).firstOrNull ??
+            current,
+        size: size,
+      ),
+    );
+  }
+}
+
 class _ThemePicker extends StatelessWidget {
   const _ThemePicker({required this.value, required this.onChanged});
 
@@ -433,6 +456,7 @@ class _AccountGroup extends StatelessWidget {
             _Row(
               title: 'GitHub · ${state.login ?? ''}',
               subtitle: 'Списки в приватном Gist',
+              avatar: const _CurrentProfileAvatar(size: 56),
               trailing: OutlinedButton(
                 onPressed: () async {
                   await sync.signOut();

@@ -46,6 +46,9 @@ class Profiles extends Table {
   /// Логин GitHub; один аккаунт — один профиль.
   TextColumn get githubLogin => text().nullable().unique()();
   DateTimeColumn get createdAt => dateTime()();
+
+  /// Аватар аккаунта GitHub (`avatar_url` из `GET /user`), схема 6.
+  TextColumn get githubAvatarUrl => text().nullable()();
 }
 
 @DataClassName('LibraryEntryRow')
@@ -144,7 +147,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   /// Id профиля «Основной», в который переносятся списки из версии 2.
   static const defaultProfileId = 1;
@@ -219,6 +222,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5) {
         // «Понравилось».
         await m.createTable(favorites);
+      }
+      // До версии 3 таблица профилей создаётся выше уже с этой колонкой.
+      if (from >= 3 && from < 6) {
+        // Аватар GitHub.
+        await m.addColumn(profiles, profiles.githubAvatarUrl);
       }
     },
     beforeOpen: (details) => customStatement('PRAGMA foreign_keys = ON'),

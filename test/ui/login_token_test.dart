@@ -5,6 +5,7 @@ import 'package:anime_viewer/data/library/library_repository.dart';
 import 'package:anime_viewer/data/profiles/profile_repository.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:anime_viewer/ui/login_flow.dart';
+import 'package:anime_viewer/ui/theme/app_theme.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final db = AppDatabase(NativeDatabase.memory());
-    final github = FakeGitHub()..token = 'ghp_ok';
+    final github = FakeGitHub()
+      ..token = 'ghp_ok'
+      // Без картинки: в тесте нет сети, аватар — буква.
+      ..avatarUrl = null;
     final tokens = MemoryTokenStore();
     final sync = SyncService(
       library: LibraryRepository(db),
@@ -36,6 +40,7 @@ void main() {
     );
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.build(Brightness.dark),
         home: LoginFlow(sync: sync, onDone: () {}, pasteToken: true),
       ),
     );
@@ -64,6 +69,11 @@ void main() {
     await UiHarness.settle(tester);
     await tester.pumpAndSettle();
     expect(find.text('Вы вошли как octocat'), findsOneWidget);
+    expect(
+      find.text('O'),
+      findsOneWidget,
+      reason: 'аватар без картинки — буква',
+    );
     expect(tokens.token, 'ghp_ok');
 
     await tester.pumpWidget(const SizedBox.shrink());
