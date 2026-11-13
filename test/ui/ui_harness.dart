@@ -110,6 +110,12 @@ class UiHarness {
         final library = LibraryRepository(db, profileId: profile.id);
         final notes = NotesRepository(db, profileId: profile.id);
         final favorites = FavoritesRepository(db, profileId: profile.id);
+        final friends = FriendsRepository(
+          db,
+          profileId: profile.id,
+          token: () => friendsToken,
+          gistClient: (t) => GistClient(t, httpClient: github.client),
+        );
         return ProfileSession(
           profile: profile,
           library: library,
@@ -124,13 +130,9 @@ class UiHarness {
             profiles: profiles,
             auth: () => null,
             gistClient: (token) => GistClient(token, httpClient: github.client),
+            friends: friends,
           ),
-          friends: FriendsRepository(
-            db,
-            profileId: profile.id,
-            token: () => friendsToken,
-            gistClient: (t) => GistClient(t, httpClient: github.client),
-          ),
+          friends: friends,
         );
       },
       initialProfile: const Profile(
@@ -335,6 +337,8 @@ class UiHarness {
 
   Future<void> dispose(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox.shrink());
+    // Отложенная синхронизация (после изменений) не должна пережить тест.
+    await run(tester, services.sync.dispose);
     await run(tester, services.favorites.dispose);
     // Подписки drift закрываются по таймеру; ждём их в тестовом времени.
     await tester.pump(const Duration(seconds: 1));

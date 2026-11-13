@@ -117,7 +117,15 @@ class AppServices {
         final library = LibraryRepository(db, profileId: profile.id);
         final notes = NotesRepository(db, profileId: profile.id);
         final favorites = FavoritesRepository(db, profileId: profile.id);
-        final sync = SyncService(
+        // Токен для поиска друзей — из синхронизации, список друзей
+        // синхронизируется через тот же приватный Gist.
+        late final SyncService sync;
+        final friends = FriendsRepository(
+          db,
+          profileId: profile.id,
+          token: () => sync.token,
+        );
+        sync = SyncService(
           library: library,
           notes: notes,
           favorites: favorites,
@@ -153,6 +161,7 @@ class AppServices {
               : null,
           gistClient: GistClient.new,
           tokenSignIn: isWeb,
+          friends: friends,
         );
         return ProfileSession(
           profile: profile,
@@ -160,11 +169,7 @@ class AppServices {
           notes: notes,
           favorites: favorites,
           sync: sync,
-          friends: FriendsRepository(
-            db,
-            profileId: profile.id,
-            token: () => sync.token,
-          ),
+          friends: friends,
         );
       },
       initialProfile: await profiles.active(),

@@ -13,6 +13,7 @@ import '../models/favorite.dart';
 import '../models/title_note.dart';
 import '../notes/notes_repository.dart';
 import '../profiles/profile_repository.dart';
+import '../friends/friends_repository.dart';
 import '../share/share_codec.dart';
 import 'library_codec.dart';
 import 'library_merge.dart';
@@ -131,6 +132,7 @@ class SyncService {
     this.shareInterval = const Duration(minutes: 5),
     this.debounce = const Duration(seconds: 5),
     this.tokenSignIn = false,
+    this.friends,
     DateTime Function()? clock,
   }) : _now = clock ?? DateTime.now;
 
@@ -144,6 +146,9 @@ class SyncService {
 
   /// Вход вставленным токеном ([signInWithToken]) — веб-версия.
   final bool tokenSignIn;
+
+  /// Друзья профиля: список синхронизируется вместе со списками.
+  final FriendsRepository? friends;
 
   /// Профили: привязка логина GitHub к профилю списков.
   final ProfileRepository profiles;
@@ -212,6 +217,7 @@ class SyncService {
     _library.onChanged = _scheduleSync;
     notes?.onChanged = _scheduleSync;
     favorites?.onChanged = _scheduleSync;
+    friends?.onChanged = _scheduleSync;
     _pendingSub ??= _library.watchPendingCount().listen((c) {
       _libraryPending = c;
       _onPendingChanged(_allPending);
@@ -350,6 +356,7 @@ class SyncService {
     _library.onChanged = null;
     notes?.onChanged = null;
     favorites?.onChanged = null;
+    friends?.onChanged = null;
     state.dispose();
     share.dispose();
   }
@@ -546,6 +553,7 @@ class SyncService {
       final merge = mergeLibraries(local, remote);
       final notesMerge = await _mergeNotes(remoteFile.notes);
       final favMerge = await _mergeFavorites(remoteFile.favorites);
+      final friendsMerge = await _mergeFriends(remoteFile.friends);
       _lastHadGist = gistId != null;
       _lastConflicts = merge.conflicts;
 
@@ -561,6 +569,7 @@ class SyncService {
         merge.entries,
         notes: notesMerge?.entries ?? const [],
         favorites: favMerge?.entries ?? const [],
+        friends: friendsMerge?.friends ?? remoteFile.friends,
       );
       if (gistId == null) {
         final id = await client.createGist(
@@ -571,7 +580,8 @@ class SyncService {
         await _db.putSetting(_gistIdKey, id);
       } else if (merge.remoteChanged ||
           (notesMerge?.remoteChanged ?? false) ||
-          (favMerge?.remoteChanged ?? false)) {
+          (favMerge?.remoteChanged ?? false) ||
+          (friendsMerge?.remoteChanged ?? false)) {
         await client.writeFile(gistId, LibraryCodec.fileName, content);
       }
       await _library.markSynced(merge.entries);
@@ -619,6 +629,15 @@ class SyncService {
   }
 
   /// «Понравилось»: слияние по `updatedAt` на тайтл.
+  /// Друзья: слияние по нику, удаление доходит до всех устройств.
+  Future<FriendsMerge?> _mergeFriends(List<Friend> remote) async {
+    final repo = friends;
+    if (repo == null) return null;
+    final merge = mergeFriends(await repo.allForSync(), remote);
+    if (merge.localChanged) await repo.applyMerged(merge.friends);
+    return merge;
+  }
+
   Future<MergeResult<Favorite>?> _mergeFavorites(List<Favorite> remote) async {
     final repo = favorites;
     if (repo == null) return null;

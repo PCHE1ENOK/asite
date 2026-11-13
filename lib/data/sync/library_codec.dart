@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../friends/friends_repository.dart';
 import '../models/favorite.dart';
 import '../models/library_entry.dart';
 import '../models/title_note.dart';
@@ -10,11 +11,15 @@ class LibraryFile {
     this.entries = const [],
     this.notes = const [],
     this.favorites = const [],
+    this.friends = const [],
   });
 
   final List<LibraryEntry> entries;
   final List<TitleNote> notes;
   final List<Favorite> favorites;
+
+  /// Друзья (с удалёнными записями), с версии 4.
+  final List<Friend> friends;
 }
 
 /// Формат файла списков в Gist.
@@ -23,20 +28,23 @@ abstract final class LibraryCodec {
   static const description = 'Anime Viewer: списки пользователя';
 
   /// 2 — добавлено поле `notes` (заметки о тайтлах); 3 — `favorites`
-  /// («Понравилось»). Файлы старых версий читаются без этих полей, а старая
-  /// версия приложения неизвестные поля пропускает.
-  static const version = 3;
+  /// («Понравилось»); 4 — `friends` (друзья по нику GitHub). Файлы старых
+  /// версий читаются без этих полей, а старая версия приложения
+  /// неизвестные поля пропускает.
+  static const version = 4;
 
   static String encode(
     List<LibraryEntry> entries, {
     List<TitleNote> notes = const [],
     List<Favorite> favorites = const [],
+    List<Friend> friends = const [],
   }) => const JsonEncoder.withIndent('  ').convert({
     'app': 'anime_viewer',
     'version': version,
     'entries': [for (final e in entries) e.toJson()],
     'notes': [for (final n in notes) n.toJson()],
     'favorites': [for (final f in favorites) f.toJson()],
+    'friends': [for (final f in friends) f.toJson()],
   });
 
   /// Только записи списков.
@@ -57,6 +65,7 @@ abstract final class LibraryCodec {
     final entries = json['entries'];
     final notes = json['notes'];
     final favorites = json['favorites'];
+    final friends = json['friends'];
     return LibraryFile(
       entries: [
         if (entries is List)
@@ -72,6 +81,10 @@ abstract final class LibraryCodec {
         if (favorites is List)
           for (final f in favorites)
             if (f is Map<String, dynamic>) ?Favorite.tryFromJson(f),
+      ],
+      friends: [
+        if (friends is List)
+          for (final f in friends) ?Friend.fromJson(f),
       ],
     );
   }

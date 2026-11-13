@@ -9,8 +9,10 @@ import '../models/library_entry.dart';
 import '../profiles/profile_repository.dart';
 import '../share/share_codec.dart';
 
-/// Друг: пользователь GitHub с публичным каталогом. Хранится локально в
-/// профиле.
+/// Друг: пользователь GitHub с публичным каталогом. Список друзей
+/// синхронизируется через приватный Gist вместе со списками; удалённый
+/// друг остаётся записью с [deletedAt], чтобы удаление дошло до всех
+/// устройств.
 @immutable
 class Friend {
   const Friend({
@@ -18,6 +20,7 @@ class Friend {
     this.avatarUrl,
     required this.addedAt,
     this.name,
+    this.deletedAt,
   });
 
   final String login;
@@ -27,6 +30,17 @@ class Friend {
   /// Имя профиля друга из его каталога («Мика»); нет — ник.
   final String? name;
 
+  /// Удалён из друзей (запись-«надгробие» для синхронизации).
+  final DateTime? deletedAt;
+
+  bool get deleted => deletedAt != null;
+
+  /// Время последнего изменения: при слиянии побеждает более позднее.
+  DateTime get updatedAt => deletedAt ?? addedAt;
+
+  /// Ключ сравнения ников (GitHub не различает регистр).
+  String get key => login.toLowerCase();
+
   String get displayName => name == null || name!.isEmpty ? login : name!;
 
   Map<String, dynamic> toJson() => {
@@ -34,17 +48,21 @@ class Friend {
     'avatarUrl': ?avatarUrl,
     'name': ?name,
     'addedAt': addedAt.toUtc().toIso8601String(),
+    'deletedAt': ?deletedAt?.toUtc().toIso8601String(),
   };
 
   static Friend? fromJson(Object? json) {
     if (json is! Map || json['login'] is! String) return null;
+    final login = (json['login'] as String).trim();
+    if (login.isEmpty) return null;
     return Friend(
-      login: json['login'] as String,
+      login: login,
       avatarUrl: json['avatarUrl'] as String?,
       name: json['name'] as String?,
       addedAt:
-          DateTime.tryParse(json['addedAt'] as String? ?? '') ??
+          DateTime.tryParse(json['addedAt'] as String? ?? '')?.toUtc() ??
           DateTime.utc(1970),
+      deletedAt: DateTime.tryParse(json['deletedAt'] as String? ?? '')?.toUtc(),
     );
   }
 
@@ -54,10 +72,58 @@ class Friend {
       other.login == login &&
       other.avatarUrl == avatarUrl &&
       other.addedAt == addedAt &&
-      other.name == name;
+      other.name == name &&
+      other.deletedAt == deletedAt;
 
   @override
-  int get hashCode => Object.hash(login, avatarUrl, addedAt, name);
+  int get hashCode => Object.hash(login, avatarUrl, addedAt, name, deletedAt);
+}
+
+/// Итог слияния списков друзей устройства и Gist.
+class FriendsMerge {
+  const FriendsMerge({
+    required this.friends,
+    required this.localChanged,
+    required this.remoteChanged,
+  });
+
+  /// Все записи (с удалёнными), по нику.
+  final List<Friend> friends;
+  final bool localChanged;
+  final bool remoteChanged;
+}
+
+/// Слияние по нику: побеждает запись с более поздним [Friend.updatedAt]
+/// (добавление или удаление); при равенстве — удаление.
+FriendsMerge mergeFriends(List<Friend> local, List<Friend> remote) {
+  final byKey = <String, Friend>{};
+  void put(Friend f) {
+    final old = byKey[f.key];
+    if (old == null ||
+        f.updatedAt.isAfter(old.updatedAt) ||
+        (f.updatedAt == old.updatedAt && f.deleted && !old.deleted)) {
+      byKey[f.key] = f;
+    }
+  }
+
+  for (final f in remote) {
+    put(f);
+  }
+  for (final f in local) {
+    put(f);
+  }
+  final merged = byKey.values.toList()
+    ..sort((a, b) => a.addedAt.compareTo(b.addedAt));
+  bool same(List<Friend> side) {
+    final m = {for (final f in side) f.key: f};
+    return m.length == merged.length && merged.every((f) => m[f.key] == f);
+  }
+
+  return FriendsMerge(
+    friends: merged,
+    localChanged: !same(local),
+    remoteChanged: !same(remote),
+  );
 }
 
 /// Заметка друга о тайтле (как в его файле).
@@ -293,9 +359,16 @@ class FriendsRepository {
   String _catalogKey(String login) =>
       'friend:$profileId:${login.toLowerCase()}';
 
-  /// Список друзей; загружается при первом [load].
+  /// Список друзей (без удалённых); загружается при первом [load].
   final friends = ValueNotifier<List<Friend>>(const []);
+
+  /// Все записи, включая удалённые («надгробия» для синхронизации).
+  List<Friend> _all = const [];
   bool _loaded = false;
+
+  /// Вызывается после изменения списка пользователем — синхронизация
+  /// отправит его в Gist.
+  VoidCallback? onChanged;
 
   Future<List<Friend>> load() async {
     if (_loaded) return friends.value;
@@ -311,15 +384,34 @@ class FriendsRepository {
       }
     }
     _loaded = true;
-    return friends.value = list;
+    _all = list;
+    return friends.value = [
+      for (final f in list)
+        if (!f.deleted) f,
+    ];
   }
 
-  Future<void> _save(List<Friend> list) async {
-    friends.value = list;
+  Future<void> _save(List<Friend> all, {bool notify = true}) async {
+    _all = all;
+    friends.value = [
+      for (final f in all)
+        if (!f.deleted) f,
+    ];
     await _db.putSetting(
       _listKey,
-      jsonEncode([for (final f in list) f.toJson()]),
+      jsonEncode([for (final f in all) f.toJson()]),
     );
+    if (notify) onChanged?.call();
+  }
+
+  /// Заменяет запись с тем же ником или добавляет новую.
+  Future<void> _put(Friend friend) async {
+    await load();
+    await _save([
+      for (final f in _all)
+        if (f.key != friend.key) f,
+      friend,
+    ]);
   }
 
   bool contains(String login) =>
@@ -328,15 +420,14 @@ class FriendsRepository {
   Future<void> add(FriendFound found) async {
     await load();
     if (contains(found.login)) return;
-    await _save([
-      ...friends.value,
+    await _put(
       Friend(
         login: found.login,
         avatarUrl: found.avatarUrl,
         addedAt: _now().toUtc(),
         name: found.catalog?.owner,
       ),
-    ]);
+    );
   }
 
   /// Каталог друга из кэша без сети (для карточки в списке); `null` —
@@ -351,22 +442,46 @@ class FriendsRepository {
     }
   }
 
-  /// Возвращает удалённого друга («Отменить»).
+  /// Возвращает удалённого друга («Отменить»): запись свежее удаления.
   Future<void> restore(Friend friend) async {
     await load();
     if (contains(friend.login)) return;
-    await _save([...friends.value, friend]);
+    await _put(
+      Friend(
+        login: friend.login,
+        avatarUrl: friend.avatarUrl,
+        name: friend.name,
+        addedAt: _now().toUtc(),
+      ),
+    );
   }
 
-  /// Удаление — только из своего списка; у друга ничего не меняется.
+  /// Удаление — из своего списка на всех устройствах (через Gist); у
+  /// друга ничего не меняется.
   Future<void> remove(String login) async {
     await load();
-    await _save([
-      for (final f in friends.value)
-        if (f.login.toLowerCase() != login.toLowerCase()) f,
-    ]);
+    final old = _all.where((f) => f.key == login.toLowerCase()).firstOrNull;
+    if (old == null || old.deleted) return;
+    await _put(
+      Friend(
+        login: old.login,
+        avatarUrl: old.avatarUrl,
+        name: old.name,
+        addedAt: old.addedAt,
+        deletedAt: _now().toUtc(),
+      ),
+    );
     await _db.putSetting('${_catalogKey(login)}:gist', null);
   }
+
+  /// Все записи для синхронизации (с удалёнными).
+  Future<List<Friend>> allForSync() async {
+    await load();
+    return _all;
+  }
+
+  /// Результат слияния с Gist — без нового сигнала [onChanged].
+  Future<void> applyMerged(List<Friend> all) => _save(all, notify: false);
 
   /// Ищет публичный каталог пользователя GitHub [rawLogin].
   Future<FriendLookup> find(String rawLogin) async {

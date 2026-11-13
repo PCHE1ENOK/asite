@@ -1,3 +1,7 @@
+import 'package:anime_viewer/data/friends/friends_repository.dart';
+
+import 'dart:convert';
+
 import 'package:anime_viewer/data/models/favorite.dart';
 import 'package:anime_viewer/data/favorites/favorites_repository.dart';
 import 'package:anime_viewer/data/cache/app_database.dart';
@@ -652,5 +656,171 @@ void main() {
         expect(await avatar(), isNull);
       },
     );
+  });
+
+  group('friends sync between devices', () {
+    final found = FriendFound(
+      login: 'yuki',
+      avatarUrl: 'https://avatars.githubusercontent.com/u/7?v=4',
+      titleCount: 3,
+    );
+
+    /// Второе устройство: своя база, тот же аккаунт GitHub.
+    Future<(SyncService, FriendsRepository, AppDatabase)> device({
+      bool web = false,
+    }) async {
+      final db2 = AppDatabase(NativeDatabase.memory());
+      final tokens2 = MemoryTokenStore();
+      late final SyncService s;
+      final friends = FriendsRepository(
+        db2,
+        profileId: AppDatabase.defaultProfileId,
+        token: () => s.token,
+        clock: () => now,
+      );
+      s = SyncService(
+        library: LibraryRepository(db2, clock: () => now),
+        db: db2,
+        tokens: tokens2,
+        profiles: ProfileRepository(db2),
+        auth: () => web
+            ? null
+            : GitHubAuth(
+                clientId: 'client',
+                httpClient: github.client,
+                delay: (_) async {},
+                clock: () => now,
+              ),
+        gistClient: (token) => GistClient(token, httpClient: github.client),
+        tokenSignIn: web,
+        friends: friends,
+        debounce: const Duration(milliseconds: 50),
+        clock: () => now,
+      );
+      await s.start();
+      return (s, friends, db2);
+    }
+
+    Future<void> close((SyncService, FriendsRepository, AppDatabase) d) async {
+      await d.$1.dispose();
+      d.$2.dispose();
+      await d.$3.close();
+    }
+
+    Future<void> signInDevice(SyncService s) async {
+      github.pendingPolls = 0;
+      await s.completeSignIn(await s.requestDeviceCode());
+    }
+
+    test('added on one device appears on another after sync', () async {
+      final a = await device();
+      final b = await device();
+      await signInDevice(a.$1);
+      await signInDevice(b.$1);
+
+      await a.$2.add(found);
+      await a.$1.syncNow();
+      final file = LibraryCodec.decodeFile(
+        github.gists.values.single[LibraryCodec.fileName],
+      );
+      expect(file.friends.single.login, 'yuki');
+
+      await b.$1.syncNow();
+      expect(b.$2.friends.value.single.login, 'yuki');
+      expect(
+        b.$2.friends.value.single.avatarUrl,
+        'https://avatars.githubusercontent.com/u/7?v=4',
+      );
+      await close(a);
+      await close(b);
+    });
+
+    test('removed on one device is removed on the other', () async {
+      final a = await device();
+      final b = await device();
+      await signInDevice(a.$1);
+      await signInDevice(b.$1);
+      await a.$2.add(found);
+      await a.$1.syncNow();
+      await b.$1.syncNow();
+      expect(b.$2.friends.value, hasLength(1));
+
+      now = now.add(const Duration(minutes: 1));
+      await b.$2.remove('yuki');
+      await b.$1.syncNow();
+      await a.$1.syncNow();
+      expect(a.$2.friends.value, isEmpty, reason: 'удаление дошло');
+      // Надгробие в Gist — устройство со старым списком не вернёт друга.
+      final file = LibraryCodec.decodeFile(
+        github.gists.values.single[LibraryCodec.fileName],
+      );
+      expect(file.friends.single.deleted, isTrue);
+
+      // Добавили снова позже удаления — снова друг на обоих.
+      now = now.add(const Duration(minutes: 1));
+      await a.$2.add(found);
+      await a.$1.syncNow();
+      await b.$1.syncNow();
+      expect(b.$2.friends.value.single.login, 'yuki');
+      await close(a);
+      await close(b);
+    });
+
+    test('old Gist format (v3, no friends) is read; friends kept', () async {
+      final a = await device();
+      await a.$2.add(found);
+      github.gists['old'] = {
+        LibraryCodec.fileName:
+            '{"app":"anime_viewer","version":3,'
+            '"entries":[],"notes":[],"favorites":[]}',
+      };
+      await signInDevice(a.$1);
+      expect(a.$2.friends.value.single.login, 'yuki');
+      final file = LibraryCodec.decodeFile(
+        github.gists['old']![LibraryCodec.fileName],
+      );
+      expect(file.friends.single.login, 'yuki', reason: 'дописано в v4');
+      expect(
+        jsonDecode(github.gists['old']![LibraryCodec.fileName]!)['version'],
+        4,
+      );
+      await close(a);
+    });
+
+    test('web sign-in with a token syncs and pulls friends', () async {
+      final a = await device();
+      await signInDevice(a.$1);
+      await a.$2.add(found);
+      await a.$1.syncNow();
+
+      github.token = 'ghp_web';
+      final web = await device(web: true);
+      expect(web.$2.friends.value, isEmpty);
+      await web.$1.signInWithToken('ghp_web');
+      expect(web.$1.state.value.status, SyncStatus.synced);
+      expect(web.$2.friends.value.single.login, 'yuki');
+      await close(a);
+      await close(web);
+    });
+
+    test('merge: later change wins, deletion wins a tie', () {
+      final t0 = DateTime.utc(2026, 11, 1);
+      Friend f(String login, DateTime added, [DateTime? deleted]) =>
+          Friend(login: login, addedAt: added, deletedAt: deleted);
+      final m = mergeFriends(
+        [f('a', t0), f('B', t0, t0.add(const Duration(hours: 1)))],
+        [f('A', t0, t0.add(const Duration(hours: 2))), f('b', t0)],
+      );
+      final byKey = {for (final x in m.friends) x.key: x};
+      expect(byKey['a']!.deleted, isTrue, reason: 'удаление позже');
+      expect(byKey['b']!.deleted, isTrue, reason: 'удаление позже');
+      expect(m.localChanged, isTrue);
+      expect(m.remoteChanged, isTrue);
+
+      final tie = mergeFriends([f('c', t0, t0)], [f('c', t0)]);
+      expect(tie.friends.single.deleted, isTrue);
+      final same = mergeFriends([f('d', t0)], [f('d', t0)]);
+      expect(same.localChanged || same.remoteChanged, isFalse);
+    });
   });
 }

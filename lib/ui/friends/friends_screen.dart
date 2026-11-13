@@ -50,7 +50,17 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final friends = _friends;
     for (final f in friends.friends.value) {
       if (_cached.containsKey(f.login)) continue;
-      final c = await friends.cached(f.login);
+      _cached[f.login] = null;
+      var c = await friends.cached(f.login);
+      // Друг пришёл с другого устройства (синхронизация) — каталога в
+      // кэше нет: загружаем из его публичного Gist.
+      if (c == null) {
+        try {
+          c = await friends.catalog(f.login);
+        } on Object {
+          c = null; // Без сети или лимит — карточка без счётчиков.
+        }
+      }
       if (!mounted) return;
       setState(() => _cached[f.login] = c);
     }
