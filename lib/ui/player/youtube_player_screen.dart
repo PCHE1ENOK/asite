@@ -307,7 +307,9 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
                   runSpacing: 8,
                   alignment: WrapAlignment.center,
                   children: [
-                    if ((details, episode) case (final d?, final e?))
+                    // В вебе кнопка — на карточке «Видео — в приложении».
+                    if ((details, episode) case (final d?, final e?)
+                        when !kIsWeb)
                       _markButton(context, t, d, e),
                     // Трейлер — упрощённый плеер: без серий, «Просмотрено»
                     // и комментариев (design/screens.md, «Трейлер»).
@@ -423,7 +425,19 @@ extension on _YouTubePlayerScreenState {
         onUnavailable: () => _readyTimer?.cancel(),
         fallback: _OpenOnYouTube(video: video),
       ),
-      EmbedKind.browser => _OpenOnYouTube(video: video),
+      // Веб: у серии — «Отметить серию N просмотренной» (§18.3).
+      EmbedKind.browser => _OpenOnYouTube(
+        video: video,
+        mark: switch ((details, video.episode)) {
+          (final d?, final e?) when kIsWeb => _markButton(
+            context,
+            context.tokens,
+            d,
+            e,
+          ),
+          _ => null,
+        },
+      ),
     };
   }
 }
@@ -559,9 +573,12 @@ class _EmbeddedPlayerState extends State<_EmbeddedPlayer> {
 }
 
 class _OpenOnYouTube extends StatelessWidget {
-  const _OpenOnYouTube({required this.video});
+  const _OpenOnYouTube({required this.video, this.mark});
 
   final EmbeddedVideo video;
+
+  /// «Отметить серию N просмотренной» — после просмотра на YouTube.
+  final Widget? mark;
 
   @override
   Widget build(BuildContext context) {
@@ -612,6 +629,7 @@ class _OpenOnYouTube extends StatelessWidget {
               icon: const Icon(Symbols.open_in_new_rounded),
               label: const Text('Открыть на YouTube'),
             ),
+            if (mark case final m?) ...[const SizedBox(height: 12), m],
           ],
         ),
       ),
