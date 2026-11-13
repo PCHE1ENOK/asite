@@ -488,6 +488,35 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .app.m .srow:has(> .acct) { flex-wrap: wrap; row-gap: 12px; }
 .app.m .srow > .acct { flex-basis: 100%; }
 .who { display: flex; gap: 14px; align-items: center; }
+/* ---------- Карусели: сезоны в каталоге, «Связанные» и «Рекомендации AniList» в карточке ---------- */
+.car { position: relative; margin-bottom: 36px; }
+.car-head { position: relative; display: grid; justify-items: center; gap: 4px; padding-top: 14px; margin-bottom: 16px; text-align: center; }
+.car-head::before { content: ""; position: absolute; top: 0; left: 50%; translate: -50% 0; width: 48px; height: 2px; border-radius: 1px; background: var(--accent); }
+.car-head h2 { font: 700 14px/20px var(--f-text); letter-spacing: .1em; text-transform: uppercase; color: var(--fg); }
+.car-head .cap { font-size: 12px; }
+.car-auto { position: absolute; right: 0; bottom: 0; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: var(--r-pill); font-size: 12px; font-weight: 500; color: var(--fg2); }
+.car-auto:hover { background: var(--hover); color: var(--fg); }
+.car-auto i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.car-auto .lbl { display: none; }
+.car.paused .car-auto .lbl, .car.stopped .car-auto .lbl { display: inline; }
+.car.paused .car-auto i, .car.stopped .car-auto i { width: 8px; height: 10px; border-radius: 0; background: none; border-left: 3px solid var(--fg2); border-right: 3px solid var(--fg2); }
+.car:not(.paused):not(.stopped) .car-auto i { animation: carpulse 5s linear infinite; }
+@keyframes carpulse { 0% { opacity: .35; } 90% { opacity: 1; } 100% { opacity: .35; } }
+.car-track { display: grid; grid-auto-flow: column; grid-auto-columns: 160px; gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding: 2px 2px 8px; scrollbar-width: none; overscroll-behavior-x: contain; }
+.car-track::-webkit-scrollbar { display: none; }
+.car-track > * { scroll-snap-align: start; }
+.car-arr { position: absolute; top: 100px; z-index: 3; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--s1); color: var(--fg); border: 1px solid var(--border); box-shadow: var(--shadow-2); transition: opacity .15s var(--ease); }
+.car-arr:hover { background: var(--s2); }
+.car-arr svg { width: 24px; height: 24px; }
+.car-arr.prev { left: -14px; } .car-arr.next { right: -14px; }
+.car-arr:disabled { opacity: 0; pointer-events: none; }
+.car .state { padding: 28px 16px; }
+.car-skel { display: grid; gap: 8px; }
+.cat-all { display: grid; justify-items: center; margin: 8px 0 16px; }
+.app.m .car-track { grid-auto-columns: 116px; gap: 12px; }
+.app.m .car-arr { display: none; }
+.app.m .car-auto { position: static; margin-top: 2px; }
+@media (prefers-reduced-motion: reduce) { .car-track { scroll-behavior: auto; } .car-auto i { animation: none !important; } }
 /* ---------- Веб-версия (docs/app) ---------- */
 .app.web .winbtns { display: none; }
 .webnote { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--s2); font-size: 13px; line-height: 18px; color: var(--fg2); }
@@ -942,6 +971,18 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
         <option value="off">отключены</option>
         <option value="error">ошибка сети</option>
       </select></span>
+      <span class="pf"><label for="demoAuto">Автопрокрутка:</label>
+      <select id="demoAuto" aria-label="Автопрокрутка каруселей">
+        <option value="on">вкл</option>
+        <option value="off">выкл</option>
+      </select></span>
+      <span class="pf"><label for="demoCar">Онгоинги:</label>
+      <select id="demoCar" aria-label="Состояние каруселей сезонов">
+        <option value="ok">есть</option>
+        <option value="loading">загрузка</option>
+        <option value="empty">пусто</option>
+        <option value="error">ошибка</option>
+      </select></span>
       <span class="pf"><label for="demoAvatar">Аватар:</label>
       <select id="demoAvatar" aria-label="Аватар профиля">
         <option value="gh">GitHub</option>
@@ -1030,6 +1071,8 @@ const I = {
   eye_off:'M12 7a5 5 0 0 1 5 5c0 .6-.1 1.3-.4 1.8l2.9 2.9A11.8 11.8 0 0 0 23 12.5C21.3 8.1 17 5 12 5c-1.4 0-2.8.3-4 .7l2.2 2.2c.5-.2 1.1-.4 1.8-.4zM2 3.3l2.3 2.3.5.5A11.8 11.8 0 0 0 1 12.5C2.7 16.9 7 20 12 20c1.6 0 3-.3 4.4-.8l.4.4 2.9 2.9 1.3-1.3L3.3 2zm5.5 5.5 1.6 1.5c0 .3-.1.5-.1.7a3 3 0 0 0 3 3c.2 0 .4 0 .7-.1l1.5 1.6c-.7.3-1.4.5-2.2.5a5 5 0 0 1-4.5-7.2z',
   key:'M12.7 10A6 6 0 1 0 12.7 14H17v4h4v-4h2v-4zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z',
   monitor:'M21 3H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 13H3V5h18z',
+  chev_l:'M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12z',
+  chev_r:'M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z',
   clips:'M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-8 12.5v-9l6 4.5z',
   close:'M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z',
   block:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 0 1-6.3-12.9l11.2 11.2A8 8 0 0 1 12 20zm6.3-3.1L7.1 5.7a8 8 0 0 1 11.2 11.2z',
@@ -1191,6 +1234,54 @@ function card(a, withNote) {
   </div>`;
 }
 
+/* ---------- Карусели ----------
+   Автопрокрутка «рывками»: каждые 5 с сдвиг на одну карточку; в конце — плавно к началу. Пауза: наведение, фокус внутри, касание
+   (+5 с после отпускания), вкладка в фоне, карусель вне экрана. Кнопка в заголовке останавливает автопрокрутку совсем (WCAG 2.2.2).
+   При «уменьшить движение» в системе автопрокрутка выключена. */
+const CAR_SEASONS = [ ['Осень','осеннего','2026','сейчас идёт'], ['Лето','летнего','2026','завершился'], ['Весна','весеннего','2026','завершился'], ['Зима','зимнего','2026','завершился'] ];
+function seasonList(name) { const own = DATA.filter(a => a.s === name && (S.adult || !a.adult)); const rest = DATA.filter(a => a.s !== name && !a.adult); return own.concat(rest).slice(0, 12); }
+function carousel(id, title, sub, items, st, emptyText, errText) {
+  const auto = $('#demoAuto') && $('#demoAuto').value === 'on' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let inner;
+  if (st === 'loading') inner = `<div class="car-track" aria-busy="true">${Array.from({length:8}, () => `<div class="car-skel"><div class="poster skel"></div><div class="skel" style="height:14px;width:85%"></div><div class="skel" style="height:12px;width:55%"></div></div>`).join('')}</div>`;
+  else if (st === 'error') inner = `<div class="state small">${ic('cloud_off')}<h3>${errText}</h3><div>Проверьте подключение к интернету и попробуйте ещё раз.</div><button class="btn btn-filled" type="button" data-act="carRetry">Повторить</button></div>`;
+  else if (!items.length) inner = `<div class="state small">${ic('empty')}<h3>${emptyText}</h3></div>`;
+  else inner = `<button class="car-arr prev" type="button" data-car="-1" aria-label="Назад" disabled>${ic('chev_l')}</button>
+      <div class="car-track" tabindex="0" aria-label="${esc(title)}: ${items.length} тайтлов, листайте стрелками">${items.map(card).join('')}</div>
+      <button class="car-arr next" type="button" data-car="1" aria-label="Вперёд">${ic('chev_r')}</button>`;
+  const live = st !== 'loading' && st !== 'error' && items.length > 1;
+  return `<section class="car${auto && live ? ' auto' : ' stopped'}" id="${id}" role="region" aria-roledescription="карусель" aria-label="${esc(title)}">
+    <div class="car-head"><h2>${esc(title)}</h2>${sub ? `<div class="cap">${esc(sub)}</div>` : ''}${live && auto ? `<button class="car-auto" type="button" data-act="carStop" aria-label="Остановить автопрокрутку" title="Автопрокрутка: каждые 5 секунд. Наведите, чтобы приостановить"><i aria-hidden="true"></i><span class="lbl">Пауза</span></button>` : ''}</div>
+    <div style="position:relative">${inner}</div>
+  </section>`;
+}
+function carStep(car, dir) {
+  const t = car.querySelector('.car-track'); if (!t || !t.firstElementChild) return;
+  const w = t.firstElementChild.getBoundingClientRect().width + parseFloat(getComputedStyle(t).columnGap || 20);
+  if (dir > 0 && t.scrollLeft + t.clientWidth >= t.scrollWidth - 4) t.scrollTo({ left:0 });
+  else t.scrollBy({ left: dir * w });
+}
+function carArrows(t) {
+  const car = t.closest('.car'); if (!car) return;
+  const pv = car.querySelector('.car-arr.prev'), nx = car.querySelector('.car-arr.next');
+  if (pv) pv.disabled = t.scrollLeft <= 4; if (nx) nx.disabled = t.scrollLeft + t.clientWidth >= t.scrollWidth - 4 && !car.classList.contains('auto');
+}
+document.addEventListener('scroll', e => { if (e.target.classList && e.target.classList.contains('car-track')) carArrows(e.target); }, true);
+const carHold = new WeakMap();
+function carPause(car, on) { if (!car || !car.classList.contains('auto')) return; car.classList.toggle('paused', on); const b = car.querySelector('.car-auto'); if (b) b.setAttribute('aria-label', on ? 'Автопрокрутка на паузе. Остановить совсем' : 'Остановить автопрокрутку'); }
+document.addEventListener('mouseover', e => { const c = e.target.closest && e.target.closest('.car'); if (c) carPause(c, true); });
+document.addEventListener('mouseout', e => { const c = e.target.closest && e.target.closest('.car'); if (c && !c.contains(e.relatedTarget) && !c.contains(document.activeElement)) carPause(c, false); });
+document.addEventListener('focusin', e => { const c = e.target.closest && e.target.closest('.car'); if (c) carPause(c, true); });
+document.addEventListener('focusout', e => { const c = e.target.closest && e.target.closest('.car'); if (c && !c.contains(e.relatedTarget)) carPause(c, false); });
+document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('.car'); if (c) { clearTimeout(carHold.get(c)); carPause(c, true); } }, { passive:true });
+document.addEventListener('touchend', e => { const c = e.target.closest && e.target.closest('.car'); if (c) carHold.set(c, setTimeout(() => carPause(c, false), 5000)); }, { passive:true });
+const CAR_MS = 5000;
+setInterval(() => {
+  if (document.hidden) return;
+  document.querySelectorAll('.car.auto:not(.paused)').forEach(c => { const r = c.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) carStep(c, 1); });
+}, CAR_MS);
+function paintCars() { document.querySelectorAll('.car-track').forEach(carArrows); }
+
 /* ---------- Каталог ---------- */
 function viewCatalog() {
   const demo = $('#demoState').value;
@@ -1206,6 +1297,8 @@ function viewCatalog() {
   const active = S.genres.size || S.format !== 'all' || S.hideMine || !S.adult;
   return `<div class="page">
     <div class="head"><h1>Каталог</h1><a class="search" href="#search" style="text-decoration:none">${ic('search')}<span style="flex:1">Поиск по названию</span><span class="kbd">Ctrl K</span></a></div>
+    ${(() => { const cs = $('#demoCar') ? $('#demoCar').value : 'ok'; return CAR_SEASONS.map(([n, gen, y, note], i) => carousel('car-' + i, `Аниме ${gen} сезона`, `${n} ${y} · ${note}`, cs === 'empty' && i === 0 ? [] : seasonList(n), cs === 'empty' ? (i === 0 ? 'ok' : 'ok') : cs, 'В этом сезоне пока нет онгоингов', 'Не удалось загрузить онгоинги')).join(''); })()}
+    <div class="cat-all"><div class="car-head" style="margin:0"><h2>Весь каталог</h2></div></div>
     <div class="toolbar" role="group" aria-label="Фильтры">
       ${['all','TV','Фильм'].map(f => `<button class="chip" type="button" data-format="${f}" aria-pressed="${S.format === f}">${f === 'all' ? 'Все форматы' : f}</button>`).join('')}
       <span class="sep"></span>
@@ -1476,6 +1569,7 @@ function viewSettings() {
     ${isWeb() ? ytKeyGroup() : ''}
     <section class="group"><div class="overline">Каталог</div>
       <div class="srow"><span class="lbl">Показывать 18+ <span class="tag adult-tag">18+</span><small>Тайтлы для взрослых видны в каталоге и поиске с пометкой 18+. Этот же фильтр есть в каталоге.</small></span>${sw('setAdult', S.adult, 'Показывать 18+')}</div>
+      <div class="srow"><span class="lbl">Автопрокрутка каруселей<small>Сезоны в каталоге, «Связанные» и «Рекомендации» сдвигаются на одну карточку каждые 5 секунд. При «уменьшении движения» в системе выключена.</small></span>${sw('setAuto', $('#demoAuto').value === 'on', 'Автопрокрутка каруселей')}</div>
     </section>
     <section class="group"><div class="overline">Плеер</div>
       <div class="srow"><span class="lbl">Распознавать музыку<small>Короткий фрагмент звука из серии отправляется на сервер AcoustID для распознавания. Кнопка «Что играет» в плеере.</small></span>${sw('setMusic', S.music, 'Распознавать музыку')}</div>
@@ -1703,7 +1797,9 @@ function viewTitle() {
   }
   if (S.titleTab === 'comments') body = `<div class="comments-wrap">${commentsView()}</div>`;
   if (S.titleTab === 'community') body = communityTab();
-  if (S.titleTab === 'similar') body = `<div class="hscroll">${DATA.filter(x => x.id !== a.id).slice(0,8).map(card).join('')}</div>`;
+  if (S.titleTab === 'similar') { const cs = $('#demoCar') ? $('#demoCar').value : 'ok', others = DATA.filter(x => x.id !== a.id && (S.adult || !x.adult)), cst = cs === 'empty' ? 'ok' : cs;
+    body = carousel('car-rel', 'Связанные', 'Сиквелы, приквелы, фильмы и спешлы', cs === 'empty' ? [] : others.slice(0, 5), cst, 'Связанных тайтлов нет', 'Не удалось загрузить связанные')
+      + carousel('car-rec', 'Рекомендации AniList', 'Что смотрят те, кому понравился этот тайтл', cs === 'empty' ? [] : others.slice(5, 15), cst, 'Рекомендаций пока нет', 'Не удалось загрузить рекомендации'); }
   return `<div class="page">
     <div class="mnav"><a href="#catalog" aria-label="Назад">${plat() === 'ios' ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 4 7.4 12l8 8 1.4-1.4L10.2 12l6.6-6.6z"/></svg>Каталог` : ic('back')}</a></div>
     <div class="hero"><div class="banner" style="background:linear-gradient(120deg, hsl(${a.h} 50% 30%), hsl(${a.h+60} 55% 18%))"></div>
@@ -2032,6 +2128,7 @@ function render() {
   if (r !== 'player') $('#main').scrollTop = 0;
   if (r === 'search') { paintSearch(); const i = $('#sq'); if (i) i.focus(); }
   if (r === 'title' && S.titleTab === 'community') paintCommunity();
+  paintCars();
   if (E.id && r !== 'title' && r !== 'lists') closeEditor();
   if (r !== 'player') { P.trailer = false; P.trailerLoading = false; P.clip = null; }
   if (r !== 'player') { clearTimeout(P.musT); P.mus = null; P.ep = null; P.t = Math.min(P.t, 70); }
@@ -2056,6 +2153,7 @@ document.addEventListener('click', e => {
   else if (d.sq) { SQ = d.sq; const i = $('#sq'); if (i) { i.value = SQ; i.focus(); } paintSearch(); }
   else if (d.act === 'clearRecent') { RECENT.length = 0; paintSearch(); }
   else if (d.act === 'sretry') { $('#demoState').value = 'data'; paintSearch(); }
+  else if (t.id === 'setAuto') { const on = t.getAttribute('aria-checked') !== 'true'; $('#demoAuto').value = on ? 'on' : 'off'; t.setAttribute('aria-checked', on); }
   else if (t.id === 'setAdult') { S.adult = !S.adult; t.setAttribute('aria-checked', S.adult); }
   else if (d.settheme) { const v = d.settheme; if (v === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = v; try { v === 'system' ? localStorage.removeItem('ai-theme') : localStorage.setItem('ai-theme', v); } catch(e) {} render(); }
   else if (d.act === 'logout') { prof().gh = null; prof().sync = 'out'; $('#demoSync').value = 'out'; S.login = 'start'; render(); toast(isWeb() ? 'Вы вышли из GitHub, токен стёрт из браузера. Списки остались в браузере' : 'Вы вышли из GitHub. Списки остались на устройстве'); }
@@ -2080,6 +2178,9 @@ document.addEventListener('click', e => {
   else if (d.act === 'trNo') { delete TR.st[TR.pending]; TR.pending = null; paintComments(); }
   else if (d.trorig) { TR.showOrig.has(d.trorig) ? TR.showOrig.delete(d.trorig) : TR.showOrig.add(d.trorig); paintComments(); }
   else if (d.trpack) downloadPack(d.trpack);
+  else if (d.car) { const c = t.closest('.car'); carStep(c, +d.car); }
+  else if (d.act === 'carStop') { const c = t.closest('.car'); c.classList.remove('auto', 'paused'); c.classList.add('stopped'); t.remove(); toast('Автопрокрутка остановлена. Включить снова — в настройках'); }
+  else if (d.act === 'carRetry') { $('#demoCar').value = 'loading'; render(); setTimeout(() => { $('#demoCar').value = 'ok'; render(); }, 900); }
   else if (d.act === 'tokEye') { WEB.tok = $('#tok').value; WEB.tokShow = !WEB.tokShow; render(); const i = $('#tok'); if (i) i.focus(); }
   else if (d.act === 'tokGo') {
     const v = ($('#tok').value || '').trim(); WEB.tok = v;
@@ -2194,6 +2295,7 @@ document.addEventListener('change', e => {
   if (e.target.id === 'demoTrailer') { TRL.searched = {}; TRL.found = {}; TRL.searching = null; TRL.fail = {}; if (route() === 'title') render(); else location.hash = 'title'; }
   if (e.target.id === 'trDemo') { C.trDemo = e.target.value; TR.st = {}; TR.showOrig.clear(); TR.pack = {}; TR.pending = null; paintComments(); }
   if (e.target.id === 'demoAvatar') render();
+  if (e.target.id === 'demoAuto' || e.target.id === 'demoCar') { if (route() === 'catalog' || (route() === 'title' && S.titleTab === 'similar')) render(); else location.hash = 'catalog'; }
   if (e.target.id === 'demoBuild') { S.login = 'start'; WEB.tokErr = null; render(); }
   if (e.target.id === 'demoCommunity') { S.titleTab = 'community'; if (route() === 'player' && P.clip) render(); else if (route() === 'title') render(); else location.hash = 'title'; }
   if (e.target.id === 'demoComments') { C.more = false; paintComments(); }
