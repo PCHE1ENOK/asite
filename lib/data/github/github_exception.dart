@@ -18,6 +18,9 @@ enum GitHubErrorKind {
   /// Этот аккаунт GitHub уже привязан к другому профилю.
   accountInUse,
 
+  /// Исчерпан лимит запросов GitHub API (403/429 rate limit).
+  rateLimited,
+
   /// Прочие ответы GitHub.
   other,
 }

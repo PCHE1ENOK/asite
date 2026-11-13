@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:anime_viewer/app_services.dart';
+import 'package:anime_viewer/data/friends/friends_repository.dart';
 import 'package:anime_viewer/data/anilist/anilist_client.dart';
 import 'package:anime_viewer/data/anime_repository.dart';
 import 'package:anime_viewer/data/cache/app_database.dart';
@@ -32,6 +33,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import '../fixtures.dart';
+import '../github_fakes.dart';
 
 /// Прозрачный PNG 1×1 вместо сетевых картинок.
 final transparentPng = Uint8List.fromList(
@@ -121,7 +123,13 @@ class UiHarness {
             tokens: tokenStore(profile.id),
             profiles: profiles,
             auth: () => null,
-            gistClient: (token) => GistClient(token),
+            gistClient: (token) => GistClient(token, httpClient: github.client),
+          ),
+          friends: FriendsRepository(
+            db,
+            profileId: profile.id,
+            token: () => friendsToken,
+            gistClient: (t) => GistClient(t, httpClient: github.client),
           ),
         );
       },
@@ -187,6 +195,11 @@ class UiHarness {
   final ImageResolver imageResolver;
 
   bool offline = false;
+
+  /// GitHub для вкладки «Друзья»; токен — как после входа (`null` — без
+  /// входа).
+  final github = FakeGitHub();
+  String? friendsToken;
 
   /// Поиск по этой строке ничего не находит.
   static const nothing = 'zzzz';

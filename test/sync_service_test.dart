@@ -10,6 +10,7 @@ import 'package:anime_viewer/data/models/library_entry.dart';
 import 'package:anime_viewer/data/models/title_note.dart';
 import 'package:anime_viewer/data/notes/notes_repository.dart';
 import 'package:anime_viewer/data/profiles/profile_repository.dart';
+import 'package:anime_viewer/data/share/share_codec.dart';
 import 'package:anime_viewer/data/sync/library_codec.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:drift/native.dart';
@@ -424,7 +425,9 @@ void main() {
           clock: () => now,
         );
 
-    test('start: separate unlisted Gist with share.json only', () async {
+    const file = ShareCodec.fileName;
+
+    test('start: separate PUBLIC Gist with anime-viewer-share.json', () async {
       await sync.dispose();
       sync = withShare();
       await sync.start();
@@ -432,12 +435,43 @@ void main() {
       final syncGist = github.gists.keys.single;
       final id = await sync.startSharing();
       expect(id, isNot(syncGist));
-      expect(github.gists[id]!.keys, ['share.json']);
+      expect(github.gists[id]!.keys, [file]);
+      expect(github.publicIds, {id}, reason: 'каталог — публичный');
+      expect(
+        github.publicIds.contains(syncGist),
+        isFalse,
+        reason: 'списки синхронизации остаются секретными',
+      );
       expect(github.gists[syncGist]!.keys, [LibraryCodec.fileName]);
       expect(sync.share.value.gistId, id);
-      // Повторно — та же ссылка.
+      expect(sync.share.value.isPublic, isTrue);
+      // Повторно — та же публикация.
       expect(await sync.startSharing(), id);
     });
+
+    test(
+      'old secret share is recreated public, the secret one deleted',
+      () async {
+        await sync.dispose();
+        sync = withShare();
+        await sync.start();
+        await signIn();
+        // Прежняя секретная публикация (до «Друзей»).
+        github.gists['old'] = {ShareCodec.legacyFileName: '{}'};
+        await db.putSetting('p${sync.profileId}:share_gist_id', 'old');
+        await sync.dispose();
+        sync = withShare();
+        await sync.start();
+        expect(sync.share.value.isPublic, isFalse);
+
+        final id = await sync.startSharing();
+        expect(id, isNot('old'));
+        expect(github.publicIds, contains(id));
+        expect(github.deleted, contains('old'));
+        expect(github.gists.containsKey('old'), isFalse);
+        expect(sync.share.value.isPublic, isTrue);
+      },
+    );
 
     test('updates after changes, not more often than the interval', () async {
       await sync.dispose();
@@ -445,22 +479,22 @@ void main() {
       await sync.start();
       await signIn();
       final id = await sync.startSharing();
-      final first = github.gists[id]!['share.json'];
+      final first = github.gists[id]![file];
 
       await library.setStatus(1, ListStatus.current);
       await sync.syncNow();
-      expect(github.gists[id]!['share.json'], first, reason: 'within 5 min');
+      expect(github.gists[id]![file], first, reason: 'within 5 min');
 
       now = now.add(const Duration(minutes: 6));
       await library.setStatus(2, ListStatus.planning);
       await sync.syncNow();
-      expect(github.gists[id]!['share.json'], isNot(first));
-      final second = github.gists[id]!['share.json'];
+      expect(github.gists[id]![file], isNot(first));
+      final second = github.gists[id]![file];
 
       // Без изменений — не переписываем.
       now = now.add(const Duration(minutes: 6));
       await sync.syncNow();
-      expect(github.gists[id]!['share.json'], second);
+      expect(github.gists[id]![file], second);
     });
 
     test('stop deletes the Gist; sharing survives a restart', () async {
@@ -474,6 +508,7 @@ void main() {
       sync = withShare();
       await sync.start();
       expect(sync.share.value.gistId, id, reason: 'restored from settings');
+      expect(sync.share.value.isPublic, isTrue);
 
       await sync.stopSharing();
       expect(github.deleted, [id]);

@@ -12,11 +12,13 @@ import '../widgets/toast.dart';
 
 /// Что видит друг по ссылке — в каждом диалоге, до и после публикации.
 const shareWarning =
-    'Кто знает ссылку, видит ваши списки, «Понравилось», оценки и все '
-    'заметки, включая тайтлы 18+. Ссылку можно отозвать — Gist удаляется.';
+    'Ваш каталог станет виден всем, кто найдёт вас по нику GitHub: списки, '
+    '«Понравилось», оценки и все заметки, включая 18+. Ссылку и поиск можно '
+    'отключить в любой момент — Gist удаляется';
 
-/// «Поделиться каталогом»: секретный Gist с `share.json` и ссылка на
-/// страницу просмотра; «Прекратить показ» удаляет Gist.
+/// «Поделиться каталогом»: публичный Gist с `anime-viewer-share.json` —
+/// друзья находят его по нику GitHub («Друзья») или открывают по ссылке;
+/// «Прекратить показ» удаляет Gist.
 class ShareGroup extends StatelessWidget {
   const ShareGroup({super.key, required this.sync, required this.row});
 
@@ -38,8 +40,8 @@ class ShareGroup extends StatelessWidget {
         return row(
           title: 'Поделиться каталогом',
           subtitle:
-              'Друзья откроют ваш каталог по ссылке в браузере, без '
-              'регистрации — только просмотр',
+              'Друзья найдут ваш каталог по нику GitHub или откроют по '
+              'ссылке в браузере — только просмотр',
           trailing: FilledButton.tonalIcon(
             onPressed: () => _start(context),
             icon: const Icon(Symbols.share_rounded, size: 18),
@@ -49,8 +51,13 @@ class ShareGroup extends StatelessWidget {
       }
       final at = share.updatedAt;
       return row(
-        title: 'Каталог открыт по ссылке',
+        title: share.isPublic
+            ? 'Каталог открыт: по нику и по ссылке'
+            : 'Каталог открыт по ссылке',
         subtitle: [
+          // Прежняя секретная публикация: по нику её не найти.
+          if (!share.isPublic)
+            'Чтобы друзья нашли вас по нику, нажмите «Открыть по нику»',
           if (at != null) 'Обновлено ${Fmt.relative(at.toLocal())}',
           if (share.error case final e?) 'Не удалось обновить: $e',
           'Обновляется вместе с синхронизацией, не чаще раза в 5 минут',
@@ -59,6 +66,11 @@ class ShareGroup extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
+            if (!share.isPublic)
+              FilledButton.tonal(
+                onPressed: () => _start(context),
+                child: const Text('Открыть по нику'),
+              ),
             OutlinedButton(
               onPressed: () => showShareLink(context, share.gistId!),
               child: const Text('Ссылка'),
@@ -87,7 +99,7 @@ class ShareGroup extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Создать ссылку'),
+            child: const Text('Сделать каталог публичным'),
           ),
         ],
       ),
@@ -109,8 +121,8 @@ class ShareGroup extends StatelessWidget {
         backgroundColor: context.tokens.surface2,
         title: Text('Прекратить показ?', style: AppText.title),
         content: const Text(
-          'Gist с каталогом будет удалён, ссылка перестанет работать у всех, '
-          'кому вы её отправили',
+          'Gist с каталогом будет удалён: ссылка перестанет работать, а '
+          'друзья не найдут вас по нику',
         ),
         actions: [
           TextButton(
