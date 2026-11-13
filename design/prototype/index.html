@@ -488,6 +488,29 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .app.m .srow:has(> .acct) { flex-wrap: wrap; row-gap: 12px; }
 .app.m .srow > .acct { flex-basis: 100%; }
 .who { display: flex; gap: 14px; align-items: center; }
+/* ---------- Веб-версия (docs/app) ---------- */
+.app.web .winbtns { display: none; }
+.webnote { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--s2); font-size: 13px; line-height: 18px; color: var(--fg2); }
+.webnote svg { width: 18px; height: 18px; flex: none; color: var(--warn); margin-top: 1px; }
+.webnote b { color: var(--fg); }
+.tsteps { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; line-height: 20px; color: var(--fg2); }
+.tsteps b, .tsteps code { color: var(--fg); }
+.tsteps code { font: 500 13px var(--f-mono, ui-monospace, monospace); background: var(--s2); padding: 1px 5px; border-radius: 4px; }
+.secret { display: flex; align-items: center; gap: 4px; height: 44px; padding: 0 4px 0 12px; border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--s1); }
+.secret:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.secret.bad { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
+.secret input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: 500 14px ui-monospace, monospace; color: var(--fg); }
+.secret input::placeholder { font-family: var(--f-text); color: var(--fg3); }
+.secret .eye { width: 36px; height: 36px; border-radius: var(--r-sm); display: grid; place-items: center; color: var(--fg2); }
+.secret .eye:hover { background: var(--hover); }
+.secret .eye svg { width: 20px; height: 20px; }
+.ferr { color: var(--bad); font-size: 13px; line-height: 18px; }
+.flbl { font-size: 13px; font-weight: 500; color: var(--fg2); margin-bottom: 6px; display: block; }
+.ykey { display: grid; gap: 12px; width: 100%; }
+.ykey .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.kstate { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.kstate svg { width: 16px; height: 16px; }
+.kstate.ok { color: var(--good); } .kstate.no { color: var(--fg2); }
 .who b { display: block; font-size: 16px; }
 .who small { color: var(--fg2); font-size: 13px; }
 .app.m .prow { flex-wrap: nowrap; gap: 12px; }
@@ -934,6 +957,7 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
         <option value="quota">лимит поиска исчерпан</option>
         <option value="error">ошибка сети</option>
         <option value="region">часть роликов недоступна в регионе</option>
+        <option value="nokey">нет ключа YouTube (приложение)</option>
       </select></span>
       <span class="pf"><label for="demoTrailer">Трейлер:</label>
       <select id="demoTrailer" aria-label="Трейлер на карточке">
@@ -942,6 +966,11 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
         <option value="anilist">есть в AniList</option>
         <option value="nokey">нет ключа</option>
         <option value="broken">есть, но не открывается</option>
+      </select></span>
+      <span class="pf"><label for="demoBuild">Сборка:</label>
+      <select id="demoBuild" aria-label="Сборка: приложение или веб-версия в браузере">
+        <option value="app">приложение</option>
+        <option value="web">веб-версия (браузер)</option>
       </select></span>
       <span class="pf"><label for="demoPlatform">Платформа:</label>
       <select id="demoPlatform" aria-label="Платформа">
@@ -997,6 +1026,10 @@ const I = {
   heart_o:'M16.5 3A6 6 0 0 0 12 5a6 6 0 0 0-4.5-2A5.4 5.4 0 0 0 2 8.5c0 3.8 3.4 6.9 8.6 11.5L12 21.4l1.4-1.4C18.6 15.4 22 12.3 22 8.5A5.4 5.4 0 0 0 16.5 3zm-4.4 15.6-.1.1-.1-.1C7.1 14.2 4 11.4 4 8.5A3.4 3.4 0 0 1 7.5 5c1.5 0 3 1 3.6 2.4h1.9C13.5 6 15 5 16.5 5A3.4 3.4 0 0 1 20 8.5c0 2.9-3.1 5.7-7.9 10.1z',
   heart:'M12 21.4 10.6 20C5.4 15.4 2 12.3 2 8.5A5.4 5.4 0 0 1 7.5 3 6 6 0 0 1 12 5a6 6 0 0 1 4.5-2A5.4 5.4 0 0 1 22 8.5c0 3.8-3.4 6.9-8.6 11.5z',
   plus:'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z',
+  eye:'M12 5C7 5 2.7 8.1 1 12.5 2.7 16.9 7 20 12 20s9.3-3.1 11-7.5C21.3 8.1 17 5 12 5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+  eye_off:'M12 7a5 5 0 0 1 5 5c0 .6-.1 1.3-.4 1.8l2.9 2.9A11.8 11.8 0 0 0 23 12.5C21.3 8.1 17 5 12 5c-1.4 0-2.8.3-4 .7l2.2 2.2c.5-.2 1.1-.4 1.8-.4zM2 3.3l2.3 2.3.5.5A11.8 11.8 0 0 0 1 12.5C2.7 16.9 7 20 12 20c1.6 0 3-.3 4.4-.8l.4.4 2.9 2.9 1.3-1.3L3.3 2zm5.5 5.5 1.6 1.5c0 .3-.1.5-.1.7a3 3 0 0 0 3 3c.2 0 .4 0 .7-.1l1.5 1.6c-.7.3-1.4.5-2.2.5a5 5 0 0 1-4.5-7.2z',
+  key:'M12.7 10A6 6 0 1 0 12.7 14H17v4h4v-4h2v-4zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z',
+  monitor:'M21 3H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 13H3V5h18z',
   clips:'M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-8 12.5v-9l6 4.5z',
   close:'M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z',
   block:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 0 1-6.3-12.9l11.2 11.2A8 8 0 0 1 12 20zm6.3-3.1L7.1 5.7a8 8 0 0 1 11.2 11.2z',
@@ -1240,10 +1273,45 @@ function syncBar() {
 }
 
 /* ---------- Вход через GitHub ---------- */
+/* ---------- Веб-версия: флаг сборки, ключ YouTube, вход по токену ---------- */
+const isWeb = () => { const el = document.querySelector('#demoBuild'); return !!el && el.value === 'web'; };
+const WEB = { key:null, keyErr:null, keyShow:false, tokShow:false, tokErr:null, tok:'', keyVal:'' };
+const mask = k => k.slice(0, 4) + '…' + k.slice(-4);
+function webVideoStage(kind, n) {
+  return `<div class="pl-state card">${ic('monitor')}<div class="big">Видео — в приложении</div><div class="sub">В веб-версии видео не встраивается. Смотрите ${kind} в приложении для Windows, iPhone и Android или откройте на YouTube.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a>${n ? `<button class="btn btn-outline" type="button" data-act="markEp">${ic('check')}Отметить серию ${n} просмотренной</button>` : ''}</div></div>`;
+}
+function tokenForm() {
+  return `<ol class="tsteps">
+      <li>Откройте на GitHub страницу нового токена — кнопка ниже, право <code>gist</code> уже отмечено.</li>
+      <li>Тип — <b>classic</b>. Других прав не нужно. Срок — на ваш выбор.</li>
+      <li>Нажмите <b>Generate token</b>, скопируйте токен (<code>ghp_…</code>) и вставьте сюда.</li>
+    </ol>
+    <a class="btn btn-outline" href="https://github.com/settings/tokens/new" target="_blank" rel="noopener" style="text-decoration:none;justify-self:start">${ic('ext')}Открыть GitHub</a>
+    <div><label class="flbl" for="tok">Токен GitHub (только право gist)</label>
+      <div class="secret${WEB.tokErr ? ' bad' : ''}"><input id="tok" type="${WEB.tokShow ? 'text' : 'password'}" autocomplete="off" spellcheck="false" placeholder="ghp_…" value="${esc(WEB.tok)}" aria-invalid="${!!WEB.tokErr}"${WEB.tokErr ? ' aria-describedby="tokErr"' : ''}><button class="eye" type="button" data-act="tokEye" aria-pressed="${WEB.tokShow}" aria-label="${WEB.tokShow ? 'Скрыть токен' : 'Показать токен'}">${ic(WEB.tokShow ? 'eye_off' : 'eye')}</button></div>
+      ${WEB.tokErr ? `<div class="ferr" id="tokErr" role="alert" style="margin-top:6px">${WEB.tokErr}</div>` : ''}</div>
+    <div class="webnote" role="note">${ic('lock')}<span><b>Токен хранится только в этом браузере</b> (localStorage) — не в Gist и не на сервере. Не входите так на чужом или общем компьютере. «Выйти» стирает токен из браузера; отозвать его совсем можно на GitHub.</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-filled" type="button" data-act="tokGo">${ic('login')}Войти</button><a class="btn btn-text" href="#catalog" style="text-decoration:none">Продолжить без входа</a></div>
+    <div class="cap">Демо: <code>ghp_bad…</code> — GitHub не принял токен, <code>ghp_noscope…</code> — нет права gist, любой другой <code>ghp_…</code> — вход.</div>`;
+}
+function ytKeyGroup() {
+  const k = WEB.key;
+  return `<section class="group" id="ytgroup"><div class="overline">YouTube</div>
+    <div class="srow"><div class="ykey">
+      <span class="lbl">Свой ключ YouTube <span class="kstate ${k ? 'ok' : 'no'}">${ic(k ? 'COMPLETED' : 'key')}${k ? 'Задан · ' + esc(mask(k)) : 'Не задан'}</span><small>${k ? 'С ключом ищутся трейлеры, официальные серии, комментарии и «Сообщество».' : 'Без ключа не работают поиск трейлеров, официальные серии на YouTube, комментарии и «Сообщество». Ключ YouTube Data API v3 бесплатный, создаётся в Google Cloud Console.'}</small></span>
+      <div><label class="flbl" for="ykey">${k ? 'Новый ключ' : 'Ключ'}</label>
+        <div class="secret${WEB.keyErr ? ' bad' : ''}"><input id="ykey" type="${WEB.keyShow ? 'text' : 'password'}" autocomplete="off" spellcheck="false" placeholder="AIza…" value="${esc(WEB.keyVal)}" aria-invalid="${!!WEB.keyErr}"><button class="eye" type="button" data-act="keyEye" aria-pressed="${WEB.keyShow}" aria-label="${WEB.keyShow ? 'Скрыть ключ' : 'Показать ключ'}">${ic(WEB.keyShow ? 'eye_off' : 'eye')}</button></div>
+        ${WEB.keyErr ? `<div class="ferr" role="alert" style="margin-top:6px">${WEB.keyErr}</div>` : ''}</div>
+      <div class="row"><button class="btn btn-filled" type="button" data-act="keySave">Проверить и сохранить</button>${k ? `<button class="btn btn-outline" type="button" data-act="keyDel">Удалить ключ</button>` : ''}<a class="btn btn-text" href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Как получить ключ</a></div>
+      <div class="webnote" role="note">${ic('lock')}<span><b>Ключ хранится только в этом браузере</b> (localStorage). В веб-версии видео не встраивается — серии и трейлеры открываются на YouTube; встроенный плеер есть в приложении.</span></div>
+    </div></div>
+  </section>`;
+}
 function viewLogin() {
   const st = S.login;
   let body;
-  if (st === 'start') body = `
+  if (st === 'start' && isWeb()) body = tokenForm();
+  else if (st === 'start') body = `
     <ul class="points">
       <li>${ic('lock')}<span>Статусы и прогресс хранятся в вашем приватном GitHub Gist. Его видите только вы.</span></li>
       <li>${ic('sync')}<span>Списки одинаковые на Windows, iPhone и Android.</span></li>
@@ -1269,7 +1337,7 @@ function viewLogin() {
   return `<div class="login"><div class="login-card">
     <div class="overline">${st === 'start' && CUR === 'yu' ? 'Первый запуск · можно пропустить' : `Профиль «${esc(prof().name)}»`}</div>
     <h1>${st === 'done' ? 'Готово' : 'Вход через GitHub'}</h1>
-    <div class="lead">${st === 'code' ? 'GitHub попросит подтвердить вход на своей странице. Пароль в приложение не вводится.' : 'Нужен, чтобы ваши списки были на всех устройствах.'}</div>
+    <div class="lead">${st === 'start' && isWeb() ? 'Списки хранятся в вашем приватном Gist — видите их только вы. В браузере вход — по токену GitHub с одним правом: gist.' : st === 'code' ? 'GitHub попросит подтвердить вход на своей странице. Пароль в приложение не вводится.' : 'Нужен, чтобы ваши списки были на всех устройствах.'}</div>
     ${body}
     <p class="sample">Прототип: код, логин и число тайтлов примерные.</p>
   </div></div>`;
@@ -1362,6 +1430,7 @@ function paintCommunity(loading) {
   const box = $('#cmres'); if (!box) return;
   const st = $('#demoCommunity').value, a = DATA.find(x => x.id === S.titleId) || DATA[0];
   if (loading || st === 'loading') { box.innerHTML = `<div class="cm-grid" aria-busy="true">${Array.from({length:4}, () => `<div class="clip"><div class="skel thumb"></div><div class="skel" style="height:14px;width:85%"></div><div class="skel" style="height:12px;width:50%"></div></div>`).join('')}</div>`; return; }
+  if (st === 'nokey' || (isWeb() && !WEB.key)) { box.innerHTML = `<div class="state small">${ic('key')}<h3>Сообщество недоступно: не задан ключ YouTube</h3>${isWeb() ? `<div>Ролики ищутся через YouTube Data API. Укажите свой ключ в настройках — он хранится только в этом браузере.</div><a class="btn btn-filled" href="#settings" data-act="toYtKey" style="text-decoration:none">${ic('settings')}Указать ключ</a>` : `<div>В этой сборке приложения нет ключа YouTube Data API. Остальные вкладки работают.</div>`}</div>`; return; }
   if (st === 'error') { box.innerHTML = `<div class="state small">${ic('cloud_off')}<h3>Нет связи с YouTube</h3><div>Проверьте подключение к интернету и попробуйте ещё раз.</div><button class="btn btn-filled" type="button" data-act="cmRetry">Повторить</button></div>`; return; }
   if (st === 'quota') { box.innerHTML = `<div class="state small">${ic('hourglass')}<h3>Лимит поиска исчерпан, попробуйте завтра</h3><div>YouTube даёт приложению ограниченное число поисков в сутки. Поиск снова заработает в 11:00.</div></div>`; return; }
   const list = st === 'empty' ? [] : clipsFor(a, CM.sect);
@@ -1373,7 +1442,7 @@ function cmReload() { paintCommunity(true); clearTimeout(cmTimer); cmTimer = set
 function viewClip() {
   const c = allClips().find(x => x.id === P.clip), a = clipAnime(c);
   const blocked = isBlocked(c), loading = P.trailerLoading, sect = c.sect;
-  const stage = loading ? `<div class="pl-state" role="status"><span class="spin" aria-hidden="true"></span><div class="sub">Открываем ролик…</div></div>`
+  const stage = isWeb() && !blocked ? webVideoStage('ролик') : loading ? `<div class="pl-state" role="status"><span class="spin" aria-hidden="true"></span><div class="sub">Открываем ролик…</div></div>`
     : blocked ? `<div class="pl-state card" role="alert">${ic('block')}<div class="big">Ролик недоступен в вашем регионе</div><div class="sub">Автор или YouTube ограничили показ в вашей стране. Посмотреть его в приложении нельзя.</div><div class="acts"><a class="btn btn-outline" href="#title" style="text-decoration:none">${ic('back')}К роликам</a></div></div>`
     : `<div class="yt-embed" role="img" aria-label="Встроенный плеер YouTube: ${esc(c.n)}"><div class="yt-ph"><span class="yt-play">${ic('play')}</span><span>Встроенный плеер YouTube · ${esc(c.d)}</span></div></div>`;
   return `<div class="player yt" id="player">
@@ -1404,6 +1473,7 @@ function viewSettings() {
         ${out ? `<a class="btn btn-filled" href="#login" style="text-decoration:none">${ic('login')}Войти через GitHub</a>` : `<button class="btn btn-outline" type="button" data-act="logout">Выйти из GitHub</button>`}</div>
     </section>
     <div class="cap" style="margin-bottom:-16px">Настройки ниже общие для всех профилей на этом устройстве.</div>
+    ${isWeb() ? ytKeyGroup() : ''}
     <section class="group"><div class="overline">Каталог</div>
       <div class="srow"><span class="lbl">Показывать 18+ <span class="tag adult-tag">18+</span><small>Тайтлы для взрослых видны в каталоге и поиске с пометкой 18+. Этот же фильтр есть в каталоге.</small></span>${sw('setAdult', S.adult, 'Показывать 18+')}</div>
     </section>
@@ -1669,7 +1739,7 @@ function viewPlayer() {
   const a = DATA.find(x => x.id === S.titleId) || DATA[0];
   if (P.clip) return viewClip();
   if (P.trailer) return viewTrailer(a);
-  if ($('#demoPlayer').value.startsWith('yt')) return viewPlayerYT(a);
+  if (isWeb() || $('#demoPlayer').value.startsWith('yt')) return viewPlayerYT(a);
   const n = curEp(a);
   const epName = a.id === 1 ? DAN_EPS[n-1] : `Серия ${n}`;
   const pst = $('#demoPlayer').value;
@@ -1722,7 +1792,7 @@ const YT_OK = st => st === 'ytmissing' ? [1, 2, 3] : null; // null — виде�
 function viewTrailer(a) {
   const broken = $('#demoTrailer').value === 'broken', loading = P.trailerLoading;
   if (broken && !loading) TRL.fail[a.id] = true;
-  const stage = loading ? `<div class="pl-state" role="status"><span class="spin" aria-hidden="true"></span><div class="sub">Открываем трейлер…</div></div>`
+  const stage = isWeb() ? webVideoStage('трейлер') : loading ? `<div class="pl-state" role="status"><span class="spin" aria-hidden="true"></span><div class="sub">Открываем трейлер…</div></div>`
     : broken ? `<div class="pl-state card" role="alert">${ic('cloud_off')}<div class="big">Трейлер не открывается в приложении</div><div class="sub">Встроенный плеер YouTube не запустился. Откройте трейлер на YouTube или попробуйте ещё раз.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="trailerRetry">Повторить</button></div></div>`
     : `<div class="yt-embed" role="img" aria-label="Встроенный плеер YouTube: трейлер ${esc(a.t)}"><div class="yt-ph"><span class="yt-play">${ic('play')}</span><span>Встроенный плеер YouTube · трейлер</span></div></div>`;
   return `<div class="player yt" id="player">
@@ -1739,7 +1809,8 @@ function viewPlayerYT(a) {
   const n = curEp(a);
   const epName = epTitle(a, 0, n), ok = YT_OK(st), has = !ok || ok.includes(n);
   let stage;
-  if (st === 'ytblack') stage = `<div class="pl-state card" role="alert">${ic('cloud_off')}<div class="big">Видео не открывается в приложении</div><div class="sub">Встроенный плеер YouTube не запустился. Откройте серию ${n} на YouTube или попробуйте ещё раз.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="ytRetry">Повторить</button></div></div>`;
+  if (isWeb()) stage = webVideoStage('серии', n);
+  else if (st === 'ytblack') stage = `<div class="pl-state card" role="alert">${ic('cloud_off')}<div class="big">Видео не открывается в приложении</div><div class="sub">Встроенный плеер YouTube не запустился. Откройте серию ${n} на YouTube или попробуйте ещё раз.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="ytRetry">Повторить</button></div></div>`;
   else if (st === 'ytnoembed') stage = `<div class="pl-state card">${ic('ext')}<div class="big">Встроенный плеер недоступен</div><div class="sub">На этом устройстве нет компонента для встроенного видео. Серию можно посмотреть на YouTube в браузере — вернитесь сюда, чтобы отметить её просмотренной.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="markEp">${ic('check')}Отметить серию ${n} просмотренной</button></div></div>`;
   else if (st === 'ytblocked') stage = `<div class="pl-state card">${ic('cloud_off')}<div class="big">Видео недоступно в вашем регионе</div><div class="sub">Правообладатель ограничил показ серии ${n} для вашей страны. Попробуйте открыть её на YouTube или выберите другую серию.</div><div class="acts"><a class="btn btn-filled" href="https://www.youtube.com/" target="_blank" rel="noopener" style="text-decoration:none">${ic('ext')}Открыть на YouTube</a><button class="btn btn-outline" type="button" data-act="ytEps">Другие серии</button></div><div class="ecode">Ответ встроенного плеера: ошибка 150 (встраивание запрещено)</div></div>`;
   else if (!has) stage = `<div class="pl-state card">${ic('cc')}<div class="big">Официального видео для серии ${n} нет</div><div class="sub">Правообладатель выложил на YouTube только серии ${ok.join(', ')}. Остальные можно отмечать просмотренными вручную.</div><div class="acts"><button class="btn btn-filled" type="button" data-act="ytEps">Открыть доступные серии</button><button class="btn btn-outline" type="button" data-act="markEp">${ic('check')}Отметить серию ${n} просмотренной</button></div></div>`;
@@ -1894,6 +1965,8 @@ const isMob = () => plat() !== 'windows' || innerWidth <= 640 || innerHeight <= 
 function applyPlatform() {
   const app = $('.app'), pf = plat();
   app.dataset.platform = pf;
+  app.classList.toggle('web', isWeb());
+  const sb = document.querySelector('.titlebar .sub'); if (sb) sb.textContent = isWeb() ? 'Прототип · веб-версия в браузере · примерные данные' : 'Прототип · примерные данные';
   app.classList.toggle('m', isMob());
   // рамка телефона — только когда экран просторнее самого телефона (ПК, планшет); на настоящем телефоне — без рамки, на весь экран
   app.classList.toggle('framed', pf !== 'windows' && innerWidth > 640 && innerHeight >= 600);
@@ -1985,7 +2058,7 @@ document.addEventListener('click', e => {
   else if (d.act === 'sretry') { $('#demoState').value = 'data'; paintSearch(); }
   else if (t.id === 'setAdult') { S.adult = !S.adult; t.setAttribute('aria-checked', S.adult); }
   else if (d.settheme) { const v = d.settheme; if (v === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = v; try { v === 'system' ? localStorage.removeItem('ai-theme') : localStorage.setItem('ai-theme', v); } catch(e) {} render(); }
-  else if (d.act === 'logout') { prof().gh = null; prof().sync = 'out'; $('#demoSync').value = 'out'; S.login = 'start'; render(); toast('Вы вышли из GitHub. Списки остались на устройстве'); }
+  else if (d.act === 'logout') { prof().gh = null; prof().sync = 'out'; $('#demoSync').value = 'out'; S.login = 'start'; render(); toast(isWeb() ? 'Вы вышли из GitHub, токен стёрт из браузера. Списки остались в браузере' : 'Вы вышли из GitHub. Списки остались на устройстве'); }
   else if (d.act === 'copyver') { try { navigator.clipboard.writeText('0.1.0 (12) windows').catch(() => {}); } catch(e) {} toast('Версия скопирована'); }
   else if (d.act === 'pmenu' && !isMob()) { e.preventDefault(); profileMenu(); return; }
   else if (d.pfswitch) { const m = $('#pmenu'); if (m) m.remove(); switchProfile(d.pfswitch); }
@@ -2007,6 +2080,24 @@ document.addEventListener('click', e => {
   else if (d.act === 'trNo') { delete TR.st[TR.pending]; TR.pending = null; paintComments(); }
   else if (d.trorig) { TR.showOrig.has(d.trorig) ? TR.showOrig.delete(d.trorig) : TR.showOrig.add(d.trorig); paintComments(); }
   else if (d.trpack) downloadPack(d.trpack);
+  else if (d.act === 'tokEye') { WEB.tok = $('#tok').value; WEB.tokShow = !WEB.tokShow; render(); const i = $('#tok'); if (i) i.focus(); }
+  else if (d.act === 'tokGo') {
+    const v = ($('#tok').value || '').trim(); WEB.tok = v;
+    WEB.tokErr = !v ? 'Вставьте токен' : !/^(ghp_|github_pat_)/.test(v) ? 'Это не похоже на токен GitHub: он начинается с ghp_ (classic). Скопируйте его целиком со страницы GitHub.'
+      : /bad/.test(v) ? 'GitHub не принял токен: он неверный, отозван или его срок истёк. Создайте новый.'
+      : /noscope/.test(v) ? 'У токена нет права gist. Создайте новый токен и отметьте только «gist».' : null;
+    if (WEB.tokErr) { render(); const i = $('#tok'); if (i) i.focus(); return; }
+    WEB.tok = ''; S.login = 'done'; $('#demoSync').value = 'ok'; const pp = prof(); if (!pp.gh) pp.gh = 'user-' + pp.id; pp.sync = 'ok'; render();
+  }
+  else if (d.act === 'keyEye') { WEB.keyVal = $('#ykey').value; WEB.keyShow = !WEB.keyShow; render(); }
+  else if (d.act === 'keySave') {
+    const v = ($('#ykey').value || '').trim(); WEB.keyVal = v;
+    WEB.keyErr = !v ? 'Вставьте ключ' : !/^AIza[\w-]{30,}$/.test(v) ? 'Ключ не подошёл: YouTube отвечает «ключ неверный». Ключ начинается с AIza и длиной 39 символов.' : /bad/.test(v) ? 'В проекте Google Cloud не включён YouTube Data API v3. Включите его и попробуйте снова.' : null;
+    if (!WEB.keyErr) { WEB.key = v; WEB.keyVal = ''; WEB.keyShow = false; toast('Ключ YouTube сохранён в этом браузере'); }
+    render(); const g = $('#ytgroup'); if (g) g.scrollIntoView({block:'center'});
+  }
+  else if (d.act === 'keyDel') { WEB.key = null; WEB.keyErr = null; render(); toast('Ключ удалён из браузера'); const g = $('#ytgroup'); if (g) g.scrollIntoView({block:'center'}); }
+  else if (d.act === 'toYtKey') { setTimeout(() => { const g = $('#ytgroup'); if (g) g.scrollIntoView({block:'center'}); const i = $('#ykey'); if (i) i.focus({preventScroll:true}); }, 350); }
   else if (d.clip) { P.clip = d.clip; P.trailer = false; P.trailerLoading = true; setTimeout(() => { P.trailerLoading = false; if (route() === 'player' && P.clip) render(); }, 700); if (route() === 'player') { e.preventDefault(); render(); } }
   else if (d.cmsect) { CM.sect = d.cmsect; document.querySelectorAll('[data-cmsect]').forEach(b => b.setAttribute('aria-pressed', b === t)); cmReload(); }
   else if (d.act === 'cmRetry') { $('#demoCommunity').value = 'loading'; paintCommunity(); setTimeout(() => { $('#demoCommunity').value = 'ok'; paintCommunity(); }, 800); }
@@ -2103,6 +2194,7 @@ document.addEventListener('change', e => {
   if (e.target.id === 'demoTrailer') { TRL.searched = {}; TRL.found = {}; TRL.searching = null; TRL.fail = {}; if (route() === 'title') render(); else location.hash = 'title'; }
   if (e.target.id === 'trDemo') { C.trDemo = e.target.value; TR.st = {}; TR.showOrig.clear(); TR.pack = {}; TR.pending = null; paintComments(); }
   if (e.target.id === 'demoAvatar') render();
+  if (e.target.id === 'demoBuild') { S.login = 'start'; WEB.tokErr = null; render(); }
   if (e.target.id === 'demoCommunity') { S.titleTab = 'community'; if (route() === 'player' && P.clip) render(); else if (route() === 'title') render(); else location.hash = 'title'; }
   if (e.target.id === 'demoComments') { C.more = false; paintComments(); }
   if (e.target.id === 'nFail') E.failNext = e.target.checked;
