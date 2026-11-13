@@ -64,19 +64,62 @@ class GistClient {
     return utf8.decode(raw.bodyBytes);
   }
 
-  /// Создаёт секретный Gist (`public: false`: не виден в списках и поиске,
-  /// открывается по ссылке) и возвращает его id.
+  /// Публичный профиль пользователя [login]: логин и аватар; `null` —
+  /// такого пользователя нет.
+  Future<({String login, String? avatarUrl})?> user(String login) async {
+    try {
+      final json = await _send('GET', '/users/${Uri.encodeComponent(login)}');
+      return (
+        login: json['login'] as String,
+        avatarUrl: json['avatar_url'] as String?,
+      );
+    } on GitHubException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  /// Ищет среди **публичных** Gist пользователя [login] тот, где есть файл
+  /// [fileName]; `null` — нет (или нет пользователя).
+  Future<String?> findPublicGist(String login, String fileName) async {
+    for (var page = 1; page <= 10; page++) {
+      final Map<String, dynamic> list;
+      try {
+        list = await _send(
+          'GET',
+          '/users/${Uri.encodeComponent(login)}/gists?per_page=100&page=$page',
+        );
+      } on GitHubException catch (e) {
+        if (e.statusCode == 404) return null;
+        rethrow;
+      }
+      final gists = list['items'] as List;
+      for (final g in gists) {
+        final files = (g as Map)['files'] as Map? ?? const {};
+        if (g['public'] != false && files.containsKey(fileName)) {
+          return g['id'] as String;
+        }
+      }
+      if (gists.length < 100) break;
+    }
+    return null;
+  }
+
+  /// Создаёт Gist и возвращает его id. Секретный (`public: false`) не
+  /// виден в списках и поиске, открывается по ссылке; публичный виден в
+  /// профиле GitHub — по нему друзья находят каталог по нику.
   Future<String> createGist({
     required String fileName,
     required String content,
     required String description,
+    bool public = false,
   }) async {
     final json = await _send(
       'POST',
       '/gists',
       body: {
         'description': description,
-        'public': false,
+        'public': public,
         'files': {
           fileName: {'content': content},
         },
@@ -149,6 +192,18 @@ class GistClient {
       if (json is Map && json['message'] is String) message = json['message'];
     } on FormatException {
       // Оставляем HTTP-статус.
+    }
+    final rateLimited =
+        status == 429 ||
+        (status == 403 &&
+            (response.headers['x-ratelimit-remaining'] == '0' ||
+                message.toLowerCase().contains('rate limit')));
+    if (rateLimited) {
+      throw GitHubException(
+        GitHubErrorKind.rateLimited,
+        'GitHub временно ограничил число запросов. Попробуйте через час',
+        statusCode: status,
+      );
     }
     throw GitHubException(
       switch (status) {

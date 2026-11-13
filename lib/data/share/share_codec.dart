@@ -13,7 +13,11 @@ import '../shikimori/russian_text.dart';
 /// «Понравилось», оценки, заметки. Никаких токенов, Client ID, ключей API,
 /// логина GitHub и id приватного Gist — функции их даже не получают.
 abstract final class ShareCodec {
-  static const fileName = 'share.json';
+  /// Файл в публичном Gist: по нему каталог находят по нику GitHub.
+  static const fileName = 'anime-viewer-share.json';
+
+  /// Имя файла в прежних (секретных) публикациях.
+  static const legacyFileName = 'share.json';
   static const description =
       'Anime Viewer: каталог для друзей (только просмотр)';
   static const version = 1;

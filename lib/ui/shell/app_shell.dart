@@ -8,6 +8,7 @@ import '../../data/profiles/profile_repository.dart';
 import '../../data/sync/sync_service.dart';
 import '../app_scope.dart';
 import '../catalog/catalog_screen.dart';
+import '../friends/friends_screen.dart';
 import '../lists/lists_screen.dart';
 import '../profiles/profile_widgets.dart';
 import '../search/search_screen.dart';
@@ -20,6 +21,7 @@ import '../title/title_screen.dart';
 enum AppTab {
   catalog('Каталог', Symbols.grid_view_rounded),
   lists('Списки', Symbols.format_list_bulleted_rounded),
+  friends('Друзья', Symbols.group_rounded),
   search('Поиск', Symbols.search_rounded),
   settings('Настройки', Symbols.settings_rounded);
 
@@ -99,6 +101,7 @@ class AppShellState extends State<AppShell> {
       onOpenCatalog: () => select(AppTab.catalog),
       onOpenTitle: _openTitle,
     ),
+    AppTab.friends => const FriendsScreen(),
     AppTab.search => SearchScreen(key: _searchKey, onOpenTitle: _openTitle),
     AppTab.settings => const SettingsScreen(),
   };
@@ -260,6 +263,7 @@ class _Rail extends StatelessWidget {
           children: [
             item(AppTab.catalog),
             item(AppTab.lists),
+            item(AppTab.friends),
             item(AppTab.search),
             const Spacer(),
             item(

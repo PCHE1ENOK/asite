@@ -22,6 +22,7 @@ import 'data/sources/youtube_comments.dart';
 import 'data/sources/youtube_source.dart';
 import 'data/sync/sync_service.dart';
 import 'data/translation/mlkit_translation.dart';
+import 'data/friends/friends_repository.dart';
 import 'data/translation/translation.dart';
 import 'data/shikimori/russian_text.dart';
 import 'data/share/share_codec.dart';
@@ -35,6 +36,7 @@ class ProfileSession {
     required this.notes,
     required this.favorites,
     required this.sync,
+    required this.friends,
   });
 
   final Profile profile;
@@ -46,6 +48,9 @@ class ProfileSession {
   /// «Понравилось».
   final FavoritesRepository favorites;
   final SyncService sync;
+
+  /// Друзья по нику GitHub и их каталоги.
+  final FriendsRepository friends;
 }
 
 /// Сервисы приложения, общие для всех платформ. Списки и синхронизация
@@ -112,47 +117,53 @@ class AppServices {
         final library = LibraryRepository(db, profileId: profile.id);
         final notes = NotesRepository(db, profileId: profile.id);
         final favorites = FavoritesRepository(db, profileId: profile.id);
+        final sync = SyncService(
+          library: library,
+          notes: notes,
+          favorites: favorites,
+          buildShare: () async {
+            final entries = await library.allForSync();
+            final favs = await favorites.allForSync();
+            final ns = await notes.allForSync();
+            final ids = {
+              for (final e in entries) e.mediaId,
+              for (final f in favs) f.mediaId,
+              for (final n in ns) n.mediaId,
+            };
+            final summaries = await animeRepo.getSummaries(ids);
+            final shiki = await shikiRepo.titles(summaries.values.toList());
+            return ShareCodec.encode(
+              ShareCodec.build(
+                owner: profile.name,
+                now: DateTime.now(),
+                entries: entries,
+                favorites: favs,
+                notes: ns,
+                summaries: summaries,
+                shikimori: shiki,
+              ),
+            );
+          },
+          db: db,
+          tokens: tokensFor(profile.id),
+          profiles: profiles,
+          // В браузере Device Flow закрыт CORS — вход вставленным токеном.
+          auth: () => !isWeb && AppConfig.hasGitHubClientId
+              ? GitHubAuth(clientId: AppConfig.githubClientId)
+              : null,
+          gistClient: GistClient.new,
+          tokenSignIn: isWeb,
+        );
         return ProfileSession(
           profile: profile,
           library: library,
           notes: notes,
           favorites: favorites,
-          sync: SyncService(
-            library: library,
-            notes: notes,
-            favorites: favorites,
-            buildShare: () async {
-              final entries = await library.allForSync();
-              final favs = await favorites.allForSync();
-              final ns = await notes.allForSync();
-              final ids = {
-                for (final e in entries) e.mediaId,
-                for (final f in favs) f.mediaId,
-                for (final n in ns) n.mediaId,
-              };
-              final summaries = await animeRepo.getSummaries(ids);
-              final shiki = await shikiRepo.titles(summaries.values.toList());
-              return ShareCodec.encode(
-                ShareCodec.build(
-                  owner: profile.name,
-                  now: DateTime.now(),
-                  entries: entries,
-                  favorites: favs,
-                  notes: ns,
-                  summaries: summaries,
-                  shikimori: shiki,
-                ),
-              );
-            },
-            db: db,
-            tokens: tokensFor(profile.id),
-            profiles: profiles,
-            // В браузере Device Flow закрыт CORS — вход вставленным токеном.
-            auth: () => !isWeb && AppConfig.hasGitHubClientId
-                ? GitHubAuth(clientId: AppConfig.githubClientId)
-                : null,
-            gistClient: GistClient.new,
-            tokenSignIn: isWeb,
+          sync: sync,
+          friends: FriendsRepository(
+            db,
+            profileId: profile.id,
+            token: () => sync.token,
           ),
         );
       },
@@ -218,6 +229,7 @@ class AppServices {
   NotesRepository get notes => session.value.notes;
   FavoritesRepository get favorites => session.value.favorites;
   SyncService get sync => session.value.sync;
+  FriendsRepository get friends => session.value.friends;
 
   /// Переключает профиль: синхронизация старого останавливается, новый
   /// синхронизируется сразу.
@@ -229,8 +241,11 @@ class AppServices {
     await profiles.setActive(profileId);
     session.value = _sessionFactory(next);
     await old.sync.dispose();
-    // Подписка на базу закрывается после перестроения экранов.
-    Future<void>.delayed(const Duration(seconds: 1), old.favorites.dispose);
+    // Подписки закрываются после перестроения экранов.
+    Future<void>.delayed(const Duration(seconds: 1), () {
+      old.favorites.dispose();
+      old.friends.dispose();
+    });
     unawaited(session.value.sync.start());
   }
 

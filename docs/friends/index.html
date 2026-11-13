@@ -204,13 +204,14 @@ function normalize(j) {
 }
 const GIST_ID = /^[0-9a-f]{20,40}$/i;
 function gistIdFrom(s) { s = (s || '').trim(); const m = s.match(/([0-9a-f]{20,40})(?:[/?#]|$)/i); return m ? m[1] : null; }
-// Загрузка: GitHub API (CORS открыт, 60 запросов в час с одного адреса без входа), файл share.json из Gist.
+// Загрузка: GitHub API (CORS открыт, 60 запросов в час с одного адреса без входа), файл anime-viewer-share.json (или прежний share.json) из Gist.
 async function load(id) {
   const r = await fetch(`https://api.github.com/gists/${id}`, { headers: { Accept: 'application/vnd.github+json' } });
   if (r.status === 404) throw Object.assign(new Error('notfound'), { kind: 'notfound' });
   if (r.status === 403 || r.status === 429) throw Object.assign(new Error('rate'), { kind: 'rate' });
   if (!r.ok) throw Object.assign(new Error('net'), { kind: 'net' });
-  const g = await r.json(), f = g.files && g.files['share.json'];
+  // Новые публикации — anime-viewer-share.json (публичный Gist), прежние — share.json.
+  const g = await r.json(), f = g.files && (g.files['anime-viewer-share.json'] || g.files['share.json']);
   if (!f) throw Object.assign(new Error('format'), { kind: 'format' });
   const text = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
   return normalize(JSON.parse(text));

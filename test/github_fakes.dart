@@ -13,6 +13,19 @@ class FakeGitHub {
   /// `avatar_url` в ответе `/user`.
   String? avatarUrl;
   int userRequests = 0;
+
+  /// Публичные Gist созданные приложением (`public: true`).
+  final publicIds = <String>{};
+
+  /// Другие пользователи GitHub: логин → аватар.
+  final users = <String, String?>{};
+
+  /// Публичные Gist других пользователей: логин → файлы.
+  final userGists = <String, Map<String, String>>{};
+
+  /// GitHub отвечает «лимит запросов исчерпан».
+  bool rateLimited = false;
+  int apiRequests = 0;
   final gists = <String, Map<String, String>>{};
   var pendingPolls = 1;
   String? tokenError;
@@ -57,6 +70,14 @@ class FakeGitHub {
       });
     }
 
+    if (rateLimited) {
+      return _json(
+        {'message': 'API rate limit exceeded for user.'},
+        403,
+        {'x-ratelimit-remaining': '0'},
+      );
+    }
+    apiRequests++;
     if (revoked || r.headers['Authorization'] != 'Bearer $token') {
       return _json({'message': 'Bad credentials'}, 401);
     }
@@ -81,10 +102,43 @@ class FakeGitHub {
           },
       ]);
     }
+    final userPath = RegExp(r'^/users/([\w-]+)(/gists)?$').firstMatch(path);
+    if (userPath != null) {
+      final login = userPath[1]!;
+      final known = users.keys
+          .where((u) => u.toLowerCase() == login.toLowerCase())
+          .firstOrNull;
+      if (known == null) return _json({'message': 'Not Found'}, 404);
+      if (userPath[2] == null) {
+        return _json({'login': known, 'avatar_url': ?users[known]});
+      }
+      final files = userGists[known];
+      return _json([
+        if (files != null)
+          {
+            'id': 'pub$known',
+            'public': true,
+            'files': {
+              for (final f in files.keys) f: {'filename': f},
+            },
+          },
+      ]);
+    }
+    final userGist = RegExp(r'^/gists/pub([\w-]+)$').firstMatch(path);
+    final files = userGist == null ? null : userGists[userGist[1]];
+    if (userGist != null && files != null) {
+      return _json({
+        'id': 'pub${userGist[1]}',
+        'files': {
+          for (final MapEntry(:key, :value) in files.entries)
+            key: {'filename': key, 'content': value, 'truncated': false},
+        },
+      });
+    }
     if (path == '/gists' && r.method == 'POST') {
       final body = jsonDecode(r.body) as Map<String, dynamic>;
-      assert(body['public'] == false);
       final id = 'g${_nextId++}';
+      if (body['public'] == true) publicIds.add(id);
       gists[id] = _files(body);
       writes++;
       return _json({'id': id}, 201);

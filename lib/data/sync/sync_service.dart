@@ -21,9 +21,19 @@ enum SyncStatus { signedOut, synced, pending, syncing, error }
 
 /// Глобальное состояние синхронизации для точки на профиле и `SyncBar`.
 @immutable
-/// Показ каталога друзьям: секретный Gist с `share.json`.
+/// Показ каталога друзьям: Gist с `anime-viewer-share.json`. Публичный —
+/// друзья находят его по нику GitHub; секретный — прежние публикации
+/// (только по ссылке, файл `share.json`).
 class ShareState {
-  const ShareState({this.gistId, this.updatedAt, this.error});
+  const ShareState({
+    this.gistId,
+    this.updatedAt,
+    this.error,
+    this.isPublic = false,
+  });
+
+  /// Публичный Gist (виден по нику), а не секретный.
+  final bool isPublic;
 
   /// `null` — каталог не показывается.
   final String? gistId;
@@ -169,6 +179,11 @@ class SyncService {
       ProfileRepository.settingKey(profileId, 'share_gist_id');
   String get _shareAtKey =>
       ProfileRepository.settingKey(profileId, 'share_updated_at');
+  String get _sharePublicKey =>
+      ProfileRepository.settingKey(profileId, 'share_public');
+
+  /// Токен GitHub профиля (поиск друзей); `null` — вход не выполнен.
+  String? get token => _token;
   bool _shareDirty = false;
   Timer? _shareTimer;
 
@@ -214,14 +229,17 @@ class SyncService {
       share.value = ShareState(
         gistId: shareId,
         updatedAt: DateTime.tryParse(await _db.setting(_shareAtKey) ?? ''),
+        isPublic: await _db.setting(_sharePublicKey) == '1',
       );
     }
     await _publishIdle();
     if (_token != null) await syncNow();
   }
 
-  /// Создаёт секретный Gist с `share.json` и возвращает его id. Ссылку на
-  /// страницу просмотра собирает интерфейс.
+  /// Публикует каталог: публичный Gist с `anime-viewer-share.json` (его
+  /// находят по нику GitHub) и возвращает его id. Прежняя секретная
+  /// публикация пересоздаётся публичной, секретный Gist удаляется.
+  /// Ссылку на страницу просмотра собирает интерфейс.
   Future<String> startSharing() async {
     final token = _token;
     final build = buildShare;
@@ -231,19 +249,30 @@ class SyncService {
         'Войдите через GitHub, чтобы поделиться каталогом',
       );
     }
-    if (share.value.gistId case final id?) return id;
+    final old = share.value;
+    if (old.gistId case final id? when old.isPublic) return id;
     final client = _gistClient(token);
     try {
       final id = await client.createGist(
         fileName: ShareCodec.fileName,
         content: await build(),
         description: ShareCodec.description,
+        public: true,
       );
       final now = _now().toUtc();
       await _db.putSetting(_shareIdKey, id);
       await _db.putSetting(_shareAtKey, now.toIso8601String());
+      await _db.putSetting(_sharePublicKey, '1');
       _shareDirty = false;
-      share.value = ShareState(gistId: id, updatedAt: now);
+      share.value = ShareState(gistId: id, updatedAt: now, isPublic: true);
+      // Прежняя секретная публикация больше не нужна.
+      if (old.gistId case final secret?) {
+        try {
+          await client.deleteGist(secret);
+        } on GitHubException {
+          // Не удалось — останется только по старой ссылке; не мешает.
+        }
+      }
       return id;
     } finally {
       client.close();
@@ -266,6 +295,7 @@ class SyncService {
     }
     await _db.putSetting(_shareIdKey, null);
     await _db.putSetting(_shareAtKey, null);
+    await _db.putSetting(_sharePublicKey, null);
     share.value = const ShareState();
   }
 
@@ -289,16 +319,22 @@ class SyncService {
     }
     final client = _gistClient(token);
     try {
-      await client.writeFile(id, ShareCodec.fileName, await build());
+      final public = share.value.isPublic;
+      await client.writeFile(
+        id,
+        public ? ShareCodec.fileName : ShareCodec.legacyFileName,
+        await build(),
+      );
       final now = _now().toUtc();
       await _db.putSetting(_shareAtKey, now.toIso8601String());
       _shareDirty = false;
-      share.value = ShareState(gistId: id, updatedAt: now);
+      share.value = ShareState(gistId: id, updatedAt: now, isPublic: public);
     } on GitHubException catch (e) {
       share.value = ShareState(
         gistId: id,
         updatedAt: share.value.updatedAt,
         error: e.message,
+        isPublic: share.value.isPublic,
       );
     } finally {
       client.close();
