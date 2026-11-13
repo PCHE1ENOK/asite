@@ -517,6 +517,47 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .app.m .car-arr { display: none; }
 .app.m .car-auto { position: static; margin-top: 2px; }
 @media (prefers-reduced-motion: reduce) { .car-track { scroll-behavior: auto; } .car-auto i { animation: none !important; } }
+/* ---------- Друзья ---------- */
+.fr-find { display: flex; gap: 8px; max-width: 720px; margin-bottom: 16px; }
+.fr-find .searchbig { flex: 1; margin: 0; }
+.fr-find .btn { height: 48px; }
+.fr-res { max-width: 720px; margin-bottom: 32px; }
+.fcard { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--s1); box-shadow: var(--shadow-1); color: var(--fg); text-decoration: none; min-width: 0; }
+a.fcard:hover { background: var(--s2); }
+.fcard .who2 { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.fcard .who2 b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fcard .who2 .cap { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fcnt { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--fg2); margin-top: 4px; }
+.fcnt span { display: inline-flex; align-items: center; gap: 5px; }
+.fcnt i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.fcnt b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.fr-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.fr-msg { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--s1); font-size: 14px; line-height: 20px; color: var(--fg2); }
+.fr-msg > svg { width: 22px; height: 22px; flex: none; color: var(--fg3); }
+.fr-msg b { color: var(--fg); display: block; margin-bottom: 2px; font-size: 15px; }
+.fr-msg .btn { margin-top: 10px; }
+.fr-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.fr-head .t { flex: 1; min-width: 0; }
+.fr-head h1 { font-size: 26px; line-height: 32px; }
+.fr-back { display: inline-flex; align-items: center; gap: 6px; color: var(--fg2); text-decoration: none; font-size: 14px; margin-bottom: 12px; }
+.fr-back:hover { color: var(--fg); }
+.fr-back svg { width: 18px; height: 18px; }
+.fnotes { display: grid; gap: 12px; max-width: 860px; }
+.fnote { display: grid; grid-template-columns: 64px 1fr; gap: 14px; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--s1); box-shadow: var(--shadow-1); }
+.fnote .mini { width: 64px; aspect-ratio: 2 / 3; border-radius: var(--r-sm); overflow: hidden; position: relative; }
+.fnote .mini .art { position: absolute; inset: 0; } .fnote .mini .glyph { font-size: 32px; } .fnote .mini .ttl { display: none; }
+.fnote h3 { font-size: 15px; margin-bottom: 4px; }
+.fnote .vchip { margin-bottom: 6px; }
+.fnote .sum { font-size: 14px; line-height: 20px; color: var(--fg); margin-bottom: 6px; }
+.fnote ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13px; color: var(--fg2); }
+.fnote ul .tc { font: 600 12px var(--f-text); font-variant-numeric: tabular-nums; color: var(--accent); margin-right: 6px; }
+.pubrow .lbl small b { color: var(--good); font-weight: 600; }
+.app.m .fr-find .btn { padding: 0 14px; }
+.app.m .fr-list { grid-template-columns: 1fr; }
+.fcard { flex-wrap: wrap; }
+.app.m .fcard > .btn { flex-basis: 100%; justify-content: center; }
+.app.m .fr-head h1 { font-size: 22px; line-height: 28px; }
+.app.m .fr-head > .btn { flex-basis: 100%; justify-content: center; }
 /* ---------- Веб-версия (docs/app) ---------- */
 .app.web .winbtns { display: none; }
 .webnote { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--s2); font-size: 13px; line-height: 18px; color: var(--fg2); }
@@ -551,6 +592,8 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
 .prow .icon-btn:hover { color: var(--bad); }
 .btn-danger { background: var(--bad); color: var(--bg); }
 .btn-danger:hover { filter: brightness(1.08); }
+.btn-danger-outline { border: 1px solid var(--bad); color: var(--bad); background: none; }
+.btn-danger-outline:hover { background: color-mix(in srgb, var(--bad) 10%, transparent); }
 .dialog-wrap { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: #00000080; }
 .dialog { width: min(420px, 100%); background: var(--s2); color: var(--fg); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-3); padding: 24px; display: grid; gap: 14px; }
 .dialog h3 { font: 600 20px/26px var(--f-display); text-wrap: balance; }
@@ -971,6 +1014,11 @@ h3 { font: 600 18px/24px var(--f-text); margin: 0; }
         <option value="off">отключены</option>
         <option value="error">ошибка сети</option>
       </select></span>
+      <span class="pf"><label for="demoFriends">Друзья:</label>
+      <select id="demoFriends" aria-label="Список друзей">
+        <option value="ok">есть друзья</option>
+        <option value="empty">пока нет</option>
+      </select></span>
       <span class="pf"><label for="demoAuto">Автопрокрутка:</label>
       <select id="demoAuto" aria-label="Автопрокрутка каруселей">
         <option value="on">вкл</option>
@@ -1073,6 +1121,9 @@ const I = {
   monitor:'M21 3H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 13H3V5h18z',
   chev_l:'M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12z',
   chev_r:'M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z',
+  group:'M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13zm8 0c-.3 0-.6 0-1 .1 1.2.8 2 1.9 2 3.4V19h6v-2.5c0-2.3-4.7-3.5-7-3.5z',
+  person_add:'M15 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2zm9 4c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z',
+  public:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 17.9A8 8 0 0 1 4.2 9.3L9 14v1a2 2 0 0 0 2 2zm6.9-2.5A2 2 0 0 0 16 16h-1v-3a1 1 0 0 0-1-1H8v-2h2a1 1 0 0 0 1-1V7h2a2 2 0 0 0 2-2v-.4a8 8 0 0 1 2.9 12.8z',
   clips:'M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-8 12.5v-9l6 4.5z',
   close:'M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z',
   block:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 0 1-6.3-12.9l11.2 11.2A8 8 0 0 1 12 20zm6.3-3.1L7.1 5.7a8 8 0 0 1 11.2 11.2z',
@@ -1286,6 +1337,81 @@ setInterval(() => {
   document.querySelectorAll('.car.auto:not(.paused)').forEach(c => { const r = c.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) carStep(c, 1); });
 }, CAR_MS);
 function paintCars() { document.querySelectorAll('.car-track').forEach(carArrows); }
+
+/* ---------- Друзья: поиск по нику GitHub, список, просмотр каталога друга ----------
+   Данные примерные: ники выдуманы. Публичный каталог — публичный Gist «anime-lists-public» с share.json (§16). */
+const PUB = { on:false };
+const FRIEND_ST = { CURRENT:'Смотрю', COMPLETED:'Просмотрено', PLANNING:'В планах', DROPPED:'Брошено' };
+function mkFriend(gh, name, picks, favs, notes, upd) {
+  const lists = {}; Object.entries(picks).forEach(([st, ids]) => ids.forEach(id => { lists[id] = st; }));
+  return { gh, name, lists, favs:new Set(favs), notes, upd };
+}
+const FR_DIR = {
+  'mika-anime': mkFriend('mika-anime', 'Мика', { CURRENT:[1,3,10], COMPLETED:[2,5,7,8,9,16,18], PLANNING:[11,12], DROPPED:[13] }, [2,7,16], {
+    2:{ verdict:'recommend', summary:'Тихая история о времени и памяти. Лучшее за год.', moments:[{e:1,t:'05:12',x:'Цветочное поле'},{e:10,t:'18:40',x:'Экзамен на мага'}] },
+    13:{ verdict:'not', summary:'Бросила на второй арке — затянуто.', moments:[] },
+    7:{ verdict:'rewatch', summary:'Пересмотреть летом, на большом экране.', moments:[{e:1,t:'1:12:30',x:'Комета'}] } }, '2 часа назад'),
+  'kenji-lists': mkFriend('kenji-lists', 'Кэндзи', { CURRENT:[6,14], COMPLETED:[4,9,12,15], PLANNING:[1,2,3], DROPPED:[17] }, [6,15], {
+    17:{ verdict:'not', summary:'Ради мемов можно, но нет.', moments:[{e:1,t:'03:00',x:'CGI'}] } }, 'вчера'),
+  'sora-watch': mkFriend('sora-watch', 'Сора', { CURRENT:[2], COMPLETED:[7,18,5,8], PLANNING:[16], DROPPED:[] }, [18], {}, '5 дней назад'),
+};
+const FR = { list:['mika-anime', 'sora-watch'], q:'', res:null, open:null };
+const frCounts = f => { const c = { CURRENT:0, COMPLETED:0, PLANNING:0, DROPPED:0 }; Object.values(f.lists).forEach(st => c[st]++); return c; };
+const frAv = (f, size) => avatarHtml({ name:f.name, h:200, gh:f.gh }, size);
+function frCard(f, act) {
+  const c = frCounts(f);
+  return `<div class="fcard">${frAv(f, 48)}<span class="who2"><b>${esc(f.name)}</b><span class="cap">@${esc(f.gh)} · ${Object.keys(f.lists).length} тайтлов · обновлено ${esc(f.upd)}</span>
+    <span class="fcnt"><span><i style="background:var(--st-current)"></i>смотрю <b>${c.CURRENT}</b></span><span><i style="background:var(--st-completed)"></i>просмотрено <b>${c.COMPLETED}</b></span><span><i style="background:var(--bad)"></i>понравилось <b>${f.favs.size}</b></span></span></span>${act || ''}</div>`;
+}
+function viewFriends() {
+  const out = !prof().gh;
+  const list = $('#demoFriends').value === 'empty' ? [] : FR.list.map(g => FR_DIR[g]);
+  return `<div class="page">
+    <div class="head"><h1>Друзья</h1></div>
+    ${out ? `<div class="fr-res"><div class="fr-msg">${ic('login')}<span><b>Войдите через GitHub, чтобы искать друзей</b>Друзей находят по нику GitHub, а их каталоги хранятся в публичных Gist — без входа приложение не может их искать.<br><a class="btn btn-filled" href="#login" style="text-decoration:none">${ic('login')}Войти через GitHub</a></span></div></div>`
+    : `<form class="fr-find" onsubmit="return false"><label class="searchbig">${ic('search')}<input id="frq" type="search" placeholder="Найти друга по нику GitHub" aria-label="Найти друга по нику GitHub" autocomplete="off" spellcheck="false" value="${esc(FR.q)}"></label><button class="btn btn-filled" type="submit" data-act="frFind">Найти</button></form>
+    <div class="fr-res" id="frres" aria-live="polite"></div>`}
+    <div class="overline" style="margin-bottom:12px">Мои друзья · ${list.length}</div>
+    ${list.length ? `<div class="fr-list">${list.map(f => `<a class="fcard-link" href="#friend" data-friend="${f.gh}" style="text-decoration:none;display:block">${frCard(f, ic('chev_r', 'style="width:20px;height:20px;color:var(--fg3);flex:none"'))}</a>`).join('')}</div>`
+      : `<div class="state small">${ic('group')}<h3>Пока нет друзей</h3><div>Найдите друга по нику GitHub. У него в настройках должен быть включён «Публичный каталог».</div></div>`}
+    <p class="sample">Примерные данные. Демо-ники: mika-anime, kenji-lists, sora-watch — есть каталог; private-user — нет публичного каталога; limit — лимит поиска; любой другой — не найден.</p>
+  </div>`;
+}
+function paintFriendRes() {
+  const box = $('#frres'); if (!box) return; const r = FR.res;
+  if (!r) { box.innerHTML = ''; return; }
+  if (r === 'busy') { box.innerHTML = `<div class="fr-msg" role="status"><span class="spin" aria-hidden="true" style="width:22px;height:22px"></span><span><b>Ищем @${esc(FR.q)}…</b>Проверяем ник на GitHub и публичный каталог.</span></div>`; return; }
+  if (r === 'notfound') { box.innerHTML = `<div class="fr-msg">${ic('empty')}<span><b>На GitHub нет пользователя @${esc(FR.q)}</b>Проверьте ник — он такой же, как в адресе github.com/ник.</span></div>`; return; }
+  if (r === 'private') { box.innerHTML = `<div class="fr-msg">${frAv({ name:FR.q, gh:FR.q }, 48)}<span><b>У @${esc(FR.q)} нет публичного каталога</b>Пользователь есть на GitHub, но не открыл каталог. Попросите включить «Публичный каталог» в настройках приложения.</span></div>`; return; }
+  if (r === 'limit') { box.innerHTML = `<div class="fr-msg">${ic('hourglass')}<span><b>Лимит поиска GitHub исчерпан</b>GitHub ограничивает число запросов в час. Попробуйте через 20 минут — список друзей и их каталоги открываются как обычно.</span></div>`; return; }
+  const f = FR_DIR[r], already = FR.list.includes(r);
+  box.innerHTML = frCard(f, already ? `<a class="btn btn-outline" href="#friend" data-friend="${f.gh}" style="text-decoration:none">${ic('check')}В друзьях</a>` : `<button class="btn btn-filled" type="button" data-fradd="${f.gh}">${ic('person_add')}Добавить в друзья</button>`);
+}
+function friendSearch() {
+  const q = ($('#frq').value || '').trim().replace(/^@/, '').toLowerCase(); FR.q = q; if (!q) { FR.res = null; paintFriendRes(); return; }
+  FR.res = 'busy'; paintFriendRes();
+  setTimeout(() => { FR.res = FR_DIR[q] ? q : q === 'private-user' ? 'private' : q === 'limit' ? 'limit' : 'notfound'; if (route() === 'friends') paintFriendRes(); }, 800);
+}
+function viewFriend() {
+  const f = FR_DIR[FR.open] || FR_DIR['mika-anime'], c = frCounts(f);
+  const tabs = { CURRENT:['Смотрю', c.CURRENT], COMPLETED:['Просмотрено', c.COMPLETED], PLANNING:['В планах', c.PLANNING], DROPPED:['Брошено', c.DROPPED], FAV:['Понравилось', f.favs.size], NOTES:['Заметки', Object.keys(f.notes).length] };
+  const tab = tabs[FR.tab] ? FR.tab : 'CURRENT';
+  const items = tab === 'FAV' ? [...f.favs] : tab === 'NOTES' ? Object.keys(f.notes).map(Number) : Object.keys(f.lists).filter(id => f.lists[id] === tab).map(Number);
+  const asCard = id => { const a = DATA.find(x => x.id === id); return card(Object.assign({}, a, { st: f.lists[id] && f.lists[id] !== 'COMPLETED' ? f.lists[id] : null, pr: Math.min(a.ep, 3) })); };
+  let body;
+  if (!items.length) body = `<div class="state small">${ic('empty')}<h3>${tab === 'NOTES' ? 'Заметок нет' : 'Здесь пусто'}</h3><div>${esc(f.name)} пока ничего сюда не добавил(а).</div></div>`;
+  else if (tab === 'NOTES') body = `<div class="fnotes">${items.map(id => { const a = DATA.find(x => x.id === id), n = f.notes[id], V = VERD[n.verdict];
+      return `<article class="fnote"><a class="mini" href="#title" data-open="${a.id}" aria-label="${esc(a.t)}">${art(a)}</a><div><h3>${esc(a.t)}</h3><span class="vchip" style="color:var(${V.v})">${ic(V.icon)}${V.label}</span><p class="sum">${esc(n.summary)}</p>${n.moments.length ? `<ul>${n.moments.map(m => `<li><span class="tc">${m.e} эп. · ${m.t}</span>${esc(m.x)}</li>`).join('')}</ul>` : ''}</div></article>`; }).join('')}</div>`;
+  else body = `<div class="grid">${items.map(asCard).join('')}</div>`;
+  return `<div class="page">
+    <a class="fr-back" href="#friends">${ic('back')}Друзья</a>
+    <div class="fr-head">${frAv(f, 56)}<div class="t"><h1>Каталог ${esc(f.name)}</h1><div class="cap">@${esc(f.gh)} · обновлено ${esc(f.upd)} · только просмотр</div></div>
+      <button class="btn btn-outline" type="button" data-frdel="${f.gh}">Удалить из друзей</button></div>
+    <div class="tabs" role="tablist">${Object.entries(tabs).map(([k, [l, n]]) => `<button class="tab" role="tab" type="button" data-frtab="${k}" aria-selected="${tab === k}">${k === 'FAV' ? `<span class="favic">${ic('heart')}</span>` : ''}${l}<span class="count">${n}</span></button>`).join('')}</div>
+    ${body}
+    <p class="sample">Каталог друга обновляется, когда он синхронизирует списки. Ваши статусы не меняются.</p>
+  </div>`;
+}
 
 /* ---------- Каталог ---------- */
 function viewCatalog() {
@@ -1569,6 +1695,8 @@ function viewSettings() {
       ${out ? '' : `<div class="srow">${syncBar()}</div>`}
       <div class="srow"><span class="acct">${avatarHtml(cp, 56)}<span class="lbl">${out ? 'Вход не выполнен<small>Списки хранятся только на этом устройстве</small>' : `GitHub · ${esc(cp.gh || 'yuki-dev')}<small>Приватный Gist «anime-lists» · ${cp.total} тайтлов</small>`}</span></span>
         ${out ? `<a class="btn btn-filled" href="#login" style="text-decoration:none">${ic('login')}Войти через GitHub</a>` : `<button class="btn btn-outline" type="button" data-act="logout">Выйти из GitHub</button>`}</div>
+      ${out ? '' : PUB.on ? `<div class="srow pubrow" id="pubrow"><span class="lbl">Публичный каталог <span class="kstate ok">${ic('public')}включён</span><small>Друзья находят вас по нику <b>@${esc(cp.gh)}</b> во вкладке «Друзья». Видны списки, «Понравилось», оценки и заметки. Обновлено 5 мин назад, вместе с синхронизацией.</small></span><button class="btn btn-danger-outline" type="button" data-act="pubOff">Отключить публичный каталог</button></div>`
+        : `<div class="srow pubrow" id="pubrow"><span class="lbl">Публичный каталог<small>Откройте каталог, чтобы друзья нашли вас по нику @${esc(cp.gh)} во вкладке «Друзья». Сейчас его видите только вы.</small></span><button class="btn btn-tonal" type="button" data-act="pubOn">${ic('public')}Открыть каталог</button></div>`}
     </section>
     <div class="cap" style="margin-bottom:-16px">Настройки ниже общие для всех профилей на этом устройстве.</div>
     ${isWeb() ? ytKeyGroup() : ''}
@@ -2119,13 +2247,13 @@ function profileMenu() {
 }
 function closeSheet() { const s = $('#sheet'); if (s) s.remove(); }
 
-const ROUTES = { catalog:viewCatalog, lists:viewLists, title:viewTitle, player:viewPlayer, login:viewLogin, search:viewSearch, settings:viewSettings };
+const ROUTES = { catalog:viewCatalog, lists:viewLists, title:viewTitle, player:viewPlayer, login:viewLogin, search:viewSearch, friends:viewFriends, friend:viewFriend, settings:viewSettings };
 function route() { const h = location.hash.slice(1); return ROUTES[h] ? h : 'catalog'; }
 function render() {
   const r = route();
   applyPlatform(); closeSheet();
-  $('#rail').innerHTML = [['catalog','grid','Каталог'],['lists','lists','Списки'],['search','search','Поиск']].map(([k,i,l]) =>
-    `<a href="#${k}" ${r === k || (k === 'catalog' && r === 'title') ? 'aria-current="page"' : ''}>${ic(i)}<span>${l}</span></a>`).join('')
+  $('#rail').innerHTML = [['catalog','grid','Каталог'],['lists','lists','Списки'],['friends','group','Друзья'],['search','search','Поиск']].map(([k,i,l]) =>
+    `<a href="#${k}" ${r === k || (k === 'catalog' && r === 'title') || (k === 'friends' && r === 'friend') ? 'aria-current="page"' : ''}>${ic(i)}<span>${l}</span></a>`).join('')
     + `<span class="spacer"></span><a class="settings-link" href="#settings" ${r === 'settings' ? 'aria-current="page"' : ''} aria-label="Настройки">${ic('settings')}<span>Настройки</span></a>${(() => { const v = SYNC[syncState()]; const out = syncState() === 'out';
       return `<a class="avatar-wrap${r === 'settings' ? ' is-settings' : ''}" href="#settings" ${r === 'login' || r === 'settings' ? 'aria-current="page"' : ''} data-act="${isMob() ? '' : 'pmenu'}" aria-haspopup="${isMob() ? 'false' : 'menu'}" title="Профиль «${esc(prof().name)}»${out ? ' · без входа в GitHub' : ' · ' + v.text.replace(/<[^>]+>/g, '')}">${avatarHtml(prof())}${v.dot ? `<span class="syncdot" style="background:var(${v.dot})"></span>` : ''}<span>${isMob() ? 'Профиль' : esc(prof().name)}</span></a>`; })()}`;
   clearInterval(P.timer); clearNext();
@@ -2133,6 +2261,7 @@ function render() {
   if (r !== 'player') $('#main').scrollTop = 0;
   if (r === 'search') { paintSearch(); const i = $('#sq'); if (i) i.focus(); }
   if (r === 'title' && S.titleTab === 'community') paintCommunity();
+  if (r === 'friends') paintFriendRes();
   paintCars();
   if (E.id && r !== 'title' && r !== 'lists') closeEditor();
   if (r !== 'player') { P.trailer = false; P.trailerLoading = false; P.clip = null; }
@@ -2183,6 +2312,16 @@ document.addEventListener('click', e => {
   else if (d.act === 'trNo') { delete TR.st[TR.pending]; TR.pending = null; paintComments(); }
   else if (d.trorig) { TR.showOrig.has(d.trorig) ? TR.showOrig.delete(d.trorig) : TR.showOrig.add(d.trorig); paintComments(); }
   else if (d.trpack) downloadPack(d.trpack);
+  else if (d.act === 'frFind') { e.preventDefault(); friendSearch(); }
+  else if (d.fradd) { FR.list.push(d.fradd); render(); toast(`${FR_DIR[d.fradd].name} в друзьях`); }
+  else if (d.friend) { FR.open = d.friend; FR.tab = 'CURRENT'; }
+  else if (d.frtab) { FR.tab = d.frtab; render(); }
+  else if (d.frdel) { const f = FR_DIR[d.frdel]; openDialog(`<h3>Удалить ${esc(f.name)} из друзей?</h3><p class="dlg-text">Каталог @${esc(f.gh)} пропадёт из вашего списка друзей. У ${esc(f.name)} ничего не изменится, и вы сможете снова найти его по нику.</p><div class="dlg-acts"><button class="btn btn-text" type="button" data-dlg="close">Отмена</button><button class="btn btn-danger" type="button" data-frdelok="${f.gh}">Удалить из друзей</button></div>`); }
+  else if (d.frdelok) { FR.list = FR.list.filter(g => g !== d.frdelok); closeDialog(); location.hash = 'friends'; toast(`${FR_DIR[d.frdelok].name} больше не в друзьях`); }
+  else if (d.act === 'pubOn') openDialog(`<h3>Открыть публичный каталог?</h3><p class="dlg-text">Ваш каталог станет виден всем, кто найдёт вас по нику GitHub <b>@${esc(prof().gh)}</b>: списки, «Понравилось», оценки и все заметки, включая тайтлы 18+. Каталог лежит в публичном Gist и обновляется вместе с синхронизацией.</p><p class="dlg-text">Отключить можно в любой момент в настройках — каталог перестанет находиться и открываться.</p><div class="dlg-acts"><button class="btn btn-text" type="button" data-dlg="close">Отмена</button><button class="btn btn-filled" type="button" data-act="pubOnOk">Открыть каталог</button></div>`);
+  else if (d.act === 'pubOnOk') { PUB.on = true; closeDialog(); render(); toast('Каталог открыт. Друзья найдут вас по нику @' + prof().gh); }
+  else if (d.act === 'pubOff') openDialog(`<h3>Отключить публичный каталог?</h3><p class="dlg-text">Публичный Gist с каталогом будет удалён. Вас перестанут находить по нику, а у друзей ваш каталог перестанет открываться. Ваши списки и заметки останутся у вас.</p><div class="dlg-acts"><button class="btn btn-text" type="button" data-dlg="close">Отмена</button><button class="btn btn-danger" type="button" data-act="pubOffOk">Отключить публичный каталог</button></div>`);
+  else if (d.act === 'pubOffOk') { PUB.on = false; closeDialog(); render(); toast('Публичный каталог отключён'); }
   else if (d.car) { const c = t.closest('.car'); carStep(c, +d.car); }
   else if (d.act === 'carStop') { const c = t.closest('.car'); c.classList.remove('auto', 'paused'); c.classList.add('stopped'); t.remove(); toast('Автопрокрутка остановлена. Включить снова — в настройках'); }
   else if (d.act === 'carRetry') { $('#demoCar').value = 'loading'; render(); setTimeout(() => { $('#demoCar').value = 'ok'; render(); }, 900); }
@@ -2300,6 +2439,7 @@ document.addEventListener('change', e => {
   if (e.target.id === 'demoTrailer') { TRL.searched = {}; TRL.found = {}; TRL.searching = null; TRL.fail = {}; if (route() === 'title') render(); else location.hash = 'title'; }
   if (e.target.id === 'trDemo') { C.trDemo = e.target.value; TR.st = {}; TR.showOrig.clear(); TR.pack = {}; TR.pending = null; paintComments(); }
   if (e.target.id === 'demoAvatar') render();
+  if (e.target.id === 'demoFriends') { if (route() === 'friends') render(); else location.hash = 'friends'; }
   if (e.target.id === 'demoAuto' || e.target.id === 'demoCar') { if (route() === 'catalog' || (route() === 'title' && S.titleTab === 'similar')) render(); else location.hash = 'catalog'; }
   if (e.target.id === 'demoBuild') { S.login = 'start'; WEB.tokErr = null; render(); }
   if (e.target.id === 'demoCommunity') { S.titleTab = 'community'; if (route() === 'player' && P.clip) render(); else if (route() === 'title') render(); else location.hash = 'title'; }
