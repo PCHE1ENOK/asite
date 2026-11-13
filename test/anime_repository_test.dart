@@ -172,7 +172,7 @@ void main() {
     test(
       'request has season, seasonYear, popularity; airing → RELEASING',
       () async {
-        await repo.getSeason(season: 'FALL', year: 2026, airing: true);
+        await repo.getSeason(season: 'FALL', year: 2026, status: 'RELEASING');
         final v = lastVars();
         expect(v['season'], 'FALL');
         expect(v['seasonYear'], 2026);
@@ -180,24 +180,35 @@ void main() {
         expect(v['sort'], ['POPULARITY_DESC']);
         expect(v['perPage'], 20);
 
-        await repo.getSeason(season: 'SUMMER', year: 2026, airing: false);
+        await repo.getSeason(season: 'SUMMER', year: 2026, status: null);
         expect(lastVars()['season'], 'SUMMER');
         expect(lastVars().containsKey('status'), isFalse);
       },
     );
+
+    test('announces: NOT_YET_RELEASED in the request and the result', () async {
+      final r = await repo.getSeason(
+        season: 'WINTER',
+        year: 2027,
+        status: 'NOT_YET_RELEASED',
+      );
+      expect(lastVars()['status'], 'NOT_YET_RELEASED');
+      expect(lastVars()['seasonYear'], 2027);
+      expect(r.data, isEmpty, reason: 'вышедшие тайтлы отброшены');
+    });
 
     test('current season keeps only RELEASING titles', () async {
       // В ответе фикстуры оба тайтла вышли (FINISHED).
       final airing = await repo.getSeason(
         season: 'FALL',
         year: 2026,
-        airing: true,
+        status: 'RELEASING',
       );
       expect(airing.data, isEmpty);
       final past = await repo.getSeason(
         season: 'SUMMER',
         year: 2026,
-        airing: false,
+        status: null,
       );
       expect(past.data.map((a) => a.id), [16498, 154587]);
     });
@@ -206,25 +217,25 @@ void main() {
       await repo.getSeason(
         season: 'FALL',
         year: 2026,
-        airing: false,
+        status: null,
         includeAdult: false,
       );
       expect(lastVars()['isAdult'], false);
     });
 
     test('cached for 24 hours: one request per season a day', () async {
-      await repo.getSeason(season: 'SPRING', year: 2026, airing: false);
+      await repo.getSeason(season: 'SPRING', year: 2026, status: null);
       expect(fake.requests, hasLength(1));
       now = now.add(const Duration(hours: 23));
       final cached = await repo.getSeason(
         season: 'SPRING',
         year: 2026,
-        airing: false,
+        status: null,
       );
       expect(cached.source, DataSource.cache);
       expect(fake.requests, hasLength(1));
       now = now.add(const Duration(hours: 2));
-      await repo.getSeason(season: 'SPRING', year: 2026, airing: false);
+      await repo.getSeason(season: 'SPRING', year: 2026, status: null);
       expect(fake.requests, hasLength(2));
     });
   });

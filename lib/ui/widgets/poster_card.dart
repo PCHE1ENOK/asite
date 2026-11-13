@@ -25,9 +25,13 @@ class PosterCard extends StatefulWidget {
     required this.anime,
     required this.onTap,
     this.note,
+    this.announce = false,
   });
 
   final Anime anime;
+
+  /// Анонс (ещё не вышел): без оценки, подпись «TV · зима 2027 · анонс».
+  final bool announce;
   final VoidCallback onTap;
 
   /// Заметка профиля («Мои списки»): значок вердикта и итог под названием.
@@ -165,7 +169,8 @@ class _PosterCardState extends State<PosterCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AnimeScoreBadge(anime: a, onPoster: true),
+                  if (!widget.announce)
+                    AnimeScoreBadge(anime: a, onPoster: true),
                   if (a.isAdult) ...[
                     const SizedBox(height: 4),
                     const AdultBadge(),
@@ -232,7 +237,9 @@ class _PosterCardState extends State<PosterCard> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      watching && entry.progress > 0
+                      widget.announce
+                          ? Fmt.announceCaption(a)
+                          : watching && entry.progress > 0
                           ? Fmt.posterCaption(a, progress: entry.progress)
                           : Fmt.posterCaption(a),
                       maxLines: 1,

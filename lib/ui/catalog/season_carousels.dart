@@ -6,8 +6,26 @@ import '../format.dart';
 import '../widgets/poster_carousel.dart';
 import 'catalog_filters.dart';
 
-/// Карусели сезонов над каталогом (design/screens.md §1.1): текущий сезон
-/// первым (только онгоинги), дальше три прошедших по убыванию.
+/// Вид карусели сезона.
+enum SeasonKind {
+  /// Текущий сезон: только онгоинги.
+  current('RELEASING'),
+
+  /// Прошедший.
+  past(null),
+
+  /// Следующий: анонсы.
+  announce('NOT_YET_RELEASED');
+
+  const SeasonKind(this.status);
+
+  /// Фильтр `MediaStatus` для AniList.
+  final String? status;
+}
+
+/// Карусели сезонов над каталогом (design/screens.md §1.1, решение
+/// пользователя): текущий сезон первым (онгоинги), два прошедших по
+/// убыванию и «Анонсы» следующего сезона.
 class SeasonCarousels extends StatelessWidget {
   const SeasonCarousels({
     super.key,
@@ -32,13 +50,25 @@ class SeasonCarousels extends StatelessWidget {
     'FALL': 'осеннего',
   };
 
-  /// Текущий сезон и [count] - 1 прошедших.
-  static List<SeasonOption> seasons(DateTime now, {int count = 4}) {
-    final list = [SeasonOption.of(now)];
-    while (list.length < count) {
-      list.add(list.last.previous);
+  /// «зиму» — для «Анонсов на зиму 2027 пока нет».
+  static const accusative = {
+    'WINTER': 'зиму',
+    'SPRING': 'весну',
+    'SUMMER': 'лето',
+    'FALL': 'осень',
+  };
+
+  /// Текущий сезон, [count] - 2 прошедших и следующий (анонсы).
+  static List<(SeasonOption, SeasonKind)> seasons(
+    DateTime now, {
+    int count = 4,
+  }) {
+    final current = SeasonOption.of(now);
+    final list = [(current, SeasonKind.current)];
+    while (list.length < count - 1) {
+      list.add((list.last.$1.previous, SeasonKind.past));
     }
-    return list;
+    return [...list, (current.next, SeasonKind.announce)];
   }
 
   @override
@@ -51,9 +81,9 @@ class SeasonCarousels extends StatelessWidget {
         for (var i = 0; i < list.length; i++) ...[
           if (i > 0) const SizedBox(height: 32),
           _SeasonCarousel(
-            key: ValueKey(list[i]),
-            season: list[i],
-            airing: i == 0,
+            key: ValueKey(list[i].$1),
+            season: list[i].$1,
+            kind: list[i].$2,
             onOpenTitle: onOpenTitle,
           ),
         ],
@@ -66,12 +96,12 @@ class _SeasonCarousel extends StatefulWidget {
   const _SeasonCarousel({
     super.key,
     required this.season,
-    required this.airing,
+    required this.kind,
     required this.onOpenTitle,
   });
 
   final SeasonOption season;
-  final bool airing;
+  final SeasonKind kind;
   final ValueChanged<Anime> onOpenTitle;
 
   @override
@@ -118,7 +148,7 @@ class _SeasonCarouselState extends State<_SeasonCarousel> {
       final r = await AppScope.of(context).services.anime.getSeason(
         season: widget.season.season,
         year: widget.season.year,
-        airing: widget.airing,
+        status: widget.kind.status,
         includeAdult: _adult ?? true,
         forceRefresh: force,
       );
@@ -141,17 +171,30 @@ class _SeasonCarouselState extends State<_SeasonCarousel> {
   @override
   Widget build(BuildContext context) {
     final s = widget.season;
+    final name = '${Fmt.seasons[s.season]} ${s.year}';
+    final announce = widget.kind == SeasonKind.announce;
+    // «зиму 2027» — для «Анонсов на зиму 2027 пока нет».
+    final accusative = '${SeasonCarousels.accusative[s.season]} ${s.year}';
     return PosterCarousel(
-      title: 'Аниме ${SeasonCarousels.genitive[s.season]} сезона',
-      subtitle:
-          '${Fmt.seasons[s.season]} ${s.year} · '
-          '${widget.airing ? 'сейчас идёт' : 'завершился'}',
+      title: announce
+          ? 'Анонсы · ${name.toLowerCase()}'
+          : 'Аниме ${SeasonCarousels.genitive[s.season]} сезона',
+      subtitle: switch (widget.kind) {
+        SeasonKind.current => '$name · сейчас идёт',
+        SeasonKind.past => '$name · завершился',
+        SeasonKind.announce => 'Ещё не вышли',
+      },
       items: _items,
       loading: _loading,
       error: _error,
       onRetry: () => _load(force: true),
-      emptyText: 'В этом сезоне пока нет онгоингов',
-      errorText: 'Не удалось загрузить онгоинги',
+      emptyText: announce
+          ? 'Анонсов на $accusative пока нет'
+          : 'В этом сезоне пока нет онгоингов',
+      errorText: announce
+          ? 'Не удалось загрузить анонсы'
+          : 'Не удалось загрузить онгоинги',
+      announce: announce,
       onOpenTitle: widget.onOpenTitle,
     );
   }

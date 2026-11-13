@@ -97,13 +97,14 @@ class AnimeRepository {
   }
 
   /// Самые популярные тайтлы сезона [season] (`WINTER`…`FALL`) года
-  /// [year] для карусели каталога. [airing] — текущий сезон: только
-  /// онгоинги (`RELEASING`; если AniList вернёт и вышедшие — они
-  /// отбрасываются). Кэш — сутки.
+  /// [year] для карусели каталога. [status] — `RELEASING` (текущий сезон,
+  /// только онгоинги) или `NOT_YET_RELEASED` (анонсы следующего); если
+  /// AniList вернёт тайтлы с другим статусом, они отбрасываются.
+  /// Кэш — сутки.
   Future<Cached<List<Anime>>> getSeason({
     required String season,
     required int year,
-    required bool airing,
+    String? status,
     bool includeAdult = true,
     bool forceRefresh = false,
   }) async {
@@ -111,7 +112,7 @@ class AnimeRepository {
       CatalogQuery(
         season: season,
         seasonYear: year,
-        status: airing ? 'RELEASING' : null,
+        status: status,
         sort: AnimeSort.popularity,
         includeAdult: includeAdult,
       ),
@@ -122,7 +123,7 @@ class AnimeRepository {
     return Cached(
       [
         for (final a in r.data.items)
-          if (!airing || a.status == null || a.status == 'RELEASING') a,
+          if (status == null || a.status == null || a.status == status) a,
       ],
       source: r.source,
       isStale: r.isStale,
