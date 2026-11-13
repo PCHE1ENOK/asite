@@ -24,6 +24,7 @@ class AppSettings extends ChangeNotifier {
   ThemePreference _theme = ThemePreference.system;
   List<String> _recentSearches = const [];
   bool _musicRecognition = false;
+  bool _autoScroll = true;
 
   /// «Показывать 18+»: одно значение для фильтра каталога, поиска и
   /// настроек.
@@ -33,6 +34,9 @@ class AppSettings extends ChangeNotifier {
 
   /// «Распознавать музыку», по умолчанию выключено.
   bool get musicRecognition => _musicRecognition;
+
+  /// «Автопрокрутка каруселей», по умолчанию включена.
+  bool get autoScroll => _autoScroll;
 
   ThemeMode get themeMode => switch (_theme) {
     ThemePreference.system => ThemeMode.system,
@@ -45,6 +49,7 @@ class AppSettings extends ChangeNotifier {
     _theme = await _prefs.theme();
     _recentSearches = await _prefs.recentSearches(_profileId);
     _musicRecognition = await _prefs.musicRecognition();
+    _autoScroll = await _prefs.autoScroll();
     notifyListeners();
   }
 
@@ -60,6 +65,13 @@ class AppSettings extends ChangeNotifier {
     _musicRecognition = value;
     notifyListeners();
     await _prefs.setMusicRecognition(value);
+  }
+
+  Future<void> setAutoScroll(bool value) async {
+    if (value == _autoScroll) return;
+    _autoScroll = value;
+    notifyListeners();
+    await _prefs.setAutoScroll(value);
   }
 
   Future<void> setTheme(ThemePreference value) async {

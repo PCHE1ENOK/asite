@@ -16,6 +16,7 @@ class AppPreferences {
   static const _showAdult = 'show_adult';
   static const _theme = 'theme';
   static const _musicRecognition = 'music_recognition';
+  static const _autoScroll = 'carousel_autoscroll';
   static const _recentSearches = 'recent_searches';
   static const _myMemoryConsent = 'mymemory_consent';
   static const _myMemoryUsage = 'mymemory_usage';
@@ -42,6 +43,12 @@ class AppPreferences {
 
   Future<void> setMusicRecognition(bool value) =>
       _db.putSetting(_musicRecognition, value ? '1' : '0');
+
+  /// «Автопрокрутка каруселей», по умолчанию включена.
+  Future<bool> autoScroll() async => await _db.setting(_autoScroll) != '0';
+
+  Future<void> setAutoScroll(bool value) =>
+      _db.putSetting(_autoScroll, value ? '1' : '0');
 
   /// Тема, по умолчанию системная.
   Future<ThemePreference> theme() async {

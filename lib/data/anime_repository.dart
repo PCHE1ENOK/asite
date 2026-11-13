@@ -25,9 +25,13 @@ class CachePolicy {
     this.catalog = const Duration(hours: 1),
     this.details = const Duration(hours: 6),
     this.genres = const Duration(days: 7),
+    this.seasons = const Duration(hours: 24),
   });
 
   final Duration catalog;
+
+  /// Карусели сезонов: один запрос на сезон в сутки.
+  final Duration seasons;
   final Duration details;
   final Duration genres;
 }
@@ -54,13 +58,14 @@ class AnimeRepository {
     int page = 1,
     int perPage = 30,
     bool forceRefresh = false,
+    Duration? ttl,
   }) async {
     final key = 'catalog:${query.cacheKey(page, perPage)}';
     final cached = await _readCatalog(key);
 
     if (!forceRefresh &&
         cached != null &&
-        _isFresh(cached.$2, policy.catalog)) {
+        _isFresh(cached.$2, ttl ?? policy.catalog)) {
       return Cached(cached.$1, source: DataSource.cache);
     }
 
@@ -89,6 +94,39 @@ class AnimeRepository {
       if (cached == null || e.isNotFound) rethrow;
       return Cached(cached.$1, source: DataSource.cache, isStale: true);
     }
+  }
+
+  /// Самые популярные тайтлы сезона [season] (`WINTER`…`FALL`) года
+  /// [year] для карусели каталога. [airing] — текущий сезон: только
+  /// онгоинги (`RELEASING`; если AniList вернёт и вышедшие — они
+  /// отбрасываются). Кэш — сутки.
+  Future<Cached<List<Anime>>> getSeason({
+    required String season,
+    required int year,
+    required bool airing,
+    bool includeAdult = true,
+    bool forceRefresh = false,
+  }) async {
+    final r = await getCatalog(
+      CatalogQuery(
+        season: season,
+        seasonYear: year,
+        status: airing ? 'RELEASING' : null,
+        sort: AnimeSort.popularity,
+        includeAdult: includeAdult,
+      ),
+      perPage: 20,
+      forceRefresh: forceRefresh,
+      ttl: policy.seasons,
+    );
+    return Cached(
+      [
+        for (final a in r.data.items)
+          if (!airing || a.status == null || a.status == 'RELEASING') a,
+      ],
+      source: r.source,
+      isStale: r.isStale,
+    );
   }
 
   Future<Cached<Paged<Anime>>> search(

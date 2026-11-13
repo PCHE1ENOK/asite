@@ -22,7 +22,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/badges.dart';
 import '../widgets/cover_image.dart';
 import '../widgets/favorite_button.dart';
-import '../widgets/poster_card.dart';
+import '../widgets/poster_carousel.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/state_views.dart';
 import '../widgets/status_widgets.dart';
@@ -1249,68 +1249,32 @@ class _Similar extends StatelessWidget {
   final AnimeDetails details;
   final ValueChanged<Anime> onOpenTitle;
 
+  /// Две карусели с автопрокруткой (design/screens.md §3, §1.1).
   @override
   Widget build(BuildContext context) {
-    final t = context.tokens;
     final d = details;
-    if (d.recommendations.isEmpty && d.relations.isEmpty) {
-      return const EmptyState(
-        icon: Symbols.recommend_rounded,
-        text: 'Похожих тайтлов на AniList пока нет',
-      );
-    }
-
-    Widget strip(List<Anime> items, {List<String>? labels}) => SizedBox(
-      height: 168 * 1.5 + PosterCard.captionHeight + (labels == null ? 0 : 20),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: items.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 16),
-        itemBuilder: (context, i) => SizedBox(
-          width: 168,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (labels != null)
-                SizedBox(
-                  height: 20,
-                  child: Text(
-                    labels[i],
-                    style: AppText.caption.copyWith(color: t.accent),
-                  ),
-                ),
-              Expanded(
-                child: PosterCard(
-                  anime: items[i],
-                  onTap: () => onOpenTitle(items[i]),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (d.recommendations.isNotEmpty) ...[
-          Text('Рекомендации AniList', style: AppText.title),
-          const SizedBox(height: 16),
-          strip(d.recommendations),
-        ],
-        if (d.relations.isNotEmpty) ...[
-          if (d.recommendations.isNotEmpty) const SizedBox(height: 32),
-          Text('Связанные', style: AppText.title),
-          const SizedBox(height: 16),
-          strip(
-            [for (final r in d.relations) r.anime],
-            labels: [
-              for (final r in d.relations)
-                Fmt.relations[r.relationType] ?? r.relationType,
-            ],
-          ),
-        ],
+        PosterCarousel(
+          title: 'Связанные',
+          subtitle: 'Сиквелы, приквелы, фильмы и спешлы',
+          items: [for (final r in d.relations) r.anime],
+          labels: [
+            for (final r in d.relations)
+              Fmt.relations[r.relationType] ?? r.relationType,
+          ],
+          emptyText: 'Связанных тайтлов нет',
+          onOpenTitle: onOpenTitle,
+        ),
+        const SizedBox(height: 32),
+        PosterCarousel(
+          title: 'Рекомендации AniList',
+          subtitle: 'Что смотрят те, кому понравился этот тайтл',
+          items: d.recommendations,
+          emptyText: 'Рекомендаций пока нет',
+          onOpenTitle: onOpenTitle,
+        ),
       ],
     );
   }

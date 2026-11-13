@@ -91,6 +91,20 @@ class SettingsScreen extends StatelessWidget {
                             onTap: () =>
                                 settings.setShowAdult(!settings.showAdult),
                           ),
+                          _Row(
+                            title: 'Автопрокрутка каруселей',
+                            subtitle:
+                                'Онгоинги, «Связанные» и «Рекомендации» '
+                                'листаются сами каждые 5 секунд. При '
+                                '«уменьшить движение» в системе — выключена',
+                            inlineOnNarrow: true,
+                            trailing: Switch.adaptive(
+                              value: settings.autoScroll,
+                              onChanged: settings.setAutoScroll,
+                            ),
+                            onTap: () =>
+                                settings.setAutoScroll(!settings.autoScroll),
+                          ),
                         ],
                       ),
                       if (!SettingsScreen.isWeb)

@@ -164,4 +164,68 @@ void main() {
       5,
     ]);
   });
+
+  group('season carousels', () {
+    Map<String, dynamic> lastVars() =>
+        fake.requests.last['variables'] as Map<String, dynamic>;
+
+    test(
+      'request has season, seasonYear, popularity; airing → RELEASING',
+      () async {
+        await repo.getSeason(season: 'FALL', year: 2026, airing: true);
+        final v = lastVars();
+        expect(v['season'], 'FALL');
+        expect(v['seasonYear'], 2026);
+        expect(v['status'], 'RELEASING');
+        expect(v['sort'], ['POPULARITY_DESC']);
+        expect(v['perPage'], 20);
+
+        await repo.getSeason(season: 'SUMMER', year: 2026, airing: false);
+        expect(lastVars()['season'], 'SUMMER');
+        expect(lastVars().containsKey('status'), isFalse);
+      },
+    );
+
+    test('current season keeps only RELEASING titles', () async {
+      // В ответе фикстуры оба тайтла вышли (FINISHED).
+      final airing = await repo.getSeason(
+        season: 'FALL',
+        year: 2026,
+        airing: true,
+      );
+      expect(airing.data, isEmpty);
+      final past = await repo.getSeason(
+        season: 'SUMMER',
+        year: 2026,
+        airing: false,
+      );
+      expect(past.data.map((a) => a.id), [16498, 154587]);
+    });
+
+    test('18+ follows the switch', () async {
+      await repo.getSeason(
+        season: 'FALL',
+        year: 2026,
+        airing: false,
+        includeAdult: false,
+      );
+      expect(lastVars()['isAdult'], false);
+    });
+
+    test('cached for 24 hours: one request per season a day', () async {
+      await repo.getSeason(season: 'SPRING', year: 2026, airing: false);
+      expect(fake.requests, hasLength(1));
+      now = now.add(const Duration(hours: 23));
+      final cached = await repo.getSeason(
+        season: 'SPRING',
+        year: 2026,
+        airing: false,
+      );
+      expect(cached.source, DataSource.cache);
+      expect(fake.requests, hasLength(1));
+      now = now.add(const Duration(hours: 2));
+      await repo.getSeason(season: 'SPRING', year: 2026, airing: false);
+      expect(fake.requests, hasLength(2));
+    });
+  });
 }

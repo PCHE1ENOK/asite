@@ -22,6 +22,7 @@ import 'package:anime_viewer/data/shikimori/russian_text.dart';
 import 'package:anime_viewer/data/shikimori/shikimori_client.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:anime_viewer/main.dart';
+import 'package:anime_viewer/ui/catalog/season_carousels.dart';
 import 'package:anime_viewer/ui/app_scope.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
@@ -46,7 +47,11 @@ final testNow = DateTime(2026, 10, 29);
 
 /// Приложение на поддельном AniList и базе в памяти.
 class UiHarness {
-  UiHarness({ImageResolver? images}) : imageResolver = images ?? fakeImage {
+  /// [seasons] — карусели сезонов над каталогом (по умолчанию выключены:
+  /// сетка каталога должна быть на первом экране).
+  UiHarness({ImageResolver? images, bool seasons = false})
+    : imageResolver = images ?? fakeImage {
+    SeasonCarousels.enabled = seasons;
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     db = AppDatabase(NativeDatabase.memory());
     fake = FakeAniList(_route);
@@ -186,11 +191,30 @@ class UiHarness {
   /// Поиск по этой строке ничего не находит.
   static const nothing = 'zzzz';
 
+  /// Запросы ленты каталога (без каруселей сезонов).
   List<Map<String, dynamic>> get catalogRequests => [
     for (final r in fake.requests)
-      if ((r['query'] as String).contains('query Catalog'))
+      if ((r['query'] as String).contains('query Catalog') && !_isSeason(r))
         r['variables'] as Map<String, dynamic>,
   ];
+
+  /// Запросы каруселей сезонов над каталогом.
+  List<Map<String, dynamic>> get seasonRequests => [
+    for (final r in fake.requests)
+      if ((r['query'] as String).contains('query Catalog') && _isSeason(r))
+        r['variables'] as Map<String, dynamic>,
+  ];
+
+  /// Карусель сезона: 20 тайтлов на страницу (лента — 30).
+  static bool _isSeason(Map<String, dynamic> body) =>
+      (body['variables'] as Map<String, dynamic>)['perPage'] == 20;
+
+  /// Ответ на запросы каруселей сезонов; по умолчанию — пусто, чтобы
+  /// тайтлы ленты не повторялись в каруселях.
+  http.Response Function(Map<String, dynamic> vars) seasonHandler = (_) =>
+      jsonResponse(
+        '{"data":{"Page":{"pageInfo":{"total":0,"perPage":20,"currentPage":1,"hasNextPage":false},"media":[]}}}',
+      );
 
   /// Свой ответ AniList (например, много страниц каталога); `null` —
   /// обычные ответы.
@@ -202,6 +226,7 @@ class UiHarness {
     final query = body['query'] as String;
     final vars = body['variables'] as Map<String, dynamic>;
     if (query.contains('query Catalog')) {
+      if (_isSeason(body)) return seasonHandler(vars);
       if (vars['search'] == nothing || (vars['page'] as int? ?? 1) > 1) {
         return jsonResponse(
           '{"data":{"Page":{"pageInfo":{"total":0,"perPage":30,"currentPage":2,"hasNextPage":false},"media":[]}}}',

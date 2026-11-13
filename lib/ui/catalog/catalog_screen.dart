@@ -14,6 +14,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/filter_controls.dart';
 import '../widgets/poster_grid.dart';
 import 'catalog_filters.dart';
+import 'season_carousels.dart';
 import '../widgets/toast.dart';
 
 /// Каталог: фильтры, сортировка и сетка постеров (design/screens.md §1).
@@ -133,6 +134,24 @@ class _CatalogScreenState extends State<CatalogScreen> {
         // пересобирается только сетка (те же экземпляры шапки).
         final header = [
           SliverToBoxAdapter(child: _header(context, width, gutter)),
+          // Карусели сезонов (§1.1), под ними — «Весь каталог».
+          if (SeasonCarousels.enabled) ...[
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 32),
+              sliver: SliverToBoxAdapter(
+                child: SeasonCarousels(
+                  onOpenTitle: widget.onOpenTitle,
+                  now: widget.now,
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 12),
+              sliver: SliverToBoxAdapter(
+                child: Text('Весь каталог', style: AppText.title),
+              ),
+            ),
+          ],
           SliverToBoxAdapter(
             child: ListenableBuilder(
               listenable: _settings,
