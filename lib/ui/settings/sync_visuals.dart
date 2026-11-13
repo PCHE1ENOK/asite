@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -38,7 +39,8 @@ import '../theme/app_tokens.dart';
   SyncStatus.signedOut => (
     icon: Symbols.smartphone_rounded,
     color: t.fg3,
-    label: 'Только на этом устройстве',
+    // В браузере списки хранятся в хранилище сайта.
+    label: kIsWeb ? 'Только в этом браузере' : 'Только на этом устройстве',
     detail: 'Войдите через GitHub, чтобы хранить списки в приватном Gist',
   ),
 };

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app_services.dart';
@@ -8,8 +9,12 @@ import 'widgets/cached_image.dart';
 /// Источник картинок по URL; в тестах подменяется.
 typedef ImageResolver = ImageProvider Function(String url);
 
-/// Картинки приложения — через дисковый кэш.
-ImageProvider networkImage(String url) => DiskCachedImage(url);
+/// Картинки приложения — через дисковый кэш. В браузере диска нет, а
+/// загрузка через fetch требует CORS от CDN картинок: если его нет,
+/// картинка показывается обычным `<img>` (кэширует браузер).
+ImageProvider networkImage(String url) => kIsWeb
+    ? NetworkImage(url, webHtmlElementStrategy: WebHtmlElementStrategy.fallback)
+    : DiskCachedImage(url);
 
 /// Настройки, которые влияют на несколько экранов сразу.
 class AppSettings extends ChangeNotifier {
