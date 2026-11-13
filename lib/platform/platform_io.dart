@@ -33,3 +33,6 @@ bool get hasAcoustIdApiKey => AppConfig.hasAcoustIdApiKey;
 /// Свой ключ YouTube вводится только в веб-версии.
 Future<void> saveYoutubeApiKey(String? key) =>
     throw UnsupportedError('Только веб-версия');
+
+/// Отложенных до перезагрузки тостов в приложении нет.
+String? takePendingToast() => null;

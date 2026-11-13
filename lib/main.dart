@@ -65,6 +65,12 @@ class _AnimeViewerAppState extends State<AnimeViewerApp> {
   void initState() {
     super.initState();
     widget.services.session.addListener(_onProfile);
+    // Веб-версия: тост, отложенный до перезагрузки (ключ YouTube).
+    if (takePendingToast() case final text?) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _messenger.currentState?.showToast(text),
+      );
+    }
   }
 
   @override

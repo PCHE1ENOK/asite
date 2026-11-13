@@ -45,9 +45,27 @@ void main() {
       ),
     );
 
-    expect(find.text('Токен GitHub (только права gist)'), findsOneWidget);
+    expect(find.text('Токен GitHub (только право gist)'), findsOneWidget);
     expect(find.text('Открыть GitHub'), findsOneWidget);
-    expect(find.textContaining('только в этом браузере'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'Токен хранится только в этом браузере',
+        findRichText: true,
+      ),
+      findsOneWidget,
+    );
+    // Кнопка-глаз показывает и скрывает токен.
+    expect(find.byTooltip('Показать токен'), findsOneWidget);
+    await tester.tap(find.byTooltip('Показать токен'));
+    await tester.pump();
+    expect(find.byTooltip('Скрыть токен'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Войти'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Войти'));
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Вставьте токен'), findsOneWidget);
     expect(
       find.text('Вход недоступен: не задан GITHUB_CLIENT_ID'),
       findsNothing,
@@ -59,12 +77,16 @@ void main() {
     );
 
     await tester.enterText(find.byType(TextField), 'github_pat_x');
+    await tester.ensureVisible(find.text('Войти'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Войти'));
     await UiHarness.settle(tester);
     await tester.pumpAndSettle();
     expect(find.textContaining('fine-grained'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'ghp_ok');
+    await tester.ensureVisible(find.text('Войти'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Войти'));
     await UiHarness.settle(tester);
     await tester.pumpAndSettle();

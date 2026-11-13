@@ -24,7 +24,8 @@ String youtubeApiKey() => _read(_youtubeKey) ?? '';
 bool get hasAcoustIdApiKey => false;
 
 /// Сохраняет (или стирает, если пусто) свой ключ YouTube и перезагружает
-/// страницу: сервисы YouTube создаются при запуске.
+/// страницу: сервисы YouTube создаются при запуске. Тост о сохранении
+/// показывается после перезагрузки ([takePendingToast]).
 Future<void> saveYoutubeApiKey(String? key) async {
   final k = key?.trim() ?? '';
   try {
@@ -33,10 +34,29 @@ Future<void> saveYoutubeApiKey(String? key) async {
     } else {
       web.window.localStorage.setItem(_youtubeKey, k);
     }
+    web.window.sessionStorage.setItem(
+      _toastKey,
+      k.isEmpty
+          ? 'Ключ удалён из браузера'
+          : 'Ключ YouTube сохранён в этом браузере',
+    );
   } on Object {
     // Хранилище сайта запрещено (приватный режим) — ключ не сохранится.
   }
   web.window.location.reload();
+}
+
+const _toastKey = 'pending_toast';
+
+/// Тост, отложенный до перезагрузки страницы (один раз).
+String? takePendingToast() {
+  try {
+    final text = web.window.sessionStorage.getItem(_toastKey);
+    web.window.sessionStorage.removeItem(_toastKey);
+    return text;
+  } on Object {
+    return null;
+  }
 }
 
 String? _read(String key) {

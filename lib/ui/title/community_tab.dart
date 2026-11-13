@@ -6,6 +6,8 @@ import '../../data/sources/video_source.dart';
 import '../../platform/platform.dart' as platform;
 import '../app_scope.dart';
 import '../player/youtube_player_screen.dart';
+import '../settings/settings_screen.dart';
+import '../shell/app_shell.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/cover_image.dart';
@@ -91,6 +93,12 @@ class _CommunityTabState extends State<CommunityTab> {
     if (mounted && generation == _generation) setState(() => _result = r);
   }
 
+  /// Настройки → группа «YouTube», фокус в поле ключа.
+  void _openKeySettings() {
+    context.findAncestorStateOfType<AppShellState>()?.select(AppTab.settings);
+    YouTubeKeyRow.focusRequest.value++;
+  }
+
   void _select(CommunitySection s) {
     if (s == _section) return;
     setState(() => _section = _lastSection = s);
@@ -172,10 +180,17 @@ class _CommunityTabState extends State<CommunityTab> {
 
   Widget _body(double width, bool phone) => switch (_result) {
     null => _grid(width, phone, 4, (_) => const _VideoCardSkeleton()),
+    // design/screens.md §18.4.
     CommunityNotConfigured() => EmptyState(
-      icon: Symbols.videocam_off_rounded,
+      icon: Symbols.key_rounded,
       text: 'Сообщество недоступно: не задан ключ YouTube',
-      hint: platform.isWeb ? 'Укажите свой ключ в «Настройки → YouTube»' : null,
+      hint: platform.isWeb
+          ? 'Ролики ищутся через YouTube Data API. Укажите свой ключ в '
+                'настройках — он хранится только в этом браузере.'
+          : 'В этой сборке приложения нет ключа YouTube Data API. Остальные '
+                'вкладки работают.',
+      actionLabel: platform.isWeb ? 'Указать ключ' : null,
+      onAction: platform.isWeb ? _openKeySettings : null,
     ),
     CommunityQuotaExceeded() => EmptyState(
       icon: Symbols.hourglass_empty_rounded,

@@ -566,13 +566,25 @@ class _OpenOnYouTube extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    // Веб-версия (design/screens.md §18.3): видео не встраивается.
+    final what = video.isTrailer
+        ? 'трейлер'
+        : video.isCommunity
+        ? 'ролик'
+        : 'серию';
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Symbols.smart_display_rounded, size: 56, color: t.fg3),
+            Icon(
+              kIsWeb
+                  ? Symbols.desktop_windows_rounded
+                  : Symbols.smart_display_rounded,
+              size: 56,
+              color: kIsWeb ? Colors.white70 : t.fg3,
+            ),
             const SizedBox(height: 16),
             Text(
               kIsWeb ? 'Видео — в приложении' : 'Встроенный плеер недоступен',
@@ -582,8 +594,9 @@ class _OpenOnYouTube extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               kIsWeb
-                  ? 'В браузерной версии видео не встраивается. Смотрите в '
-                        'приложении для ПК и телефона или откройте на YouTube'
+                  ? 'В веб-версии видео не встраивается. Смотрите $what в '
+                        'приложении для Windows, iPhone и Android или откройте '
+                        'на YouTube.'
                   : video.isTrailer
                   ? 'На этом устройстве нет компонента для встроенного видео. '
                         'Трейлер можно посмотреть на YouTube в браузере'

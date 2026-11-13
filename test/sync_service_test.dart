@@ -517,7 +517,11 @@ void main() {
 
     test('wrong, empty and fine-grained tokens rejected', () async {
       await sync.start();
-      expect((await failure('')).message, 'Вставьте токен GitHub');
+      expect((await failure('')).message, 'Вставьте токен');
+      expect(
+        (await failure('просто текст')).message,
+        startsWith('Это не похоже на токен GitHub'),
+      );
       expect((await failure('github_pat_abc')).message, contains('classic'));
       final wrong = await failure('ghp_wrong');
       expect(wrong.kind, GitHubErrorKind.unauthorized);

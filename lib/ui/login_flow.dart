@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/github/github_auth.dart';
@@ -7,6 +8,9 @@ import '../data/github/github_exception.dart';
 import '../data/sync/sync_service.dart';
 import '../platform/platform.dart' as platform;
 import 'profiles/profile_widgets.dart';
+import 'theme/app_theme.dart';
+import 'theme/app_tokens.dart';
+import 'widgets/notice_plate.dart';
 
 /// Вход через GitHub Device Flow (design/screens.md §5).
 ///
@@ -29,7 +33,7 @@ class LoginFlow extends StatefulWidget {
   /// Страница создания classic-токена с отмеченным правом gist.
   static final newTokenUrl = Uri.parse(
     'https://github.com/settings/tokens/new'
-    '?scopes=gist&description=Anime%20Viewer%20(web)',
+    '?scopes=gist&description=Anime%20Viewer%20(%D0%B1%D1%80%D0%B0%D1%83%D0%B7%D0%B5%D1%80)',
   );
 
   /// Вызывается при входе, пропуске или отмене.
@@ -49,10 +53,12 @@ class _LoginFlowState extends State<LoginFlow> {
   bool _busy = false;
   bool _cancelled = false;
   final _token = TextEditingController();
+  final _tokenFocus = FocusNode();
 
   @override
   void dispose() {
     _token.dispose();
+    _tokenFocus.dispose();
     super.dispose();
   }
 
@@ -65,77 +71,101 @@ class _LoginFlowState extends State<LoginFlow> {
       final result = await widget.sync.signInWithToken(_token.text);
       if (mounted) setState(() => _result = result);
     } on GitHubException catch (e) {
-      if (mounted) setState(() => _error = e);
+      if (mounted) {
+        setState(() => _error = e);
+        // Фокус — обратно в поле, к ошибке.
+        _tokenFocus.requestFocus();
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  List<Widget> _tokenForm(ThemeData theme) => [
-    Text('Вход через GitHub', style: theme.textTheme.headlineSmall),
-    const SizedBox(height: 12),
-    const Text(
-      'Списки хранятся в вашем приватном Gist — видите их только вы. '
-      'В браузере вход — по токену GitHub с одним правом: gist.',
-      textAlign: TextAlign.center,
-    ),
-    const SizedBox(height: 16),
-    const Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        '1. Откройте страницу создания токена на GitHub.\n'
-        '2. Тип — classic (Personal access token, classic). Отмечено '
-        'только «gist», остальные права не нужны. Срок — на ваш выбор.\n'
-        '3. Нажмите «Generate token», скопируйте токен (ghp_…) и вставьте '
-        'ниже.',
-      ),
-    ),
-    const SizedBox(height: 12),
-    OutlinedButton(
-      onPressed: () => launchUrl(
-        LoginFlow.newTokenUrl,
-        mode: LaunchMode.externalApplication,
-      ),
-      child: const Text('Открыть GitHub'),
-    ),
-    const SizedBox(height: 16),
-    TextField(
-      controller: _token,
-      obscureText: true,
-      autocorrect: false,
-      enableSuggestions: false,
-      decoration: const InputDecoration(
-        labelText: 'Токен GitHub (только права gist)',
-        border: OutlineInputBorder(),
-      ),
-      onSubmitted: (_) => _busy ? null : _signInWithToken(),
-    ),
-    if (_error case final error?) ...[
+  List<Widget> _tokenForm(ThemeData theme) {
+    final t = context.tokens;
+    final network = _error?.kind == GitHubErrorKind.network;
+    return [
+      Text('Вход через GitHub', style: theme.textTheme.headlineSmall),
       const SizedBox(height: 12),
-      Text(
-        _errorText(error),
-        style: TextStyle(color: theme.colorScheme.error),
+      const Text(
+        'Списки хранятся в вашем приватном Gist — видите их только вы. '
+        'В браузере вход — по токену GitHub с одним правом: gist.',
         textAlign: TextAlign.center,
       ),
-    ],
-    const SizedBox(height: 16),
-    FilledButton(
-      onPressed: _busy ? null : _signInWithToken,
-      child: const Text('Войти'),
-    ),
-    if (_busy) ...[const SizedBox(height: 12), const LinearProgressIndicator()],
-    TextButton(
-      onPressed: widget.onDone,
-      child: const Text('Продолжить без входа'),
-    ),
-    Text(
-      'Токен хранится только в этом браузере (localStorage), не в Gist и '
-      'не на сервере. Не входите так на чужом устройстве. «Выйти» стирает '
-      'токен; отозвать его можно на GitHub.',
-      style: theme.textTheme.bodySmall,
-      textAlign: TextAlign.center,
-    ),
-  ];
+      const SizedBox(height: 16),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Text.rich(
+          TextSpan(
+            children: [
+              const TextSpan(
+                text:
+                    '1. Откройте на GitHub страницу нового токена — кнопка '
+                    'ниже, право gist уже отмечено.\n2. Тип — ',
+              ),
+              const TextSpan(
+                text: 'classic',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const TextSpan(
+                text:
+                    '. Других прав не нужно. Срок — на ваш выбор.\n3. Нажмите ',
+              ),
+              const TextSpan(
+                text: 'Generate token',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const TextSpan(
+                text: ', скопируйте токен (ghp_…) и вставьте сюда.',
+              ),
+            ],
+            style: AppText.body.copyWith(color: t.fg),
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      OutlinedButton.icon(
+        onPressed: () => launchUrl(
+          LoginFlow.newTokenUrl,
+          mode: LaunchMode.externalApplication,
+        ),
+        icon: const Icon(Symbols.open_in_new_rounded, size: 18),
+        label: const Text('Открыть GitHub'),
+      ),
+      const SizedBox(height: 16),
+      SecretField(
+        controller: _token,
+        focusNode: _tokenFocus,
+        label: 'Токен GitHub (только право gist)',
+        hint: 'ghp_…',
+        showLabel: 'Показать токен',
+        hideLabel: 'Скрыть токен',
+        error: _error == null ? null : _errorText(_error!),
+        onSubmitted: (_) => _busy ? null : _signInWithToken(),
+      ),
+      const SizedBox(height: 16),
+      const NoticePlate(
+        title: 'Токен хранится только в этом браузере',
+        text:
+            '(localStorage) — не в Gist и не на сервере. Не входите так на '
+            'чужом или общем компьютере. «Выйти» стирает токен из браузера; '
+            'отозвать его совсем можно на GitHub.',
+      ),
+      const SizedBox(height: 16),
+      FilledButton(
+        onPressed: _busy ? null : _signInWithToken,
+        child: Text(network ? 'Повторить' : 'Войти'),
+      ),
+      if (_busy) ...[
+        const SizedBox(height: 12),
+        const LinearProgressIndicator(),
+      ],
+      TextButton(
+        onPressed: widget.onDone,
+        child: const Text('Продолжить без входа'),
+      ),
+    ];
+  }
 
   Future<void> _start() async {
     setState(() {

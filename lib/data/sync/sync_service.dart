@@ -354,9 +354,13 @@ class SyncService {
   Future<SignInResult> signInWithToken(String raw) async {
     final token = raw.trim();
     if (token.isEmpty) {
+      throw const GitHubException(GitHubErrorKind.other, 'Вставьте токен');
+    }
+    if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
       throw const GitHubException(
         GitHubErrorKind.other,
-        'Вставьте токен GitHub',
+        'Это не похоже на токен GitHub: он начинается с ghp_ (classic). '
+        'Скопируйте его целиком со страницы GitHub.',
       );
     }
     if (token.startsWith('github_pat_')) {
@@ -374,7 +378,8 @@ class SyncService {
       if (e.kind != GitHubErrorKind.unauthorized) rethrow;
       throw const GitHubException(
         GitHubErrorKind.unauthorized,
-        'GitHub не принял токен: он неверный, отозван или истёк',
+        'GitHub не принял токен: он неверный, отозван или его срок истёк. '
+        'Создайте новый.',
       );
     } finally {
       client.close();
@@ -383,7 +388,8 @@ class SyncService {
       if (!scopes.contains('gist')) {
         throw const GitHubException(
           GitHubErrorKind.other,
-          'У токена нет права gist. Создайте токен с отмеченным gist',
+          'У токена нет права gist. Создайте новый токен и отметьте только '
+          '«gist».',
         );
       }
       final extra = scopes.difference({'gist'});
