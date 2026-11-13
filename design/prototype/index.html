@@ -1230,7 +1230,7 @@ function card(a, withNote) {
     <a href="#title" data-open="${a.id}" class="poster" aria-label="${esc(a.t)}">${art(a)}
       ${scoreBadge(a)}${a.adult ? `<span class="adult" title="Для взрослых"${a.sc == null ? ' style="top:8px"' : ''}>18+</span>` : ''}${st}${pr}
       <span class="btn btn-filled hover-cta" aria-hidden="true">${ic('play')}Смотреть</span>${nt ? `<span class="vbadge" style="color:var(${VERD[nt.verdict].v})" title="Моя заметка: ${VERD[nt.verdict].label}">${ic(VERD[nt.verdict].icon)}</span>` : ''}</a>${favBtn(a, 'pfav')}</div>
-    <div><div class="name">${esc(a.t)}</div><div class="cap">${a.f} · ${a.y} · ${a.st === 'CURRENT' ? `${a.pr} / ${a.ep}` : a.ep} эп.</div>${nt && nt.summary ? `<div class="nsum" title="${esc(nt.summary)}">${ic('edit')}${esc(nt.summary)}</div>` : ''}</div>
+    <div><div class="name">${esc(a.t)}</div><div class="cap">${a.ann ? `${a.f} · зима 2027 · анонс` : `${a.f} · ${a.y} · ${a.st === 'CURRENT' ? `${a.pr} / ${a.ep}` : a.ep} эп.`}</div>${nt && nt.summary ? `<div class="nsum" title="${esc(nt.summary)}">${ic('edit')}${esc(nt.summary)}</div>` : ''}</div>
   </div>`;
 }
 
@@ -1238,7 +1238,12 @@ function card(a, withNote) {
    Автопрокрутка «рывками»: каждые 5 с сдвиг на одну карточку; в конце — плавно к началу. Пауза: наведение, фокус внутри, касание
    (+5 с после отпускания), вкладка в фоне, карусель вне экрана. Кнопка в заголовке останавливает автопрокрутку совсем (WCAG 2.2.2).
    При «уменьшить движение» в системе автопрокрутка выключена. */
-const CAR_SEASONS = [ ['Осень','осеннего','2026','сейчас идёт'], ['Лето','летнего','2026','завершился'], ['Весна','весеннего','2026','завершился'], ['Зима','зимнего','2026','завершился'] ];
+// Порядок (решение пользователя): текущий сезон, два прошедших по убыванию, затем анонсы следующего сезона
+const CAR_SEASONS = [
+  { id:'car-0', title:'Аниме осеннего сезона', sub:'Осень 2026 · сейчас идёт', season:'Осень', empty:'В этом сезоне пока нет онгоингов', err:'Не удалось загрузить онгоинги' },
+  { id:'car-1', title:'Аниме летнего сезона', sub:'Лето 2026 · завершился', season:'Лето', empty:'В этом сезоне пока нет онгоингов', err:'Не удалось загрузить онгоинги' },
+  { id:'car-2', title:'Аниме весеннего сезона', sub:'Весна 2026 · завершился', season:'Весна', empty:'В этом сезоне пока нет онгоингов', err:'Не удалось загрузить онгоинги' },
+  { id:'car-3', title:'Анонсы · зима 2027', sub:'Ещё не вышли', season:'Зима', announce:true, empty:'Анонсов на зиму 2027 пока нет', err:'Не удалось загрузить анонсы' } ];
 function seasonList(name) { const own = DATA.filter(a => a.s === name && (S.adult || !a.adult)); const rest = DATA.filter(a => a.s !== name && !a.adult); return own.concat(rest).slice(0, 12); }
 function carousel(id, title, sub, items, st, emptyText, errText) {
   const auto = $('#demoAuto') && $('#demoAuto').value === 'on' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1247,7 +1252,7 @@ function carousel(id, title, sub, items, st, emptyText, errText) {
   else if (st === 'error') inner = `<div class="state small">${ic('cloud_off')}<h3>${errText}</h3><div>Проверьте подключение к интернету и попробуйте ещё раз.</div><button class="btn btn-filled" type="button" data-act="carRetry">Повторить</button></div>`;
   else if (!items.length) inner = `<div class="state small">${ic('empty')}<h3>${emptyText}</h3></div>`;
   else inner = `<button class="car-arr prev" type="button" data-car="-1" aria-label="Назад" disabled>${ic('chev_l')}</button>
-      <div class="car-track" tabindex="0" aria-label="${esc(title)}: ${items.length} тайтлов, листайте стрелками">${items.map(card).join('')}</div>
+      <div class="car-track" tabindex="0" aria-label="${esc(title)}: ${items.length} тайтлов, листайте стрелками">${items.map(a => card(a)).join('')}</div>
       <button class="car-arr next" type="button" data-car="1" aria-label="Вперёд">${ic('chev_r')}</button>`;
   const live = st !== 'loading' && st !== 'error' && items.length > 1;
   return `<section class="car${auto && live ? ' auto' : ' stopped'}" id="${id}" role="region" aria-roledescription="карусель" aria-label="${esc(title)}">
@@ -1297,7 +1302,7 @@ function viewCatalog() {
   const active = S.genres.size || S.format !== 'all' || S.hideMine || !S.adult;
   return `<div class="page">
     <div class="head"><h1>Каталог</h1><a class="search" href="#search" style="text-decoration:none">${ic('search')}<span style="flex:1">Поиск по названию</span><span class="kbd">Ctrl K</span></a></div>
-    ${(() => { const cs = $('#demoCar') ? $('#demoCar').value : 'ok'; return CAR_SEASONS.map(([n, gen, y, note], i) => carousel('car-' + i, `Аниме ${gen} сезона`, `${n} ${y} · ${note}`, cs === 'empty' && i === 0 ? [] : seasonList(n), cs === 'empty' ? (i === 0 ? 'ok' : 'ok') : cs, 'В этом сезоне пока нет онгоингов', 'Не удалось загрузить онгоинги')).join(''); })()}
+    ${(() => { const cs = $('#demoCar') ? $('#demoCar').value : 'ok'; return CAR_SEASONS.map((c, i) => carousel(c.id, c.title, c.sub, cs === 'empty' && (i === 0 || c.announce) ? [] : c.announce ? seasonList(c.season).map(a => Object.assign({}, a, { sc:null, st:null, pr:0, y:2027, ann:true })) : seasonList(c.season), cs === 'empty' ? 'ok' : cs, c.empty, c.err)).join(''); })()}
     <div class="cat-all"><div class="car-head" style="margin:0"><h2>Весь каталог</h2></div></div>
     <div class="toolbar" role="group" aria-label="Фильтры">
       ${['all','TV','Фильм'].map(f => `<button class="chip" type="button" data-format="${f}" aria-pressed="${S.format === f}">${f === 'all' ? 'Все форматы' : f}</button>`).join('')}
