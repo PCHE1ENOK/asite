@@ -101,7 +101,7 @@ class AppShellState extends State<AppShell> {
       onOpenCatalog: () => select(AppTab.catalog),
       onOpenTitle: _openTitle,
     ),
-    AppTab.friends => const FriendsScreen(),
+    AppTab.friends => FriendsScreen(onOpenTitle: _openTitle),
     AppTab.search => SearchScreen(key: _searchKey, onOpenTitle: _openTitle),
     AppTab.settings => const SettingsScreen(),
   };

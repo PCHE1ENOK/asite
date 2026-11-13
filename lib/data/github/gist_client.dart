@@ -199,10 +199,14 @@ class GistClient {
             (response.headers['x-ratelimit-remaining'] == '0' ||
                 message.toLowerCase().contains('rate limit')));
     if (rateLimited) {
+      final reset = int.tryParse(response.headers['x-ratelimit-reset'] ?? '');
       throw GitHubException(
         GitHubErrorKind.rateLimited,
         'GitHub временно ограничил число запросов. Попробуйте через час',
         statusCode: status,
+        retryAt: reset == null
+            ? null
+            : DateTime.fromMillisecondsSinceEpoch(reset * 1000, isUtc: true),
       );
     }
     throw GitHubException(

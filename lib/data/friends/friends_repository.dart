@@ -13,15 +13,26 @@ import '../share/share_codec.dart';
 /// профиле.
 @immutable
 class Friend {
-  const Friend({required this.login, this.avatarUrl, required this.addedAt});
+  const Friend({
+    required this.login,
+    this.avatarUrl,
+    required this.addedAt,
+    this.name,
+  });
 
   final String login;
   final String? avatarUrl;
   final DateTime addedAt;
 
+  /// Имя профиля друга из его каталога («Мика»); нет — ник.
+  final String? name;
+
+  String get displayName => name == null || name!.isEmpty ? login : name!;
+
   Map<String, dynamic> toJson() => {
     'login': login,
     'avatarUrl': ?avatarUrl,
+    'name': ?name,
     'addedAt': addedAt.toUtc().toIso8601String(),
   };
 
@@ -30,6 +41,7 @@ class Friend {
     return Friend(
       login: json['login'] as String,
       avatarUrl: json['avatarUrl'] as String?,
+      name: json['name'] as String?,
       addedAt:
           DateTime.tryParse(json['addedAt'] as String? ?? '') ??
           DateTime.utc(1970),
@@ -41,10 +53,11 @@ class Friend {
       other is Friend &&
       other.login == login &&
       other.avatarUrl == avatarUrl &&
-      other.addedAt == addedAt;
+      other.addedAt == addedAt &&
+      other.name == name;
 
   @override
-  int get hashCode => Object.hash(login, avatarUrl, addedAt);
+  int get hashCode => Object.hash(login, avatarUrl, addedAt, name);
 }
 
 /// Заметка друга о тайтле (как в его файле).
@@ -104,6 +117,8 @@ class FriendTitle {
   const FriendTitle({
     required this.id,
     required this.title,
+    this.english,
+    this.romaji,
     this.cover,
     this.format,
     this.year,
@@ -118,7 +133,11 @@ class FriendTitle {
   });
 
   final int id;
+
+  /// Название для показа: русское, иначе английское или ромадзи.
   final String title;
+  final String? english;
+  final String? romaji;
   final String? cover;
   final String? format;
   final int? year;
@@ -142,6 +161,8 @@ class FriendTitle {
     return FriendTitle(
       id: json['id'] as int,
       title: name,
+      english: t['en'] as String?,
+      romaji: t['romaji'] as String?,
       cover: json['cover'] as String?,
       format: json['format'] as String?,
       year: json['year'] as int?,
@@ -170,6 +191,17 @@ class FriendCatalog {
   final DateTime? updatedAt;
   final List<FriendTitle> titles;
 
+  /// Счётчики для карточки друга: смотрю, просмотрено, понравилось.
+  int get watching => titles
+      .where(
+        (t) =>
+            t.status == ListStatus.current || t.status == ListStatus.repeating,
+      )
+      .length;
+  int get completed =>
+      titles.where((t) => t.status == ListStatus.completed).length;
+  int get favorites => titles.where((t) => t.favorite).length;
+
   /// Разбор `share.json` v1: неизвестные поля игнорируются, битые записи
   /// пропускаются (как на странице docs/friends).
   static FriendCatalog parse(String text) {
@@ -197,16 +229,28 @@ class FriendFound extends FriendLookup {
     required this.login,
     required this.avatarUrl,
     required this.titleCount,
+    this.catalog,
   });
 
   final String login;
   final String? avatarUrl;
   final int titleCount;
+
+  /// Каталог друга (имя, дата обновления, счётчики).
+  final FriendCatalog? catalog;
 }
 
-/// Нет пользователя или у него нет публичного каталога.
+/// На GitHub нет такого пользователя (или ник с ошибкой).
 class FriendNotFound extends FriendLookup {
   const FriendNotFound();
+}
+
+/// Пользователь есть, но публичного каталога у него нет.
+class FriendNoCatalog extends FriendLookup {
+  const FriendNoCatalog({required this.login, this.avatarUrl});
+
+  final String login;
+  final String? avatarUrl;
 }
 
 /// Поиск без входа недоступен (лимит 60 запросов в час на адрес).
@@ -215,7 +259,10 @@ class FriendSignInRequired extends FriendLookup {
 }
 
 class FriendRateLimited extends FriendLookup {
-  const FriendRateLimited();
+  const FriendRateLimited({this.retryAt});
+
+  /// Когда GitHub снова даст искать (`X-RateLimit-Reset`).
+  final DateTime? retryAt;
 }
 
 class FriendLookupFailed extends FriendLookup {
@@ -287,8 +334,21 @@ class FriendsRepository {
         login: found.login,
         avatarUrl: found.avatarUrl,
         addedAt: _now().toUtc(),
+        name: found.catalog?.owner,
       ),
     ]);
+  }
+
+  /// Каталог друга из кэша без сети (для карточки в списке); `null` —
+  /// ещё не загружался.
+  Future<FriendCatalog?> cached(String login) async {
+    final entry = await _db.entry(_catalogKey(login));
+    if (entry == null) return null;
+    try {
+      return FriendCatalog.parse(entry.payload);
+    } on FormatException {
+      return null;
+    }
   }
 
   /// Возвращает удалённого друга («Отменить»).
@@ -320,23 +380,31 @@ class FriendsRepository {
     try {
       final user = await client.user(login);
       if (user == null) return const FriendNotFound();
+      final none = FriendNoCatalog(
+        login: user.login,
+        avatarUrl: user.avatarUrl,
+      );
       final gist = await client.findPublicGist(user.login, ShareCodec.fileName);
-      if (gist == null) return const FriendNotFound();
+      if (gist == null) return none;
       final text = await client.readFile(gist, ShareCodec.fileName);
-      if (text == null) return const FriendNotFound();
-      final catalog = FriendCatalog.parse(text);
+      if (text == null) return none;
+      final FriendCatalog catalog;
+      try {
+        catalog = FriendCatalog.parse(text);
+      } on FormatException {
+        return none;
+      }
       await _cache(user.login, gist, text);
       return FriendFound(
         login: user.login,
         avatarUrl: user.avatarUrl,
         titleCount: catalog.titles.length,
+        catalog: catalog,
       );
     } on GitHubException catch (e) {
       return e.kind == GitHubErrorKind.rateLimited
-          ? const FriendRateLimited()
+          ? FriendRateLimited(retryAt: e.retryAt)
           : const FriendLookupFailed();
-    } on FormatException {
-      return const FriendNotFound();
     } finally {
       client.close();
     }

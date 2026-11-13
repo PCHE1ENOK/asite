@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:anime_viewer/data/share/share_codec.dart';
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'ui_harness.dart';
@@ -63,7 +64,10 @@ void main() {
 
   testWidgets('without sign-in search is unavailable', (tester) async {
     await openFriends(tester);
-    expect(find.text('Поиск друзей — после входа'), findsOneWidget);
+    expect(
+      find.text('Войдите через GitHub, чтобы искать друзей'),
+      findsOneWidget,
+    );
     expect(find.text('Найти друга по нику GitHub'), findsNothing);
     expect(find.text('Пока нет друзей'), findsOneWidget);
     await h.dispose(tester);
@@ -77,28 +81,36 @@ void main() {
     await tester.enterText(find.byType(TextField), 'empty');
     await tester.tap(find.text('Найти'));
     await UiHarness.settle(tester);
-    expect(
-      find.text('У этого пользователя нет публичного каталога'),
-      findsOneWidget,
-    );
+    expect(find.text('У @empty нет публичного каталога'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '@ghost');
+    await tester.tap(find.text('Найти'));
+    await UiHarness.settle(tester);
+    expect(find.text('На GitHub нет пользователя @ghost'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'yuki');
     await tester.tap(find.text('Найти'));
     await UiHarness.settle(tester);
-    expect(find.text('2 тайтла'), findsOneWidget);
+    expect(find.text('@yuki · 2 тайтла'), findsOneWidget);
+    expect(find.text('Юки'), findsOneWidget);
     await tester.tap(find.text('Добавить в друзья'));
     await UiHarness.settle(tester);
-    expect(find.text('Уже в друзьях'), findsOneWidget);
-    expect(find.text('МОИ ДРУЗЬЯ'), findsOneWidget);
+    expect(find.text('Юки в друзьях'), findsOneWidget);
+    expect(find.text('В друзьях'), findsOneWidget);
+    expect(find.text('Мои друзья · 1'), findsOneWidget);
+    expect(find.text('смотрю 1'), findsWidgets);
+    expect(find.text('понравилось 1'), findsWidgets);
 
-    await tester.tap(find.textContaining('в друзьях с'));
+    await tester.tap(find.byIcon(Symbols.chevron_right_rounded));
     await UiHarness.settle(tester);
     await tester.pumpAndSettle();
+    expect(find.text('Каталог Юки'), findsOneWidget);
     expect(find.text('Смотрю · 1'), findsOneWidget);
     expect(find.text('Просмотрено · 1'), findsOneWidget);
-    expect(find.text('Понравилось · 1'), findsOneWidget);
+    expect(find.text('♥ Понравилось · 1'), findsOneWidget);
     expect(find.text('Заметки · 1'), findsOneWidget);
     expect(find.text('Фрирен'), findsOneWidget);
+    expect(find.text('Удалить из друзей'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Заметки · 1'));
     await tester.pumpAndSettle();
@@ -106,6 +118,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Тёплая и грустная'), findsOneWidget);
     expect(find.text('Советую'), findsOneWidget);
+
+    // Удаление — из каталога друга, с подтверждением.
+    await tester.tap(find.text('Удалить из друзей'));
+    await tester.pumpAndSettle();
+    expect(find.text('Удалить Юки из друзей?'), findsOneWidget);
+    await tester.tap(find.text('Удалить из друзей').last);
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Пока нет друзей'), findsOneWidget);
+    expect(h.services.friends.friends.value, isEmpty);
     await h.dispose(tester);
   });
 
@@ -115,10 +137,9 @@ void main() {
     await tester.enterText(find.byType(TextField), 'yuki');
     await tester.tap(find.text('Найти'));
     await UiHarness.settle(tester);
+    expect(find.text('Лимит поиска GitHub исчерпан'), findsOneWidget);
     expect(
-      find.text(
-        'GitHub временно ограничил число запросов. Попробуйте через час',
-      ),
+      find.textContaining('список друзей и их каталоги открываются'),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);

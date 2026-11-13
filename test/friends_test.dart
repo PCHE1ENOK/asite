@@ -85,11 +85,17 @@ void main() {
       expect(r.login, 'yuki');
       expect(r.avatarUrl, 'https://avatars.githubusercontent.com/u/7?v=4');
       expect(r.titleCount, 3, reason: 'битая запись пропущена');
+      expect(r.catalog!.owner, 'Юки');
+      expect(r.catalog!.watching, 1);
+      expect(r.catalog!.completed, 1);
+      expect(r.catalog!.favorites, 1);
     });
 
     test('no public catalog / no such user / bad nick', () async {
       final r = repo();
-      expect(await r.find('nocatalog'), isA<FriendNotFound>());
+      final none = await r.find('nocatalog');
+      expect(none, isA<FriendNoCatalog>());
+      expect((none as FriendNoCatalog).login, 'nocatalog');
       expect(await r.find('ghost'), isA<FriendNotFound>());
       expect(await r.find('no spaces!'), isA<FriendNotFound>());
     });
@@ -97,7 +103,7 @@ void main() {
     test('secret Gist with the file is not found by nick', () async {
       // Публичных Gist нет: секретная публикация по нику не видна.
       github.userGists['nocatalog'] = {};
-      expect(await repo().find('nocatalog'), isA<FriendNotFound>());
+      expect(await repo().find('nocatalog'), isA<FriendNoCatalog>());
     });
 
     test('not signed in: search unavailable, no requests', () async {
@@ -108,7 +114,13 @@ void main() {
 
     test('rate limit: clear result, no crash', () async {
       github.rateLimited = true;
-      expect(await repo().find('yuki'), isA<FriendRateLimited>());
+      final r = await repo().find('yuki');
+      expect(r, isA<FriendRateLimited>());
+      expect(
+        (r as FriendRateLimited).retryAt,
+        DateTime.utc(2026, 11, 13, 10, 30),
+        reason: 'из X-RateLimit-Reset',
+      );
     });
   });
 
@@ -119,6 +131,8 @@ void main() {
       await a.add(await a.find('yuki') as FriendFound);
       expect(a.friends.value.single.login, 'yuki');
       expect(a.friends.value.single.addedAt, now);
+      expect(a.friends.value.single.name, 'Юки');
+      expect((await a.cached('yuki'))!.titles, hasLength(3));
 
       // После перезапуска — тот же список.
       final again = repo();

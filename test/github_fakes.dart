@@ -74,7 +74,12 @@ class FakeGitHub {
       return _json(
         {'message': 'API rate limit exceeded for user.'},
         403,
-        {'x-ratelimit-remaining': '0'},
+        {
+          'x-ratelimit-remaining': '0',
+          // 2026-11-13 10:30 UTC.
+          'x-ratelimit-reset':
+              '${DateTime.utc(2026, 11, 13, 10, 30).millisecondsSinceEpoch ~/ 1000}',
+        },
       );
     }
     apiRequests++;

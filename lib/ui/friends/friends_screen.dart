@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../data/friends/friends_repository.dart';
+import '../../data/models/anime.dart';
+import '../../data/models/library_entry.dart';
 import '../../data/sync/sync_service.dart';
 import '../app_scope.dart';
 import '../format.dart';
@@ -13,10 +15,13 @@ import '../widgets/state_views.dart';
 import '../widgets/toast.dart';
 import 'friend_catalog_screen.dart';
 
-/// «Друзья»: поиск публичного каталога по нику GitHub, список друзей
-/// (локально в профиле) и просмотр их каталогов.
+/// «Друзья» (design/screens.md §19.1): поиск публичного каталога по нику
+/// GitHub, список друзей (локально в профиле) и их каталоги.
 class FriendsScreen extends StatefulWidget {
-  const FriendsScreen({super.key});
+  const FriendsScreen({super.key, required this.onOpenTitle});
+
+  /// Карточка тайтла из каталога друга.
+  final ValueChanged<Anime> onOpenTitle;
 
   @override
   State<FriendsScreen> createState() => _FriendsScreenState();
@@ -25,8 +30,11 @@ class FriendsScreen extends StatefulWidget {
 class _FriendsScreenState extends State<FriendsScreen> {
   final _query = TextEditingController();
   FriendLookup? _result;
-  bool _busy = false;
+  String? _searching;
   bool _loaded = false;
+
+  /// Каталоги друзей из кэша — для карточек (счётчики, дата, имя).
+  final _cached = <String, FriendCatalog?>{};
 
   FriendsRepository get _friends => AppScope.of(context).services.friends;
 
@@ -35,7 +43,17 @@ class _FriendsScreenState extends State<FriendsScreen> {
     super.didChangeDependencies();
     if (_loaded) return;
     _loaded = true;
-    _friends.load();
+    _friends.load().then((_) => _loadCached());
+  }
+
+  Future<void> _loadCached() async {
+    final friends = _friends;
+    for (final f in friends.friends.value) {
+      if (_cached.containsKey(f.login)) continue;
+      final c = await friends.cached(f.login);
+      if (!mounted) return;
+      setState(() => _cached[f.login] = c);
+    }
   }
 
   @override
@@ -45,46 +63,51 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   Future<void> _find() async {
-    if (_query.text.trim().isEmpty || _busy) return;
+    final nick = _query.text.trim().replaceFirst(RegExp('^@'), '');
+    if (nick.isEmpty || _searching != null) return;
     setState(() {
-      _busy = true;
+      _searching = nick;
       _result = null;
     });
-    final r = await _friends.find(_query.text);
-    if (mounted) {
-      setState(() {
-        _busy = false;
-        _result = r;
-      });
-    }
+    final r = await _friends.find(nick);
+    if (!mounted) return;
+    setState(() {
+      _searching = null;
+      _result = r;
+      if (r is FriendFound) _cached[r.login] = r.catalog;
+    });
   }
 
   Future<void> _add(FriendFound found) async {
     await _friends.add(found);
     if (!mounted) return;
     setState(() {});
-    ScaffoldMessenger.of(context).showToast('${found.login} — в друзьях');
-  }
-
-  Future<void> _remove(Friend friend) async {
-    final friends = _friends;
-    await friends.remove(friend.login);
-    if (!mounted) return;
+    final name = found.catalog?.owner;
     ScaffoldMessenger.of(context).showToast(
-      '${friend.login} удалён из друзей',
-      actionLabel: 'Отменить',
-      onAction: () => friends.restore(friend),
+      '${name == null || name.isEmpty ? found.login : name} в друзьях',
     );
   }
 
-  void _open(Friend f) => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => FriendCatalogScreen(friend: f)),
-  );
+  Future<void> _open(Friend f) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            FriendCatalogScreen(friend: f, onOpenTitle: widget.onOpenTitle),
+      ),
+    );
+    // Каталог мог обновиться — свежие счётчики.
+    if (!mounted) return;
+    final c = await _friends.cached(f.login);
+    if (mounted) setState(() => _cached[f.login] = c);
+  }
+
+  Friend? _friendOf(String login) => _friends.friends.value
+      .where((f) => f.login.toLowerCase() == login.toLowerCase())
+      .firstOrNull;
 
   @override
   Widget build(BuildContext context) {
-    final scope = AppScope.of(context);
-    final sync = scope.services.sync;
+    final sync = AppScope.of(context).services.sync;
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
@@ -102,39 +125,22 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 32,
               ),
               children: [
+                Text(
+                  'Друзья',
+                  style: compact ? AppText.headline : AppText.displayStyle,
+                ),
+                const SizedBox(height: 20),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 720),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Друзья',
-                          style: compact
-                              ? AppText.headline
-                              : AppText.displayStyle,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Каталоги друзей: их списки, «Понравилось» и '
-                          'заметки. У друга должен быть включён «Поделиться '
-                          'каталогом».',
-                          style: AppText.label.copyWith(
-                            color: context.tokens.fg2,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        if (signedIn)
-                          _search(context)
-                        else
-                          _signInFirst(context, sync),
-                        const SizedBox(height: 28),
-                        _list(context),
-                      ],
-                    ),
+                    child: signedIn
+                        ? _search(context, compact)
+                        : _signInFirst(context, sync),
                   ),
                 ),
+                const SizedBox(height: 28),
+                _list(context, width, compact),
               ],
             );
           },
@@ -143,26 +149,32 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
+  Widget _card(AppTokens t, Widget child) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: t.surface1,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      border: Border.all(color: t.border),
+      boxShadow: t.shadowE1,
+    ),
+    child: child,
+  );
+
   Widget _signInFirst(BuildContext context, SyncService sync) {
     final t = context.tokens;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: t.surface1,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: t.border),
-      ),
-      child: Column(
+    return _card(
+      t,
+      Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Поиск друзей — после входа',
+            'Войдите через GitHub, чтобы искать друзей',
             style: AppText.bodyStrong.copyWith(color: t.fg),
           ),
           const SizedBox(height: 4),
           Text(
-            'Поиск по нику идёт через GitHub API; без входа GitHub даёт '
-            'слишком мало запросов.',
+            'Друзья находятся по нику GitHub, а их каталоги лежат в '
+            'публичных Gist. Поиск идёт через GitHub API с вашим входом.',
             style: AppText.label.copyWith(color: t.fg2),
           ),
           const SizedBox(height: 12),
@@ -181,7 +193,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
-  Widget _search(BuildContext context) {
+  Widget _search(BuildContext context, bool compact) {
     final t = context.tokens;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -197,7 +209,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Найти друга по нику GitHub',
                   hintText: 'octocat',
-                  prefixIcon: Icon(Symbols.alternate_email_rounded),
+                  prefixIcon: Icon(Symbols.search_rounded),
                   border: OutlineInputBorder(),
                 ),
                 onSubmitted: (_) => _find(),
@@ -205,38 +217,83 @@ class _FriendsScreenState extends State<FriendsScreen> {
             ),
             const SizedBox(width: 12),
             FilledButton(
-              onPressed: _busy ? null : _find,
+              onPressed: _searching == null ? _find : null,
               child: const Text('Найти'),
             ),
           ],
         ),
-        if (_busy) ...[
-          const SizedBox(height: 12),
-          const LinearProgressIndicator(),
-        ],
-        if (_result case final r?) ...[
+        if (_searching case final nick?) ...[
+          const SizedBox(height: 16),
+          _card(
+            t,
+            Row(
+              children: [
+                const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _texts(
+                    t,
+                    'Ищем @$nick…',
+                    'Проверяем ник на GitHub и публичный каталог.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ] else if (_result case final r?) ...[
           const SizedBox(height: 16),
           switch (r) {
-            FriendFound() => _found(context, r),
-            FriendNotFound() => _message(
+            FriendFound() => _found(context, r, compact),
+            FriendNoCatalog(:final login, :final avatarUrl) => _card(
               t,
-              Symbols.person_search_rounded,
-              'У этого пользователя нет публичного каталога',
+              Row(
+                children: [
+                  GitHubAvatar(url: avatarUrl, letter: login, size: 48),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _texts(
+                      t,
+                      'У @$login нет публичного каталога',
+                      'Пользователь есть на GitHub, но не открыл каталог. '
+                          'Попросите включить «Публичный каталог» в '
+                          'настройках приложения.',
+                    ),
+                  ),
+                ],
+              ),
             ),
-            FriendRateLimited() => _message(
+            FriendNotFound() => _card(
               t,
-              Symbols.hourglass_empty_rounded,
-              'GitHub временно ограничил число запросов. Попробуйте через час',
+              _texts(
+                t,
+                'На GitHub нет пользователя @${_query.text.trim().replaceFirst(RegExp('^@'), '')}',
+                'Проверьте ник — он такой же, как в адресе github.com/ник.',
+              ),
             ),
-            FriendSignInRequired() => _message(
+            FriendRateLimited(:final retryAt) => _card(
               t,
-              Symbols.login_rounded,
-              'Войдите через GitHub, чтобы искать друзей',
+              _texts(
+                t,
+                'Лимит поиска GitHub исчерпан',
+                'GitHub ограничивает число запросов в час. Попробуйте '
+                    '${_inMinutes(retryAt)} — список друзей и их каталоги '
+                    'открываются как обычно.',
+              ),
             ),
-            FriendLookupFailed() => _message(
+            FriendSignInRequired() => _card(
               t,
-              Symbols.cloud_off_rounded,
-              'Не удалось связаться с GitHub. Проверьте подключение',
+              _texts(t, 'Войдите через GitHub, чтобы искать друзей', null),
+            ),
+            FriendLookupFailed() => _card(
+              t,
+              _texts(
+                t,
+                'Не удалось связаться с GitHub',
+                'Проверьте подключение и попробуйте ещё раз.',
+              ),
             ),
           },
         ],
@@ -244,57 +301,87 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
-  Widget _message(AppTokens t, IconData icon, String text) => Row(
+  /// «через 12 минут» по `X-RateLimit-Reset`; нет — «через час».
+  static String _inMinutes(DateTime? at) {
+    if (at == null) return 'через час';
+    final m = at.difference(DateTime.now()).inMinutes.clamp(1, 60);
+    return 'через $m ${Fmt.plural(m, 'минуту', 'минуты', 'минут')}';
+  }
+
+  Widget _texts(AppTokens t, String title, String? hint) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Icon(icon, color: t.fg2, size: 20),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Text(text, style: AppText.body.copyWith(color: t.fg)),
-      ),
+      Text(title, style: AppText.bodyStrong.copyWith(color: t.fg)),
+      if (hint != null) ...[
+        const SizedBox(height: 2),
+        Text(hint, style: AppText.label.copyWith(color: t.fg2)),
+      ],
     ],
   );
 
-  Widget _found(BuildContext context, FriendFound f) {
+  /// «@ник · 10 тайтлов · обновлено вчера».
+  static String _subtitle(String login, FriendCatalog? c, int? count) {
+    final n = count ?? c?.titles.length;
+    return [
+      '@$login',
+      if (n != null) '$n ${Fmt.plural(n, 'тайтл', 'тайтла', 'тайтлов')}',
+      if (c?.updatedAt case final at?) 'обновлено ${Fmt.relative(at)}',
+    ].join(' · ');
+  }
+
+  Widget _found(BuildContext context, FriendFound f, bool compact) {
     final t = context.tokens;
-    final already = _friends.contains(f.login);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: t.surface1,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: t.border),
-      ),
-      child: Row(
-        children: [
-          GitHubAvatar(url: f.avatarUrl, letter: f.login, size: 48),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(f.login, style: AppText.bodyStrong.copyWith(color: t.fg)),
-                Text(
-                  '${f.titleCount} '
-                  '${Fmt.plural(f.titleCount, 'тайтл', 'тайтла', 'тайтлов')}',
-                  style: AppText.label.copyWith(color: t.fg2),
-                ),
+    final friend = _friendOf(f.login);
+    final name = f.catalog?.owner;
+    final action = friend != null
+        ? OutlinedButton.icon(
+            onPressed: () => _open(friend),
+            icon: const Icon(Symbols.check_rounded, size: 18),
+            label: const Text('В друзьях'),
+          )
+        : FilledButton.icon(
+            onPressed: () => _add(f),
+            icon: const Icon(Symbols.person_add_rounded),
+            label: const Text('Добавить в друзья'),
+          );
+    final info = Row(
+      children: [
+        GitHubAvatar(url: f.avatarUrl, letter: name ?? f.login, size: 48),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name == null || name.isEmpty ? f.login : name,
+                style: AppText.bodyStrong.copyWith(color: t.fg),
+              ),
+              Text(
+                _subtitle(f.login, f.catalog, f.titleCount),
+                style: AppText.label.copyWith(color: t.fg2),
+              ),
+              if (f.catalog case final c?) ...[
+                const SizedBox(height: 4),
+                _Counters(catalog: c),
               ],
-            ),
+            ],
           ),
-          if (already)
-            const OutlinedButton(onPressed: null, child: Text('Уже в друзьях'))
-          else
-            FilledButton.icon(
-              onPressed: () => _add(f),
-              icon: const Icon(Symbols.person_add_rounded),
-              label: const Text('Добавить в друзья'),
-            ),
-        ],
-      ),
+        ),
+        if (!compact) ...[const SizedBox(width: 12), action],
+      ],
+    );
+    return _card(
+      t,
+      compact
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [info, const SizedBox(height: 12), action],
+            )
+          : info,
     );
   }
 
-  Widget _list(BuildContext context) {
+  Widget _list(BuildContext context, double width, bool compact) {
     final t = context.tokens;
     return ValueListenableBuilder<List<Friend>>(
       valueListenable: _friends.friends,
@@ -304,39 +391,154 @@ class _FriendsScreenState extends State<FriendsScreen> {
             icon: Symbols.group_rounded,
             text: 'Пока нет друзей',
             hint:
-                'Найдите друга по нику GitHub. Чтобы вас нашли — '
-                '«Настройки → Аккаунт профиля → Поделиться каталогом».',
+                'Найдите друга по нику GitHub. У него в настройках должен '
+                'быть включён «Публичный каталог».',
           );
         }
+        // Новые друзья без кэша — подгрузить счётчики.
+        if (friends.any((f) => !_cached.containsKey(f.login))) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _loadCached());
+        }
+        // По дате обновления каталога, свежие первыми.
+        final sorted = [...friends]
+          ..sort((a, b) {
+            final x = _cached[a.login]?.updatedAt ?? a.addedAt;
+            final y = _cached[b.login]?.updatedAt ?? b.addedAt;
+            return y.compareTo(x);
+          });
+        const gap = 16.0;
+        final cols = compact
+            ? 1
+            : ((width + gap) / (320 + gap)).floor().clamp(1, 4);
+        final itemWidth =
+            (width - AppLayout.gutter(width) * 2 - gap * (cols - 1)) / cols;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('МОИ ДРУЗЬЯ', style: AppText.overline.copyWith(color: t.fg2)),
-            const SizedBox(height: 8),
-            for (final f in friends)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: GitHubAvatar(
-                  url: f.avatarUrl,
-                  letter: f.login,
-                  size: 40,
-                ),
-                title: Text(f.login, style: AppText.bodyStrong),
-                subtitle: Text(
-                  'в друзьях с ${Fmt.dayMonth(f.addedAt)} '
-                  '${f.addedAt.toLocal().year}',
-                  style: AppText.caption.copyWith(color: t.fg2),
-                ),
-                onTap: () => _open(f),
-                trailing: IconButton(
-                  tooltip: 'Удалить ${f.login} из друзей',
-                  onPressed: () => _remove(f),
-                  icon: const Icon(Symbols.person_remove_rounded),
-                ),
-              ),
+            Text(
+              'Мои друзья · ${friends.length}',
+              style: AppText.title.copyWith(color: t.fg),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final f in sorted)
+                  SizedBox(
+                    width: compact ? double.infinity : itemWidth,
+                    child: _FriendCard(
+                      friend: f,
+                      catalog: _cached[f.login],
+                      onTap: () => _open(f),
+                    ),
+                  ),
+              ],
+            ),
           ],
         );
       },
+    );
+  }
+}
+
+/// Карточка друга: аватар 48, имя, «@ник · N тайтлов · обновлено …»,
+/// счётчики, шеврон.
+class _FriendCard extends StatelessWidget {
+  const _FriendCard({
+    required this.friend,
+    required this.catalog,
+    required this.onTap,
+  });
+
+  final Friend friend;
+  final FriendCatalog? catalog;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final c = catalog;
+    final name = c?.owner.isNotEmpty ?? false ? c!.owner : friend.displayName;
+    return Material(
+      color: t.surface1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        side: BorderSide(color: t.border),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              GitHubAvatar(url: friend.avatarUrl, letter: name, size: 48),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.bodyStrong.copyWith(color: t.fg),
+                    ),
+                    Text(
+                      _FriendsScreenState._subtitle(friend.login, c, null),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.caption.copyWith(color: t.fg2),
+                    ),
+                    if (c != null) ...[
+                      const SizedBox(height: 4),
+                      _Counters(catalog: c),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(Symbols.chevron_right_rounded, color: t.fg3),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// «● смотрю 3 · ● просмотрено 7 · ● понравилось 3».
+class _Counters extends StatelessWidget {
+  const _Counters({required this.catalog});
+
+  final FriendCatalog catalog;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    Widget item(Color color, String text) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(text, style: AppText.caption.copyWith(color: t.fg2)),
+      ],
+    );
+    return Wrap(
+      spacing: 10,
+      runSpacing: 2,
+      children: [
+        item(t.status[ListStatus.current]!, 'смотрю ${catalog.watching}'),
+        item(
+          t.status[ListStatus.completed]!,
+          'просмотрено ${catalog.completed}',
+        ),
+        item(t.bad, 'понравилось ${catalog.favorites}'),
+      ],
     );
   }
 }

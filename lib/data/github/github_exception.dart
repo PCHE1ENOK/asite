@@ -32,7 +32,12 @@ class GitHubException implements Exception {
     this.statusCode,
     this.conflictProfileId,
     this.conflictProfileName,
+    this.retryAt,
   });
+
+  /// Для [GitHubErrorKind.rateLimited]: когда лимит обновится
+  /// (`X-RateLimit-Reset`).
+  final DateTime? retryAt;
 
   final GitHubErrorKind kind;
   final String message;

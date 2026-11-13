@@ -10,11 +10,12 @@ import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/toast.dart';
 
-/// Что видит друг по ссылке — в каждом диалоге, до и после публикации.
-const shareWarning =
-    'Ваш каталог станет виден всем, кто найдёт вас по нику GitHub: списки, '
-    '«Понравилось», оценки и все заметки, включая 18+. Ссылку и поиск можно '
-    'отключить в любой момент — Gist удаляется';
+/// Что увидят все — в диалоге перед публикацией и рядом со ссылкой
+/// (design/screens.md §19.3).
+String shareWarning(String nick) =>
+    'Ваш каталог станет виден всем, кто найдёт вас по нику GitHub $nick: '
+    'списки, «Понравилось», оценки и все заметки, включая тайтлы 18+. '
+    'Каталог лежит в публичном Gist и обновляется вместе с синхронизацией.';
 
 /// «Поделиться каталогом»: публичный Gist с `anime-viewer-share.json` —
 /// друзья находят его по нику GitHub («Друзья») или открывают по ссылке;
@@ -32,52 +33,73 @@ class ShareGroup extends StatelessWidget {
   })
   row;
 
+  /// «@ник» вошедшего аккаунта для текстов.
+  String get _nick {
+    final login = sync.state.value.login;
+    return login == null ? 'GitHub' : '@$login';
+  }
+
   @override
   Widget build(BuildContext context) => ValueListenableBuilder(
     valueListenable: sync.share,
     builder: (context, share, _) {
+      final t = context.tokens;
       if (!share.isSharing) {
         return row(
-          title: 'Поделиться каталогом',
+          title: 'Публичный каталог',
           subtitle:
-              'Друзья найдут ваш каталог по нику GitHub или откроют по '
-              'ссылке в браузере — только просмотр',
+              'Откройте каталог, чтобы друзья нашли вас по нику $_nick во '
+              'вкладке «Друзья». Сейчас его видите только вы.',
           trailing: FilledButton.tonalIcon(
             onPressed: () => _start(context),
-            icon: const Icon(Symbols.share_rounded, size: 18),
-            label: const Text('Поделиться'),
+            icon: const Icon(Symbols.public_rounded, size: 18),
+            label: const Text('Открыть каталог'),
           ),
         );
       }
       final at = share.updatedAt;
+      final updated = at == null
+          ? ''
+          : ' Обновлено ${Fmt.relative(at.toLocal())}, вместе с '
+                'синхронизацией.';
       return row(
         title: share.isPublic
-            ? 'Каталог открыт: по нику и по ссылке'
-            : 'Каталог открыт по ссылке',
+            ? 'Публичный каталог ✓ включён'
+            : 'Каталог открыт только по ссылке',
         subtitle: [
-          // Прежняя секретная публикация: по нику её не найти.
-          if (!share.isPublic)
-            'Чтобы друзья нашли вас по нику, нажмите «Открыть по нику»',
-          if (at != null) 'Обновлено ${Fmt.relative(at.toLocal())}',
+          if (share.isPublic)
+            'Друзья находят вас по нику $_nick во вкладке «Друзья». Видны '
+                'списки, «Понравилось», оценки и заметки.$updated'
+          else
+            // Прежняя секретная публикация: по нику её не найти.
+            'По нику вас не найти — нажмите «Открыть каталог».$updated',
           if (share.error case final e?) 'Не удалось обновить: $e',
-          'Обновляется вместе с синхронизацией, не чаще раза в 5 минут',
-        ].join(' · '),
+        ].join(' '),
         trailing: Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
             if (!share.isPublic)
-              FilledButton.tonal(
+              FilledButton.tonalIcon(
                 onPressed: () => _start(context),
-                child: const Text('Открыть по нику'),
+                icon: const Icon(Symbols.public_rounded, size: 18),
+                label: const Text('Открыть каталог'),
               ),
             OutlinedButton(
               onPressed: () => showShareLink(context, share.gistId!),
               child: const Text('Ссылка'),
             ),
-            TextButton(
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: t.bad,
+                side: BorderSide(color: t.bad),
+              ),
               onPressed: () => _stop(context),
-              child: const Text('Прекратить показ'),
+              child: Text(
+                share.isPublic
+                    ? 'Отключить публичный каталог'
+                    : 'Прекратить показ',
+              ),
             ),
           ],
         ),
@@ -90,39 +112,10 @@ class ShareGroup extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: context.tokens.surface2,
-        title: Text('Поделиться каталогом?', style: AppText.title),
-        content: const Text(shareWarning),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Отмена'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Сделать каталог публичным'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final id = await sync.startSharing();
-      if (context.mounted) await showShareLink(context, id);
-    } on GitHubException catch (e) {
-      messenger.showToast('Не удалось поделиться: ${e.message}');
-    }
-  }
-
-  Future<void> _stop(BuildContext context) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.tokens.surface2,
-        title: Text('Прекратить показ?', style: AppText.title),
-        content: const Text(
-          'Gist с каталогом будет удалён: ссылка перестанет работать, а '
-          'друзья не найдут вас по нику',
+        title: Text('Открыть публичный каталог?', style: AppText.title),
+        content: Text(
+          '${shareWarning(_nick)}\n\nОтключить можно в любой момент в '
+          'настройках — каталог перестанет находиться и открываться.',
         ),
         actions: [
           TextButton(
@@ -131,7 +124,7 @@ class ShareGroup extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Прекратить показ'),
+            child: const Text('Открыть каталог'),
           ),
         ],
       ),
@@ -139,10 +132,47 @@ class ShareGroup extends StatelessWidget {
     if (ok != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await sync.stopSharing();
-      messenger.showToast('Показ прекращён, ссылка удалена');
+      await sync.startSharing();
+      messenger.showToast('Каталог открыт: друзья найдут вас по нику $_nick');
     } on GitHubException catch (e) {
-      messenger.showToast('Не удалось удалить ссылку: ${e.message}');
+      messenger.showToast('Не удалось открыть каталог: ${e.message}');
+    }
+  }
+
+  Future<void> _stop(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final t = context.tokens;
+        return AlertDialog(
+          backgroundColor: t.surface2,
+          title: Text('Отключить публичный каталог?', style: AppText.title),
+          content: const Text(
+            'Публичный Gist с каталогом будет удалён. Вас перестанут находить '
+            'по нику, а у друзей ваш каталог перестанет открываться. Ваши '
+            'списки и заметки останутся у вас.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: t.bad),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Отключить публичный каталог'),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await sync.stopSharing();
+      messenger.showToast('Публичный каталог отключён, Gist удалён');
+    } on GitHubException catch (e) {
+      messenger.showToast('Не удалось отключить: ${e.message}');
     }
   }
 }
@@ -162,7 +192,8 @@ Future<void> showShareLink(BuildContext context, String gistId) {
           SelectableText(link, style: AppText.bodyStrong),
           const SizedBox(height: 12),
           Text(
-            shareWarning,
+            'По ссылке каталог откроется в браузере, без приложения: '
+            'списки, «Понравилось», оценки и все заметки, включая 18+.',
             style: AppText.label.copyWith(color: context.tokens.fg2),
           ),
         ],
