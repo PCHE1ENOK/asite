@@ -105,6 +105,13 @@ abstract final class Fmt {
       '${a.episodes} эп.',
   ].join(' · ');
 
+  /// Подпись анонса: «TV · зима 2027 · анонс».
+  static String announceCaption(Anime a) => [
+    if (a.format != null) formats[a.format] ?? a.format!,
+    if (season(a.season, a.seasonYear) case final s?) s.toLowerCase(),
+    'анонс',
+  ].join(' · ');
+
   /// «TV · Осень 2026 · 12 эп. · 24 мин · MAPPA»
   static String titleMeta(AnimeDetails d) {
     final a = d.anime;

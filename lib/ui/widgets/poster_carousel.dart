@@ -38,7 +38,11 @@ class PosterCarousel extends StatefulWidget {
     this.errorText = 'Не удалось загрузить',
     required this.onOpenTitle,
     this.interval = const Duration(seconds: 5),
+    this.announce = false,
   });
+
+  /// Анонсы: постеры без оценки (design/screens.md §1.1).
+  final bool announce;
 
   final String title;
   final String? subtitle;
@@ -391,6 +395,7 @@ class PosterCarouselState extends State<PosterCarousel>
                       Expanded(
                         child: PosterCard(
                           anime: widget.items[i],
+                          announce: widget.announce,
                           onTap: () => widget.onOpenTitle(widget.items[i]),
                         ),
                       ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:anime_viewer/ui/widgets/badges.dart';
 import 'package:anime_viewer/ui/widgets/poster_carousel.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -11,18 +12,19 @@ import 'ui_harness.dart';
 void main() {
   late UiHarness h;
 
-  /// Все тайтлы фикстуры — онгоинги, чтобы текущий сезон не был пустым.
-  String airingPage() {
+  /// Тайтлы фикстуры со статусом из запроса: онгоинги для текущего
+  /// сезона, анонсы для следующего, вышедшие для прошедших.
+  String page(String? status) {
     final page = jsonDecode(fixture('catalog_page_30.json')) as Map;
     for (final m in page['data']['Page']['media'] as List) {
-      (m as Map)['status'] = 'RELEASING';
+      (m as Map)['status'] = status ?? 'FINISHED';
     }
     return jsonEncode(page);
   }
 
   setUp(() {
     h = UiHarness(seasons: true)
-      ..seasonHandler = (_) => jsonResponse(airingPage());
+      ..seasonHandler = (vars) => jsonResponse(page(vars['status'] as String?));
   });
 
   Finder first() => find.byType(PosterCarousel).first;
@@ -43,12 +45,41 @@ void main() {
     expect(h.seasonRequests.first['season'], 'FALL');
     expect(h.seasonRequests.first['seasonYear'], 2026);
     expect(h.seasonRequests.first['status'], 'RELEASING');
-    expect(h.seasonRequests.map((v) => '${v['season']} ${v['seasonYear']}'), [
-      'FALL 2026',
-      'SUMMER 2026',
-      'SPRING 2026',
-      'WINTER 2026',
-    ]);
+    expect(
+      h.seasonRequests.map(
+        (v) => '${v['season']} ${v['seasonYear']} ${v['status']}',
+      ),
+      [
+        'FALL 2026 RELEASING',
+        'SUMMER 2026 null',
+        'SPRING 2026 null',
+        'WINTER 2027 NOT_YET_RELEASED',
+      ],
+    );
+    await h.dispose(tester);
+  });
+
+  testWidgets('announces: last, no score badge, «анонс» caption', (
+    tester,
+  ) async {
+    await h.pump(tester);
+    final announces = find.byType(PosterCarousel).last;
+    await tester.scrollUntilVisible(
+      announces,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('АНОНСЫ · ЗИМА 2027'), findsOneWidget);
+    expect(find.text('Ещё не вышли'), findsOneWidget);
+    expect(
+      find.descendant(of: announces, matching: find.textContaining('· анонс')),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(of: announces, matching: find.byType(AnimeScoreBadge)),
+      findsNothing,
+    );
     await h.dispose(tester);
   });
 

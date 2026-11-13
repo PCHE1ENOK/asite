@@ -24,23 +24,22 @@ void main() {
     }
   });
 
-  test('carousels: current season first, then past ones', () {
-    expect(SeasonCarousels.seasons(DateTime(2026, 11, 13)).map(s), [
-      'FALL 2026',
-      'SUMMER 2026',
-      'SPRING 2026',
-      'WINTER 2026',
+  test('carousels: current first, two past, then announces of the next', () {
+    String k((SeasonOption, SeasonKind) e) => '${s(e.$1)} ${e.$2.name}';
+    expect(SeasonCarousels.seasons(DateTime(2026, 11, 13)).map(k), [
+      'FALL 2026 current',
+      'SUMMER 2026 past',
+      'SPRING 2026 past',
+      'WINTER 2027 announce',
     ]);
-    expect(SeasonCarousels.seasons(DateTime(2026, 12, 5)).map(s), [
-      'WINTER 2027',
-      'FALL 2026',
-      'SUMMER 2026',
-      'SPRING 2026',
+    expect(SeasonCarousels.seasons(DateTime(2026, 12, 5)).map(k), [
+      'WINTER 2027 current',
+      'FALL 2026 past',
+      'SUMMER 2026 past',
+      'SPRING 2027 announce',
     ]);
-    expect(
-      SeasonCarousels.seasons(DateTime(2027, 2, 1)).first,
-      isA<SeasonOption>(),
-    );
-    expect(s(SeasonCarousels.seasons(DateTime(2027, 2, 1))[1]), 'FALL 2026');
+    expect(SeasonKind.current.status, 'RELEASING');
+    expect(SeasonKind.announce.status, 'NOT_YET_RELEASED');
+    expect(SeasonKind.past.status, isNull);
   });
 }
