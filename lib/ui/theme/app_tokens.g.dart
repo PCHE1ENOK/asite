@@ -42,6 +42,8 @@ const _dark = AppTokens(
     BoxShadow(color: Color(0x80000000), offset: Offset(0, 8), blurRadius: 24),
   ],
   titleBanner: 260,
+  avatarGround: Color(0xFF272C3D),
+  avatarRing: Color(0x24FFFFFF),
   avatars: [
     Color(0xFF6F86F2),
     Color(0xFF199E70),
@@ -90,6 +92,8 @@ const _light = AppTokens(
     BoxShadow(color: Color(0x1F141722), offset: Offset(0, 8), blurRadius: 24),
   ],
   titleBanner: 150,
+  avatarGround: Color(0xFFE2E5EC),
+  avatarRing: Color(0x2411141D),
   avatars: [
     Color(0xFF6F86F2),
     Color(0xFF199E70),

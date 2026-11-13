@@ -6,9 +6,11 @@ import '../app_scope.dart';
 import '../format.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/skeleton.dart';
 import '../widgets/toast.dart';
 
-/// Круглый аватар: первая буква имени на цвете профиля.
+/// Круглый аватар профиля: аватар GitHub, если профиль вошёл в GitHub,
+/// иначе первая буква имени на цвете профиля (design/screens.md §9.1).
 class ProfileAvatar extends StatelessWidget {
   const ProfileAvatar({super.key, required this.profile, this.size = 36});
 
@@ -16,17 +18,69 @@ class ProfileAvatar extends StatelessWidget {
   final double size;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => GitHubAvatar(
+    url: profile.githubAvatarUrl,
+    letter: profile.name,
+    color: profile.color,
+    size: size,
+  );
+}
+
+/// Аватар GitHub по [url] с подложкой и обводкой 1 px внутрь; пока
+/// грузится — круг-скелетон; нет [url] или картинка не загрузилась —
+/// первая буква [letter] на цвете профиля [color]. Картинка кэшируется
+/// на устройстве, как обложки.
+class GitHubAvatar extends StatelessWidget {
+  const GitHubAvatar({
+    super.key,
+    required this.url,
+    required this.letter,
+    this.color = 0,
+    required this.size,
+    this.resolver,
+  });
+
+  final String? url;
+
+  /// Загрузчик картинки (тесты); по умолчанию — из [AppScope] или сеть
+  /// с дисковым кэшем.
+  final ImageResolver? resolver;
+  final String letter;
+  final int color;
+  final double size;
+
+  /// Подсказка, если картинка не загрузилась.
+  static const loadError = 'Не удалось загрузить аватар GitHub';
+
+  /// Адрес картинки вдвое больше размера на экране — для чёткости.
+  static String sized(String url, double size) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return url;
+    return uri
+        .replace(
+          queryParameters: {
+            ...uri.queryParameters,
+            's': '${(size * 2).round()}',
+          },
+        )
+        .toString();
+  }
+
+  /// Токены темы; без темы приложения (экраны поверх неё) — тёмные.
+  static AppTokens _tokens(BuildContext context) =>
+      Theme.of(context).extension<AppTokens>() ?? AppTokens.dark;
+
+  Widget _letter(BuildContext context) => Container(
     width: size,
     height: size,
     alignment: Alignment.center,
     decoration: BoxDecoration(
       // Цвет аватара — из токенов темы (design/tokens.json).
-      color: context.tokens.avatar(profile.color),
+      color: _tokens(context).avatar(color),
       shape: BoxShape.circle,
     ),
     child: Text(
-      profile.name.characters.first.toUpperCase(),
+      letter.isEmpty ? '?' : letter.characters.first.toUpperCase(),
       style: AppText.labelStrong.copyWith(
         color: AppTokens.onAvatar,
         fontSize: size * 0.42,
@@ -34,6 +88,42 @@ class ProfileAvatar extends StatelessWidget {
       ),
     ),
   );
+
+  @override
+  Widget build(BuildContext context) {
+    final src = url;
+    if (src == null || src.isEmpty) return _letter(context);
+    final t = _tokens(context);
+    final resolve =
+        resolver ?? AppScope.maybeOf(context)?.imageResolver ?? networkImage;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: t.avatarGround, shape: BoxShape.circle),
+      foregroundDecoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: t.avatarRing,
+          strokeAlign: BorderSide.strokeAlignInside,
+        ),
+      ),
+      child: ClipOval(
+        child: Image(
+          image: resolve(sized(src, size)),
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          // Alt пустой: рядом всегда имя профиля или логин.
+          excludeFromSemantics: true,
+          frameBuilder: (context, child, frame, sync) => sync || frame != null
+              ? child
+              : Skeleton(width: size, height: size, radius: size / 2),
+          errorBuilder: (context, _, _) =>
+              Tooltip(message: loadError, child: _letter(context)),
+        ),
+      ),
+    );
+  }
 }
 
 /// Подпись профиля: «3 тайтла · GitHub login» или «· без входа в GitHub».
@@ -256,7 +346,7 @@ class ProfileMenuButton extends StatelessWidget {
           menuChildren: [
             for (final p in profiles)
               MenuItemButton(
-                leadingIcon: ProfileAvatar(profile: p, size: 28),
+                leadingIcon: ProfileAvatar(profile: p, size: 32),
                 trailingIcon: p.id == current.id
                     ? Icon(Symbols.check_rounded, size: 18, color: t.accent)
                     : null,

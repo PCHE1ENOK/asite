@@ -517,7 +517,11 @@ void main() {
 
     test('wrong, empty and fine-grained tokens rejected', () async {
       await sync.start();
-      expect((await failure('')).message, 'Вставьте токен GitHub');
+      expect((await failure('')).message, 'Вставьте токен');
+      expect(
+        (await failure('просто текст')).message,
+        startsWith('Это не похоже на токен GitHub'),
+      );
       expect((await failure('github_pat_abc')).message, contains('classic'));
       final wrong = await failure('ghp_wrong');
       expect(wrong.kind, GitHubErrorKind.unauthorized);
@@ -552,5 +556,66 @@ void main() {
       expect(web.canSignIn, isTrue);
       expect(makeSync().canSignIn, isTrue);
     });
+  });
+
+  group('GitHub avatar', () {
+    Future<String?> avatar() async =>
+        (await ProfileRepository(db).byId(sync.profileId))!.githubAvatarUrl;
+
+    test(
+      'saved on sign-in (Device Flow and token), cleared on sign-out',
+      () async {
+        await sync.start();
+        final r = await signIn();
+        expect(r.avatarUrl, 'https://avatars.githubusercontent.com/u/1?v=4');
+        expect(await avatar(), 'https://avatars.githubusercontent.com/u/1?v=4');
+        await sync.signOut();
+        expect(await avatar(), isNull, reason: 'без входа — буква');
+
+        github.token = 'ghp_web';
+        github.avatarUrl = 'https://avatars.githubusercontent.com/u/2?v=4';
+        await sync.signInWithToken('ghp_web');
+        expect(await avatar(), 'https://avatars.githubusercontent.com/u/2?v=4');
+      },
+    );
+
+    test('another account changes the avatar', () async {
+      await sync.start();
+      await signIn();
+      await sync.signOut();
+      github
+        ..login = 'kaito'
+        ..avatarUrl = 'https://avatars.githubusercontent.com/u/9?v=4'
+        ..pendingPolls = 1;
+      final r = await signIn();
+      expect(r.login, 'kaito');
+      expect(await avatar(), 'https://avatars.githubusercontent.com/u/9?v=4');
+    });
+
+    test(
+      'refreshed by sync at most once a day; errors keep the old one',
+      () async {
+        await sync.start();
+        await signIn();
+        final requests = github.userRequests;
+        github.avatarUrl = 'https://avatars.githubusercontent.com/u/1?v=5';
+        now = now.add(const Duration(hours: 5));
+        await sync.syncNow();
+        expect(github.userRequests, requests, reason: 'сутки не прошли');
+        expect(await avatar(), 'https://avatars.githubusercontent.com/u/1?v=4');
+
+        now = now.add(const Duration(days: 1));
+        await sync.syncNow();
+        expect(github.userRequests, requests + 1);
+        expect(await avatar(), 'https://avatars.githubusercontent.com/u/1?v=5');
+
+        // Нет аватара в ответе — буква; синхронизация не падает.
+        github.avatarUrl = null;
+        now = now.add(const Duration(days: 1));
+        await sync.syncNow();
+        expect(sync.state.value.status, SyncStatus.synced);
+        expect(await avatar(), isNull);
+      },
+    );
   });
 }

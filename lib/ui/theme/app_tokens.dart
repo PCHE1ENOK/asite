@@ -35,6 +35,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.shadowE2,
     required this.avatars,
     required this.titleBanner,
+    required this.avatarGround,
+    required this.avatarRing,
   });
 
   final Color bg;
@@ -75,6 +77,11 @@ class AppTokens extends ThemeExtension<AppTokens> {
   final List<Color> avatars;
 
   Color avatar(int index) => avatars[index % avatars.length];
+
+  /// Подложка под картинкой аватара GitHub и обводка 1 px внутрь
+  /// (design/screens.md §9.1).
+  final Color avatarGround;
+  final Color avatarRing;
 
   static const adultBg = _adultBg;
   static const adultFg = _adultFg;

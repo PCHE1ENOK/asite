@@ -4,7 +4,7 @@
 //
 // Пишет lib/ui/theme/app_tokens.g.dart (part файла app_tokens.dart):
 // палитры светлой и тёмной темы, статусы списка, тени e1/e2, бейдж 18+,
-// цвета аватаров профилей. Руками этот файл не правится — меняется
+// цвета аватаров профилей, подложка и обводка аватара GitHub. Руками этот файл не правится — меняется
 // design/tokens.json и скрипт запускается заново. Тест
 // test/tokens_test.dart проверяет, что файл совпадает с json.
 // ignore_for_file: avoid_print
@@ -84,6 +84,7 @@ String generate(Map<String, dynamic> json) {
   final elevation = json['elevation'] as Map<String, dynamic>;
   final listStatus = c['listStatus'] as Map<String, dynamic>;
   final adult = c['adult'] as Map<String, dynamic>;
+  final avatar = c['avatar'] as Map<String, dynamic>;
   final out = StringBuffer()
     ..writeln('// СГЕНЕРИРОВАНО tool/gen_tokens.dart из design/tokens.json.')
     ..writeln('// Не править руками: dart run tool/gen_tokens.dart')
@@ -121,6 +122,14 @@ String generate(Map<String, dynamic> json) {
       ..writeln('  shadowE1: ${shadows(el['e1'] as String)},')
       ..writeln('  shadowE2: ${shadows(el['e2'] as String)},')
       ..writeln('  titleBanner: ${banner[mode]},')
+      ..writeln(
+        '  avatarGround: '
+        '${color((avatar['ground'] as Map<String, dynamic>)[mode] as String)},',
+      )
+      ..writeln(
+        '  avatarRing: '
+        '${color((avatar['ring'] as Map<String, dynamic>)[mode] as String)},',
+      )
       ..writeln('  avatars: [')
       ..writeAll([for (final a in avatars) '    ${color(a)},\n'])
       ..writeln('  ],')

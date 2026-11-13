@@ -5,6 +5,7 @@ import 'package:anime_viewer/data/library/library_repository.dart';
 import 'package:anime_viewer/data/profiles/profile_repository.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:anime_viewer/ui/login_flow.dart';
+import 'package:anime_viewer/ui/theme/app_theme.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final db = AppDatabase(NativeDatabase.memory());
-    final github = FakeGitHub()..token = 'ghp_ok';
+    final github = FakeGitHub()
+      ..token = 'ghp_ok'
+      // Без картинки: в тесте нет сети, аватар — буква.
+      ..avatarUrl = null;
     final tokens = MemoryTokenStore();
     final sync = SyncService(
       library: LibraryRepository(db),
@@ -36,13 +40,32 @@ void main() {
     );
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.build(Brightness.dark),
         home: LoginFlow(sync: sync, onDone: () {}, pasteToken: true),
       ),
     );
 
-    expect(find.text('Токен GitHub (только права gist)'), findsOneWidget);
+    expect(find.text('Токен GitHub (только право gist)'), findsOneWidget);
     expect(find.text('Открыть GitHub'), findsOneWidget);
-    expect(find.textContaining('только в этом браузере'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'Токен хранится только в этом браузере',
+        findRichText: true,
+      ),
+      findsOneWidget,
+    );
+    // Кнопка-глаз показывает и скрывает токен.
+    expect(find.byTooltip('Показать токен'), findsOneWidget);
+    await tester.tap(find.byTooltip('Показать токен'));
+    await tester.pump();
+    expect(find.byTooltip('Скрыть токен'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Войти'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Войти'));
+    await UiHarness.settle(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Вставьте токен'), findsOneWidget);
     expect(
       find.text('Вход недоступен: не задан GITHUB_CLIENT_ID'),
       findsNothing,
@@ -54,16 +77,25 @@ void main() {
     );
 
     await tester.enterText(find.byType(TextField), 'github_pat_x');
+    await tester.ensureVisible(find.text('Войти'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Войти'));
     await UiHarness.settle(tester);
     await tester.pumpAndSettle();
     expect(find.textContaining('fine-grained'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'ghp_ok');
+    await tester.ensureVisible(find.text('Войти'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Войти'));
     await UiHarness.settle(tester);
     await tester.pumpAndSettle();
     expect(find.text('Вы вошли как octocat'), findsOneWidget);
+    expect(
+      find.text('O'),
+      findsOneWidget,
+      reason: 'аватар без картинки — буква',
+    );
     expect(tokens.token, 'ghp_ok');
 
     await tester.pumpWidget(const SizedBox.shrink());

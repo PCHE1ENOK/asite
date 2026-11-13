@@ -100,6 +100,11 @@ void main() {
     await fav.set(16498, true);
     expect((await fav.allForSync()).single.mediaId, 16498);
     expect((await db.select(db.libraryEntries).get()).single.progress, 3);
+    // Схема 6: у профиля появилась колонка аватара GitHub.
+    final profiles = ProfileRepository(db);
+    expect((await profiles.byId(1))!.githubAvatarUrl, isNull);
+    await profiles.setGitHubAvatar(1, 'https://a.test/1.png');
+    expect((await profiles.byId(1))!.githubAvatarUrl, 'https://a.test/1.png');
   });
 
   test('codec v3 keeps favorites; older files read without them', () {

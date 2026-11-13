@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../data/models/anime.dart';
+import '../../data/profiles/profile_repository.dart';
 import '../../data/sync/sync_service.dart';
 import '../app_scope.dart';
 import '../catalog/catalog_screen.dart';
@@ -380,10 +382,27 @@ class _ProfileIcon extends StatelessWidget {
       valueListenable: sync.state,
       builder: (context, state, _) {
         final dot = syncDotColor(state, t);
+        final services = AppScope.of(context).services;
+        // Вошёл в GitHub — аватар вместо значка (design/screens.md §9.1).
+        final avatar = StreamBuilder<List<Profile>>(
+          stream: services.profiles.watchAll(),
+          builder: (context, snapshot) {
+            final me =
+                snapshot.data
+                    ?.where((p) => p.id == services.profile.id)
+                    .firstOrNull ??
+                services.profile;
+            if (me.githubAvatarUrl == null) return Icon(icon, fill: fill);
+            return ProfileAvatar(
+              profile: me,
+              size: defaultTargetPlatform == TargetPlatform.iOS ? 26 : 24,
+            );
+          },
+        );
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            Icon(icon, fill: fill),
+            avatar,
             if (dot != null)
               Positioned(
                 right: -3,

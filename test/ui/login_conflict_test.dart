@@ -6,6 +6,7 @@ import 'package:anime_viewer/data/library/library_repository.dart';
 import 'package:anime_viewer/data/profiles/profile_repository.dart';
 import 'package:anime_viewer/data/sync/sync_service.dart';
 import 'package:anime_viewer/ui/login_flow.dart';
+import 'package:anime_viewer/ui/theme/app_theme.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +45,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.build(Brightness.dark),
         home: LoginFlow(
           sync: sync,
           onDone: () {},

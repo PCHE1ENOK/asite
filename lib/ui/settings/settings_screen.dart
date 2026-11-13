@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/profiles/profile_repository.dart';
 import '../../data/settings/app_preferences.dart';
+import '../../data/sources/youtube_key_check.dart';
 import '../../data/sync/sync_service.dart';
 import '../../platform/platform.dart' as platform;
 import '../app_scope.dart';
@@ -15,6 +17,7 @@ import '../profiles/profile_widgets.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/badges.dart';
+import '../widgets/notice_plate.dart';
 import 'sync_visuals.dart';
 import 'share_group.dart';
 import '../widgets/toast.dart';
@@ -22,6 +25,10 @@ import '../widgets/toast.dart';
 /// Настройки (design/screens.md §7).
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  /// Веб-версия (в тестах подменяется).
+  @visibleForTesting
+  static bool isWeb = platform.isWeb;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +63,10 @@ class SettingsScreen extends StatelessWidget {
                         sync: scope.services.sync,
                         profileName: scope.services.profile.name,
                       ),
+                      // Веб-версия: свой ключ YouTube (§18.2), общий для
+                      // всех профилей браузера.
+                      if (SettingsScreen.isWeb)
+                        const _Group(title: 'YouTube', rows: [YouTubeKeyRow()]),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Text(
@@ -82,9 +93,7 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (platform.isWeb)
-                        const _Group(title: 'YouTube', rows: [_YouTubeKeyRow()])
-                      else
+                      if (!SettingsScreen.isWeb)
                         _Group(
                           title: 'Плеер',
                           rows: [
@@ -130,23 +139,95 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-/// Веб-версия: свой ключ YouTube Data API. Хранится только в этом
-/// браузере; ключей в публичной сборке нет.
-class _YouTubeKeyRow extends StatefulWidget {
-  const _YouTubeKeyRow();
+/// Веб-версия: «Свой ключ YouTube» (design/screens.md §18.2). Ключ
+/// хранится только в этом браузере; ключей в публичной сборке нет.
+class YouTubeKeyRow extends StatefulWidget {
+  const YouTubeKeyRow({
+    super.key,
+    this.currentKey = platform.youtubeApiKey,
+    this.save = platform.saveYoutubeApiKey,
+    this.check = checkYouTubeKey,
+  });
+
+  final String Function() currentKey;
+  final Future<void> Function(String? key) save;
+  final Future<YouTubeKeyCheck> Function(String key) check;
+
+  /// «Указать ключ» во вкладке «Сообщество»: прокрутка к полю и фокус.
+  static final focusRequest = ValueNotifier<int>(0);
+
+  static const helpUrl =
+      'https://console.cloud.google.com/apis/library/youtube.googleapis.com';
 
   @override
-  State<_YouTubeKeyRow> createState() => _YouTubeKeyRowState();
+  State<YouTubeKeyRow> createState() => _YouTubeKeyRowState();
 }
 
-class _YouTubeKeyRowState extends State<_YouTubeKeyRow> {
+class _YouTubeKeyRowState extends State<YouTubeKeyRow> {
   final _key = TextEditingController();
-  final bool _hasKey = platform.youtubeApiKey().isNotEmpty;
+  final _focus = FocusNode();
+  late final String _current = widget.currentKey();
+  String? _error;
+  bool _busy = false;
+
+  bool get _hasKey => _current.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    YouTubeKeyRow.focusRequest.addListener(_onFocusRequest);
+    // Запрос пришёл до того, как вкладка настроек была построена.
+    if (YouTubeKeyRow.focusRequest.value != _handled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onFocusRequest());
+    }
+  }
 
   @override
   void dispose() {
+    YouTubeKeyRow.focusRequest.removeListener(_onFocusRequest);
     _key.dispose();
+    _focus.dispose();
     super.dispose();
+  }
+
+  /// Последний выполненный запрос фокуса.
+  static int _handled = 0;
+
+  void _onFocusRequest() {
+    if (!mounted) return;
+    _handled = YouTubeKeyRow.focusRequest.value;
+    Scrollable.ensureVisible(context, duration: AppMotion.base);
+    _focus.requestFocus();
+  }
+
+  Future<void> _save() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final result = await widget.check(_key.text);
+    if (!mounted) return;
+    final error = switch (result) {
+      YouTubeKeyCheck.ok => null,
+      YouTubeKeyCheck.empty => 'Вставьте ключ',
+      YouTubeKeyCheck.invalid =>
+        'Ключ не подошёл: YouTube отвечает «ключ неверный». Ключ начинается '
+            'с AIza и длиной 39 символов.',
+      YouTubeKeyCheck.notEnabled =>
+        'В проекте Google Cloud не включён YouTube Data API v3. Включите его '
+            'и попробуйте снова.',
+      YouTubeKeyCheck.failed =>
+        'Не удалось проверить ключ: нет связи с YouTube. Попробуйте ещё раз.',
+    };
+    setState(() {
+      _busy = false;
+      _error = error;
+    });
+    if (error == null) {
+      await widget.save(_key.text);
+    } else {
+      _focus.requestFocus();
+    }
   }
 
   @override
@@ -157,37 +238,61 @@ class _YouTubeKeyRowState extends State<_YouTubeKeyRow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Свой ключ YouTube',
-            style: AppText.bodyStrong.copyWith(color: t.fg),
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                'Свой ключ YouTube',
+                style: AppText.bodyStrong.copyWith(color: t.fg),
+              ),
+              if (_hasKey)
+                Text(
+                  '✓ Задан · ${maskKey(_current)}',
+                  style: AppText.label.copyWith(color: t.good),
+                )
+              else
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Symbols.key_rounded, size: 16, color: t.fg2),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Не задан',
+                      style: AppText.label.copyWith(color: t.fg2),
+                    ),
+                  ],
+                ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
             _hasKey
-                ? 'Ключ задан. Серии, трейлеры, комментарии и «Сообщество» '
-                      'ищутся с ним; видео открывается на YouTube'
-                : 'Без ключа серии, трейлеры, комментарии и «Сообщество» '
-                      'выключены. Ключ YouTube Data API v3 (бесплатный) '
-                      'создаётся в Google Cloud Console',
+                ? 'С ключом ищутся трейлеры, официальные серии, комментарии и '
+                      '«Сообщество».'
+                : 'Без ключа не работают поиск трейлеров, официальные серии на '
+                      'YouTube, комментарии и «Сообщество». Ключ YouTube Data '
+                      'API v3 бесплатный, создаётся в Google Cloud Console.',
             style: AppText.label.copyWith(color: t.fg2),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Хранится только в этом браузере. Видео — в приложении: в '
-            'браузере оно открывается на YouTube',
-            style: AppText.caption.copyWith(color: t.fg2),
+          const SizedBox(height: 12),
+          SecretField(
+            controller: _key,
+            focusNode: _focus,
+            label: _hasKey ? 'Новый ключ' : 'Ключ',
+            hint: 'AIza…',
+            showLabel: 'Показать ключ',
+            hideLabel: 'Скрыть ключ',
+            error: _error,
+            onSubmitted: (_) => _busy ? null : _save(),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _key,
-            obscureText: true,
-            autocorrect: false,
-            enableSuggestions: false,
-            decoration: InputDecoration(
-              labelText: _hasKey ? 'Новый ключ' : 'Ключ (AIza…)',
-              border: const OutlineInputBorder(),
-              isDense: true,
-            ),
+          const NoticePlate(
+            title: 'Ключ хранится только в этом браузере',
+            text:
+                '(localStorage). В веб-версии видео не встраивается — серии и '
+                'трейлеры открываются на YouTube; встроенный плеер есть в '
+                'приложении.',
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -195,20 +300,28 @@ class _YouTubeKeyRowState extends State<_YouTubeKeyRow> {
             runSpacing: 8,
             children: [
               FilledButton(
-                onPressed: () {
-                  if (_key.text.trim().isNotEmpty) {
-                    platform.saveYoutubeApiKey(_key.text);
-                  }
-                },
-                child: const Text('Сохранить'),
+                onPressed: _busy ? null : _save,
+                child: const Text('Проверить и сохранить'),
               ),
               if (_hasKey)
                 OutlinedButton(
-                  onPressed: () => platform.saveYoutubeApiKey(null),
+                  onPressed: _busy ? null : () => widget.save(null),
                   child: const Text('Удалить ключ'),
                 ),
+              TextButton.icon(
+                onPressed: () => launchUrl(
+                  Uri.parse(YouTubeKeyRow.helpUrl),
+                  mode: LaunchMode.externalApplication,
+                ),
+                icon: const Icon(Symbols.open_in_new_rounded, size: 18),
+                label: const Text('Как получить ключ'),
+              ),
             ],
           ),
+          if (_busy) ...[
+            const SizedBox(height: 12),
+            const LinearProgressIndicator(),
+          ],
         ],
       ),
     );
@@ -340,6 +453,29 @@ class _Row extends StatelessWidget {
   }
 }
 
+/// Аватар текущего профиля; обновляется, когда синхронизация получает
+/// новый аватар GitHub.
+class _CurrentProfileAvatar extends StatelessWidget {
+  const _CurrentProfileAvatar({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = AppScope.of(context).services;
+    final current = services.profile;
+    return StreamBuilder<List<Profile>>(
+      stream: services.profiles.watchAll(),
+      builder: (context, snapshot) => ProfileAvatar(
+        profile:
+            snapshot.data?.where((p) => p.id == current.id).firstOrNull ??
+            current,
+        size: size,
+      ),
+    );
+  }
+}
+
 class _ThemePicker extends StatelessWidget {
   const _ThemePicker({required this.value, required this.onChanged});
 
@@ -393,7 +529,9 @@ class _AccountGroup extends StatelessWidget {
             rows: [
               _Row(
                 title: 'Вход не выполнен',
-                subtitle: 'Списки хранятся только на этом устройстве',
+                subtitle: SettingsScreen.isWeb
+                    ? 'Списки хранятся только в этом браузере'
+                    : 'Списки хранятся только на этом устройстве',
                 trailing: FilledButton(
                   onPressed: sync.canSignIn
                       ? () => pushLoginFlow(
@@ -433,12 +571,16 @@ class _AccountGroup extends StatelessWidget {
             _Row(
               title: 'GitHub · ${state.login ?? ''}',
               subtitle: 'Списки в приватном Gist',
+              avatar: const _CurrentProfileAvatar(size: 56),
               trailing: OutlinedButton(
                 onPressed: () async {
                   await sync.signOut();
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showToast(
-                      'Вы вышли из GitHub. Списки остались на устройстве',
+                      SettingsScreen.isWeb
+                          ? 'Вы вышли из GitHub, токен стёрт из браузера. '
+                                'Списки остались в браузере'
+                          : 'Вы вышли из GitHub. Списки остались на устройстве',
                     );
                   }
                 },

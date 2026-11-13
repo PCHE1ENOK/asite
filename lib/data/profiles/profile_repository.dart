@@ -9,6 +9,7 @@ class Profile {
     required this.name,
     required this.color,
     this.githubLogin,
+    this.githubAvatarUrl,
   });
 
   final int id;
@@ -18,11 +19,15 @@ class Profile {
   final int color;
   final String? githubLogin;
 
+  /// Аватар аккаунта GitHub; `null` — без входа или ещё не получен.
+  final String? githubAvatarUrl;
+
   static Profile fromRow(ProfileRow r) => Profile(
     id: r.id,
     name: r.name,
     color: r.color,
     githubLogin: r.githubLogin,
+    githubAvatarUrl: r.githubAvatarUrl,
   );
 
   @override
@@ -31,10 +36,12 @@ class Profile {
       other.id == id &&
       other.name == name &&
       other.color == color &&
-      other.githubLogin == githubLogin;
+      other.githubLogin == githubLogin &&
+      other.githubAvatarUrl == githubAvatarUrl;
 
   @override
-  int get hashCode => Object.hash(id, name, color, githubLogin);
+  int get hashCode =>
+      Object.hash(id, name, color, githubLogin, githubAvatarUrl);
 }
 
 /// Ошибка при создании профиля или привязке GitHub.
@@ -137,7 +144,11 @@ class ProfileRepository {
 
   /// Привязывает логин GitHub. Один аккаунт — один профиль: если логин уже
   /// у другого профиля, бросает [GitHubAccountInUse].
-  Future<void> bindGitHub(int profileId, String login) async {
+  Future<void> bindGitHub(
+    int profileId,
+    String login, {
+    String? avatarUrl,
+  }) async {
     final other =
         await (_db.select(_db.profiles)..where(
               (t) =>
@@ -146,13 +157,28 @@ class ProfileRepository {
             ))
             .getSingleOrNull();
     if (other != null) throw GitHubAccountInUse(Profile.fromRow(other));
-    await (_db.update(_db.profiles)..where((t) => t.id.equals(profileId)))
-        .write(ProfilesCompanion(githubLogin: Value(login)));
+    await (_db.update(
+      _db.profiles,
+    )..where((t) => t.id.equals(profileId))).write(
+      ProfilesCompanion(
+        githubLogin: Value(login),
+        githubAvatarUrl: Value(avatarUrl),
+      ),
+    );
   }
+
+  /// Обновляет аватар GitHub профиля (раз в сутки при синхронизации).
+  Future<void> setGitHubAvatar(int profileId, String? avatarUrl) =>
+      (_db.update(_db.profiles)..where((t) => t.id.equals(profileId))).write(
+        ProfilesCompanion(githubAvatarUrl: Value(avatarUrl)),
+      );
 
   Future<void> unbindGitHub(int profileId) =>
       (_db.update(_db.profiles)..where((t) => t.id.equals(profileId))).write(
-        const ProfilesCompanion(githubLogin: Value(null)),
+        const ProfilesCompanion(
+          githubLogin: Value(null),
+          githubAvatarUrl: Value(null),
+        ),
       );
 
   /// Удаляет профиль и его локальные данные (списки и настройки профиля).

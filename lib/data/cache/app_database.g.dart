@@ -715,6 +715,17 @@ class $ProfilesTable extends Profiles
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _githubAvatarUrlMeta = const VerificationMeta(
+    'githubAvatarUrl',
+  );
+  @override
+  late final GeneratedColumn<String> githubAvatarUrl = GeneratedColumn<String>(
+    'github_avatar_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -722,6 +733,7 @@ class $ProfilesTable extends Profiles
     color,
     githubLogin,
     createdAt,
+    githubAvatarUrl,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -769,6 +781,15 @@ class $ProfilesTable extends Profiles
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('github_avatar_url')) {
+      context.handle(
+        _githubAvatarUrlMeta,
+        githubAvatarUrl.isAcceptableOrUnknown(
+          data['github_avatar_url']!,
+          _githubAvatarUrlMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -798,6 +819,10 @@ class $ProfilesTable extends Profiles
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      githubAvatarUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}github_avatar_url'],
+      ),
     );
   }
 
@@ -817,12 +842,16 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   /// Логин GitHub; один аккаунт — один профиль.
   final String? githubLogin;
   final DateTime createdAt;
+
+  /// Аватар аккаунта GitHub (`avatar_url` из `GET /user`), схема 6.
+  final String? githubAvatarUrl;
   const ProfileRow({
     required this.id,
     required this.name,
     required this.color,
     this.githubLogin,
     required this.createdAt,
+    this.githubAvatarUrl,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -834,6 +863,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       map['github_login'] = Variable<String>(githubLogin);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || githubAvatarUrl != null) {
+      map['github_avatar_url'] = Variable<String>(githubAvatarUrl);
+    }
     return map;
   }
 
@@ -846,6 +878,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ? const Value.absent()
           : Value(githubLogin),
       createdAt: Value(createdAt),
+      githubAvatarUrl: githubAvatarUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(githubAvatarUrl),
     );
   }
 
@@ -860,6 +895,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       color: serializer.fromJson<int>(json['color']),
       githubLogin: serializer.fromJson<String?>(json['githubLogin']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      githubAvatarUrl: serializer.fromJson<String?>(json['githubAvatarUrl']),
     );
   }
   @override
@@ -871,6 +907,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       'color': serializer.toJson<int>(color),
       'githubLogin': serializer.toJson<String?>(githubLogin),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'githubAvatarUrl': serializer.toJson<String?>(githubAvatarUrl),
     };
   }
 
@@ -880,12 +917,16 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     int? color,
     Value<String?> githubLogin = const Value.absent(),
     DateTime? createdAt,
+    Value<String?> githubAvatarUrl = const Value.absent(),
   }) => ProfileRow(
     id: id ?? this.id,
     name: name ?? this.name,
     color: color ?? this.color,
     githubLogin: githubLogin.present ? githubLogin.value : this.githubLogin,
     createdAt: createdAt ?? this.createdAt,
+    githubAvatarUrl: githubAvatarUrl.present
+        ? githubAvatarUrl.value
+        : this.githubAvatarUrl,
   );
   ProfileRow copyWithCompanion(ProfilesCompanion data) {
     return ProfileRow(
@@ -896,6 +937,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ? data.githubLogin.value
           : this.githubLogin,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      githubAvatarUrl: data.githubAvatarUrl.present
+          ? data.githubAvatarUrl.value
+          : this.githubAvatarUrl,
     );
   }
 
@@ -906,13 +950,15 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ..write('name: $name, ')
           ..write('color: $color, ')
           ..write('githubLogin: $githubLogin, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('githubAvatarUrl: $githubAvatarUrl')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, color, githubLogin, createdAt);
+  int get hashCode =>
+      Object.hash(id, name, color, githubLogin, createdAt, githubAvatarUrl);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -921,7 +967,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           other.name == this.name &&
           other.color == this.color &&
           other.githubLogin == this.githubLogin &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.githubAvatarUrl == this.githubAvatarUrl);
 }
 
 class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
@@ -930,12 +977,14 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
   final Value<int> color;
   final Value<String?> githubLogin;
   final Value<DateTime> createdAt;
+  final Value<String?> githubAvatarUrl;
   const ProfilesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.color = const Value.absent(),
     this.githubLogin = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.githubAvatarUrl = const Value.absent(),
   });
   ProfilesCompanion.insert({
     this.id = const Value.absent(),
@@ -943,6 +992,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.color = const Value.absent(),
     this.githubLogin = const Value.absent(),
     required DateTime createdAt,
+    this.githubAvatarUrl = const Value.absent(),
   }) : name = Value(name),
        createdAt = Value(createdAt);
   static Insertable<ProfileRow> custom({
@@ -951,6 +1001,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     Expression<int>? color,
     Expression<String>? githubLogin,
     Expression<DateTime>? createdAt,
+    Expression<String>? githubAvatarUrl,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -958,6 +1009,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       if (color != null) 'color': color,
       if (githubLogin != null) 'github_login': githubLogin,
       if (createdAt != null) 'created_at': createdAt,
+      if (githubAvatarUrl != null) 'github_avatar_url': githubAvatarUrl,
     });
   }
 
@@ -967,6 +1019,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     Value<int>? color,
     Value<String?>? githubLogin,
     Value<DateTime>? createdAt,
+    Value<String?>? githubAvatarUrl,
   }) {
     return ProfilesCompanion(
       id: id ?? this.id,
@@ -974,6 +1027,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       color: color ?? this.color,
       githubLogin: githubLogin ?? this.githubLogin,
       createdAt: createdAt ?? this.createdAt,
+      githubAvatarUrl: githubAvatarUrl ?? this.githubAvatarUrl,
     );
   }
 
@@ -995,6 +1049,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (githubAvatarUrl.present) {
+      map['github_avatar_url'] = Variable<String>(githubAvatarUrl.value);
+    }
     return map;
   }
 
@@ -1005,7 +1062,8 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
           ..write('name: $name, ')
           ..write('color: $color, ')
           ..write('githubLogin: $githubLogin, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('githubAvatarUrl: $githubAvatarUrl')
           ..write(')'))
         .toString();
   }
@@ -2948,6 +3006,7 @@ typedef $$ProfilesTableCreateCompanionBuilder = ProfilesCompanion Function({
   Value<int> color,
   Value<String?> githubLogin,
   required DateTime createdAt,
+  Value<String?> githubAvatarUrl,
 });
 typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
   Value<int> id,
@@ -2955,6 +3014,7 @@ typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
   Value<int> color,
   Value<String?> githubLogin,
   Value<DateTime> createdAt,
+  Value<String?> githubAvatarUrl,
 });
 
 final class $$ProfilesTableReferences
@@ -3048,6 +3108,11 @@ class $$ProfilesTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get githubAvatarUrl => $composableBuilder(
+    column: $table.githubAvatarUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3160,6 +3225,11 @@ class $$ProfilesTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get githubAvatarUrl => $composableBuilder(
+    column: $table.githubAvatarUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProfilesTableAnnotationComposer
@@ -3187,6 +3257,11 @@ class $$ProfilesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get githubAvatarUrl => $composableBuilder(
+    column: $table.githubAvatarUrl,
+    builder: (column) => column,
+  );
 
   Expression<T> libraryEntriesRefs<T extends Object>(
     Expression<T> Function($$LibraryEntriesTableAnnotationComposer a) f,
@@ -3301,12 +3376,14 @@ class $$ProfilesTableTableManager
                 Value<int> color = const Value.absent(),
                 Value<String?> githubLogin = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<String?> githubAvatarUrl = const Value.absent(),
               }) => ProfilesCompanion(
                 id: id,
                 name: name,
                 color: color,
                 githubLogin: githubLogin,
                 createdAt: createdAt,
+                githubAvatarUrl: githubAvatarUrl,
               ),
           createCompanionCallback:
               ({
@@ -3315,12 +3392,14 @@ class $$ProfilesTableTableManager
                 Value<int> color = const Value.absent(),
                 Value<String?> githubLogin = const Value.absent(),
                 required DateTime createdAt,
+                Value<String?> githubAvatarUrl = const Value.absent(),
               }) => ProfilesCompanion.insert(
                 id: id,
                 name: name,
                 color: color,
                 githubLogin: githubLogin,
                 createdAt: createdAt,
+                githubAvatarUrl: githubAvatarUrl,
               ),
           withReferenceMapper: (p0) => p0
               .map(
