@@ -554,6 +554,15 @@ a.fcard:hover { background: var(--s2); }
 .pubrow .lbl small b { color: var(--good); font-weight: 600; }
 .app.m .fr-find .btn { padding: 0 14px; }
 .app.m .fr-list { grid-template-columns: 1fr; }
+.fr-sec { margin-bottom: 28px; }
+.fr-acts { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.fr-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--fg2); padding: 0 8px; }
+.fr-wait svg { width: 16px; height: 16px; }
+.fcard > .fr-acts { flex-basis: 100%; padding-left: 62px; }
+.fcard .cap.wrap { white-space: normal; }
+.app.m .fcard > .fr-acts { padding-left: 0; }
+.app.m .fcard > .fr-acts .btn-filled { flex: 1; justify-content: center; }
+.rail a .nbadge { position: absolute; top: 4px; left: calc(50% + 4px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--bad); color: var(--bg); font: 700 10px/16px var(--f-text); text-align: center; box-shadow: 0 0 0 2px var(--bg); }
 .fcard { flex-wrap: wrap; }
 .app.m .fcard > .btn { flex-basis: 100%; justify-content: center; }
 .app.m .fr-head h1 { font-size: 22px; line-height: 28px; }
@@ -1353,14 +1362,17 @@ const FR_DIR = {
     7:{ verdict:'rewatch', summary:'Пересмотреть летом, на большом экране.', moments:[{e:1,t:'1:12:30',x:'Комета'}] } }, '2 часа назад'),
   'kenji-lists': mkFriend('kenji-lists', 'Кэндзи', { CURRENT:[6,14], COMPLETED:[4,9,12,15], PLANNING:[1,2,3], DROPPED:[17] }, [6,15], {
     17:{ verdict:'not', summary:'Ради мемов можно, но нет.', moments:[{e:1,t:'03:00',x:'CGI'}] } }, 'вчера'),
+  'ren-anime': mkFriend('ren-anime', 'Рэн', { CURRENT:[9,4], COMPLETED:[6,1,11], PLANNING:[2], DROPPED:[] }, [9], {}, '3 часа назад'),
   'sora-watch': mkFriend('sora-watch', 'Сора', { CURRENT:[2], COMPLETED:[7,18,5,8], PLANNING:[16], DROPPED:[] }, [18], {}, '5 дней назад'),
 };
-const FR = { list:['mika-anime', 'sora-watch'], q:'', res:null, open:null };
+// Дружба взаимная: запрос → подтверждение, после этого оба в списках друг у друга
+const FR = { list:['mika-anime', 'sora-watch'], inc:[{ gh:'ren-anime', when:'2 часа назад' }], outg:[], q:'', res:null, open:null };
+const frInc = () => $('#demoFriends').value === 'empty' ? [] : FR.inc;
 const frCounts = f => { const c = { CURRENT:0, COMPLETED:0, PLANNING:0, DROPPED:0 }; Object.values(f.lists).forEach(st => c[st]++); return c; };
 const frAv = (f, size) => avatarHtml({ name:f.name, h:200, gh:f.gh }, size);
-function frCard(f, act) {
+function frCard(f, act, sub) {
   const c = frCounts(f);
-  return `<div class="fcard">${frAv(f, 48)}<span class="who2"><b>${esc(f.name)}</b><span class="cap">@${esc(f.gh)} · ${Object.keys(f.lists).length} тайтлов · обновлено ${esc(f.upd)}</span>
+  return `<div class="fcard">${frAv(f, 48)}<span class="who2"><b>${esc(f.name)}</b><span class="cap${sub ? ' wrap' : ''}">@${esc(f.gh)} · ${sub || `${Object.keys(f.lists).length} тайтлов · обновлено ${esc(f.upd)}`}</span>
     <span class="fcnt"><span><i style="background:var(--st-current)"></i>смотрю <b>${c.CURRENT}</b></span><span><i style="background:var(--st-completed)"></i>просмотрено <b>${c.COMPLETED}</b></span><span><i style="background:var(--bad)"></i>понравилось <b>${f.favs.size}</b></span></span></span>${act || ''}</div>`;
 }
 function viewFriends() {
@@ -1371,10 +1383,12 @@ function viewFriends() {
     ${out ? `<div class="fr-res"><div class="fr-msg">${ic('login')}<span><b>Войдите через GitHub, чтобы искать друзей</b>Друзей находят по нику GitHub, а их каталоги хранятся в публичных Gist — без входа приложение не может их искать.<br><a class="btn btn-filled" href="#login" style="text-decoration:none">${ic('login')}Войти через GitHub</a></span></div></div>`
     : `<form class="fr-find" onsubmit="return false"><label class="searchbig">${ic('search')}<input id="frq" type="search" placeholder="Найти друга по нику GitHub" aria-label="Найти друга по нику GitHub" autocomplete="off" spellcheck="false" value="${esc(FR.q)}"></label><button class="btn btn-filled" type="submit" data-act="frFind">Найти</button></form>
     <div class="fr-res" id="frres" aria-live="polite"></div>`}
+    ${frInc().length ? `<section class="fr-sec"><div class="overline" style="margin-bottom:12px">Запросы в друзья · ${frInc().length}</div><div class="fr-list">${frInc().map(q => frCard(FR_DIR[q.gh], `<span class="fr-acts"><button class="btn btn-filled" type="button" data-fracc="${q.gh}">${ic('check')}Принять</button><button class="btn btn-text" type="button" data-frdec="${q.gh}">Отклонить</button></span>`, `хочет добавить вас в друзья · ${esc(q.when)}`)).join('')}</div></section>` : ''}
     <div class="overline" style="margin-bottom:12px">Мои друзья · ${list.length}</div>
     ${list.length ? `<div class="fr-list">${list.map(f => `<a class="fcard-link" href="#friend" data-friend="${f.gh}" style="text-decoration:none;display:block">${frCard(f, ic('chev_r', 'style="width:20px;height:20px;color:var(--fg3);flex:none"'))}</a>`).join('')}</div>`
-      : `<div class="state small">${ic('group')}<h3>Пока нет друзей</h3><div>Найдите друга по нику GitHub. У него в настройках должен быть включён «Публичный каталог».</div></div>`}
-    <p class="sample">Примерные данные. Демо-ники: mika-anime, kenji-lists, sora-watch — есть каталог; private-user — нет публичного каталога; limit — лимит поиска; любой другой — не найден.</p>
+      : `<div class="state small">${ic('group')}<h3>Пока нет друзей</h3><div>Найдите друга по нику GitHub и отправьте запрос. Вы станете друзьями, когда он подтвердит. У него в настройках должен быть включён «Публичный каталог».</div></div>`}
+    ${FR.outg.length ? `<section class="fr-sec" style="margin-top:28px"><div class="overline" style="margin-bottom:12px">Отправленные запросы · ${FR.outg.length}</div><div class="fr-list">${FR.outg.map(g => frCard(FR_DIR[g], `<span class="fr-acts"><span class="fr-wait">${ic('hourglass')}Ждём подтверждения</span><button class="btn btn-text" type="button" data-frcancel="${g}">Отменить</button></span>`, 'запрос отправлен · только что')).join('')}</div><button class="btn btn-text" type="button" data-act="frDemoAccept" style="margin-top:8px">Демо: друг подтвердил запрос</button></section>` : ''}
+    <p class="sample">Примерные данные. Демо-ники: kenji-lists — можно отправить запрос, ren-anime — уже прислал(а) запрос вам, mika-anime — уже друг; private-user — нет публичного каталога; limit — лимит поиска; любой другой — не найден.</p>
   </div>`;
 }
 function paintFriendRes() {
@@ -1384,8 +1398,12 @@ function paintFriendRes() {
   if (r === 'notfound') { box.innerHTML = `<div class="fr-msg">${ic('empty')}<span><b>На GitHub нет пользователя @${esc(FR.q)}</b>Проверьте ник — он такой же, как в адресе github.com/ник.</span></div>`; return; }
   if (r === 'private') { box.innerHTML = `<div class="fr-msg">${frAv({ name:FR.q, gh:FR.q }, 48)}<span><b>У @${esc(FR.q)} нет публичного каталога</b>Пользователь есть на GitHub, но не открыл каталог. Попросите включить «Публичный каталог» в настройках приложения.</span></div>`; return; }
   if (r === 'limit') { box.innerHTML = `<div class="fr-msg">${ic('hourglass')}<span><b>Лимит поиска GitHub исчерпан</b>GitHub ограничивает число запросов в час. Попробуйте через 20 минут — список друзей и их каталоги открываются как обычно.</span></div>`; return; }
-  const f = FR_DIR[r], already = FR.list.includes(r);
-  box.innerHTML = frCard(f, already ? `<a class="btn btn-outline" href="#friend" data-friend="${f.gh}" style="text-decoration:none">${ic('check')}В друзьях</a>` : `<button class="btn btn-filled" type="button" data-fradd="${f.gh}">${ic('person_add')}Добавить в друзья</button>`);
+  const f = FR_DIR[r], g = f.gh;
+  const act = FR.list.includes(g) ? `<a class="btn btn-outline" href="#friend" data-friend="${g}" style="text-decoration:none">${ic('check')}В друзьях</a>`
+    : FR.outg.includes(g) ? `<span class="fr-acts"><span class="fr-wait">${ic('hourglass')}Запрос отправлен</span><button class="btn btn-text" type="button" data-frcancel="${g}">Отменить</button></span>`
+    : frInc().some(q => q.gh === g) ? `<span class="fr-acts"><button class="btn btn-filled" type="button" data-fracc="${g}">${ic('check')}Принять запрос</button><button class="btn btn-text" type="button" data-frdec="${g}">Отклонить</button></span>`
+    : `<button class="btn btn-filled" type="button" data-fradd="${g}">${ic('person_add')}Добавить в друзья</button>`;
+  box.innerHTML = frCard(f, act);
 }
 function friendSearch() {
   const q = ($('#frq').value || '').trim().replace(/^@/, '').toLowerCase(); FR.q = q; if (!q) { FR.res = null; paintFriendRes(); return; }
@@ -2253,7 +2271,7 @@ function render() {
   const r = route();
   applyPlatform(); closeSheet();
   $('#rail').innerHTML = [['catalog','grid','Каталог'],['lists','lists','Списки'],['friends','group','Друзья'],['search','search','Поиск']].map(([k,i,l]) =>
-    `<a href="#${k}" ${r === k || (k === 'catalog' && r === 'title') || (k === 'friends' && r === 'friend') ? 'aria-current="page"' : ''}>${ic(i)}<span>${l}</span></a>`).join('')
+    `<a href="#${k}" ${r === k || (k === 'catalog' && r === 'title') || (k === 'friends' && r === 'friend') ? 'aria-current="page"' : ''}${k === 'friends' && frInc().length ? ` aria-label="Друзья, запросов: ${frInc().length}"` : ''}>${ic(i)}${k === 'friends' && frInc().length ? `<span class="nbadge" aria-hidden="true">${frInc().length}</span>` : ''}<span>${l}</span></a>`).join('')
     + `<span class="spacer"></span><a class="settings-link" href="#settings" ${r === 'settings' ? 'aria-current="page"' : ''} aria-label="Настройки">${ic('settings')}<span>Настройки</span></a>${(() => { const v = SYNC[syncState()]; const out = syncState() === 'out';
       return `<a class="avatar-wrap${r === 'settings' ? ' is-settings' : ''}" href="#settings" ${r === 'login' || r === 'settings' ? 'aria-current="page"' : ''} data-act="${isMob() ? '' : 'pmenu'}" aria-haspopup="${isMob() ? 'false' : 'menu'}" title="Профиль «${esc(prof().name)}»${out ? ' · без входа в GitHub' : ' · ' + v.text.replace(/<[^>]+>/g, '')}">${avatarHtml(prof())}${v.dot ? `<span class="syncdot" style="background:var(${v.dot})"></span>` : ''}<span>${isMob() ? 'Профиль' : esc(prof().name)}</span></a>`; })()}`;
   clearInterval(P.timer); clearNext();
@@ -2313,11 +2331,15 @@ document.addEventListener('click', e => {
   else if (d.trorig) { TR.showOrig.has(d.trorig) ? TR.showOrig.delete(d.trorig) : TR.showOrig.add(d.trorig); paintComments(); }
   else if (d.trpack) downloadPack(d.trpack);
   else if (d.act === 'frFind') { e.preventDefault(); friendSearch(); }
-  else if (d.fradd) { FR.list.push(d.fradd); render(); toast(`${FR_DIR[d.fradd].name} в друзьях`); }
+  else if (d.fradd) { FR.outg.push(d.fradd); render(); toast(`Запрос отправлен. ${FR_DIR[d.fradd].name} станет другом, когда подтвердит`); }
+  else if (d.frcancel) { FR.outg = FR.outg.filter(g => g !== d.frcancel); render(); toast('Запрос отменён'); }
+  else if (d.fracc) { const g = d.fracc; FR.inc = FR.inc.filter(q => q.gh !== g); if (!FR.list.includes(g)) FR.list.unshift(g); render(); toast(`${FR_DIR[g].name} теперь в друзьях — и вы у ${FR_DIR[g].name} тоже`); }
+  else if (d.frdec) { const g = d.frdec; FR.inc = FR.inc.filter(q => q.gh !== g); render(); toast('Запрос отклонён'); }
+  else if (d.act === 'frDemoAccept') { const g = FR.outg.shift(); if (g) { FR.list.unshift(g); render(); toast(`${FR_DIR[g].name} подтвердил(а) запрос — теперь вы друзья`); } }
   else if (d.friend) { FR.open = d.friend; FR.tab = 'CURRENT'; }
   else if (d.frtab) { FR.tab = d.frtab; render(); }
-  else if (d.frdel) { const f = FR_DIR[d.frdel]; openDialog(`<h3>Удалить ${esc(f.name)} из друзей?</h3><p class="dlg-text">Каталог @${esc(f.gh)} пропадёт из вашего списка друзей. У ${esc(f.name)} ничего не изменится, и вы сможете снова найти его по нику.</p><div class="dlg-acts"><button class="btn btn-text" type="button" data-dlg="close">Отмена</button><button class="btn btn-danger" type="button" data-frdelok="${f.gh}">Удалить из друзей</button></div>`); }
-  else if (d.frdelok) { FR.list = FR.list.filter(g => g !== d.frdelok); closeDialog(); location.hash = 'friends'; toast(`${FR_DIR[d.frdelok].name} больше не в друзьях`); }
+  else if (d.frdel) { const f = FR_DIR[d.frdel]; openDialog(`<h3>Удалить ${esc(f.name)} из друзей?</h3><p class="dlg-text">Дружба взаимная, поэтому она закончится у обоих: ${esc(f.name)} пропадёт из вашего списка, а вы — из списка ${esc(f.name)}. Чтобы снова дружить, понадобится новый запрос.</p><div class="dlg-acts"><button class="btn btn-text" type="button" data-dlg="close">Отмена</button><button class="btn btn-danger" type="button" data-frdelok="${f.gh}">Удалить из друзей</button></div>`); }
+  else if (d.frdelok) { FR.list = FR.list.filter(g => g !== d.frdelok); closeDialog(); location.hash = 'friends'; toast(`${FR_DIR[d.frdelok].name} больше не в друзьях — у обоих`); }
   else if (d.act === 'pubOn') openDialog(`<h3>Открыть публичный каталог?</h3><p class="dlg-text">Ваш каталог станет виден всем, кто найдёт вас по нику GitHub <b>@${esc(prof().gh)}</b>: списки, «Понравилось», оценки и все заметки, включая тайтлы 18+. Каталог лежит в публичном Gist и обновляется вместе с синхронизацией.</p><p class="dlg-text">Отключить можно в любой момент в настройках — каталог перестанет находиться и открываться.</p><div class="dlg-acts"><button class="btn btn-text" type="button" data-dlg="close">Отмена</button><button class="btn btn-filled" type="button" data-act="pubOnOk">Открыть каталог</button></div>`);
   else if (d.act === 'pubOnOk') { PUB.on = true; closeDialog(); render(); toast('Каталог открыт. Друзья найдут вас по нику @' + prof().gh); }
   else if (d.act === 'pubOff') openDialog(`<h3>Отключить публичный каталог?</h3><p class="dlg-text">Публичный Gist с каталогом будет удалён. Вас перестанут находить по нику, а у друзей ваш каталог перестанет открываться. Ваши списки и заметки останутся у вас.</p><div class="dlg-acts"><button class="btn btn-text" type="button" data-dlg="close">Отмена</button><button class="btn btn-danger" type="button" data-act="pubOffOk">Отключить публичный каталог</button></div>`);
